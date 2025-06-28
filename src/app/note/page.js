@@ -104,7 +104,7 @@ export default function note() {
                                 <input placeholder="e.g., Quantum Mechanics Introduction" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4"/>
 
                                 <span className="text-white/[70%]">Instructor (Optional)</span>
-                                <input placeholder="e.g., Dr. Jane Smith" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4"/>
+                                <input placeholder="e.g., Dr. Smith" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4"/>
 
                                 </div>
                             </div>
