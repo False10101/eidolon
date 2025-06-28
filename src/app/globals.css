@@ -1,3 +1,38 @@
 @import "tailwindcss";
 
 
+/* In your global CSS */
+/* Fix editor container height */
+
+.w-md-editor {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+
+}
+
+/* Fix content area */
+.w-md-editor-content {
+  flex: 1 !important;
+  overflow: auto !important;
+  min-height: 0 !important;
+}
+
+/* Fix textarea scrolling */
+.w-md-editor-text-input {
+  overflow: auto !important;
+  height: 100% !important;
+}
+
+
+/* Fix preview area */
+.w-md-editor-preview {
+  overflow: auto !important;
+  height: 100% !important;
+}
+
+textarea.w-md-editor-text-input {
+  min-height: 100% !important;
+  height: auto !important;
+}
