@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef } from "react"
 import Checkbox from "rc-checkbox"
-import { SparklesIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon, DocumentArrowDownIcon, DocumentTextIcon, CloudArrowUpIcon } from "@heroicons/react/24/solid";
-import { useRouter } from 'next/navigation';
+import MDEditor from "@uiw/react-md-editor";
+import { useParams, useRouter } from 'next/navigation';
+
+
 
 const AcademicIcon = ({ className }) => (
     <svg className={className} viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,10 +38,8 @@ const CreativeIcon = ({ className }) => (
 
 export default function note() {
 
-    const router = useRouter();
-
-
-    const [selectedStyle, setSelectedStyle] = useState('academic');
+    const [mdText, setMdText] = useState('');
+    const [selectedStyle, setSelectedStyle] = useState('');
     const [smartTagList, setSmartTagList] = useState({ detect_heading: false, highlight_key: false, identify_todo: false, detect_definitions: false, include_summary: false, extract_key_in_summary: false });
     const [isDragging, setIsDragging] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
@@ -46,18 +47,74 @@ export default function note() {
     const [fileName, setFileName] = useState('')
     const [Instructor, setInstructor] = useState('');
     const fileInputRef = useRef(null);
+    const params = useParams();
+   const router = useRouter();
 
 
-    // --- NEW STATE: For controlling the loading popup ---
-    const [loading, setLoading] = useState(false);
-    const [loadingMessage, setLoadingMessage] = useState("Initializing...");
-    const [pollingNoteId, setPollingNoteId] = useState(null);
-
-
-    const handleCheckbox = (setting) => {
+    const handleCheckbox = (setting, settingValue) => {
         setSmartTagList(prev => ({ ...prev, [setting]: !prev[setting] }));
 
+        if (settingValue) {
+            setSmartTagList(prev => ({ ...prev, [setting]: settingValue }));
+        }
     };
+
+    const textToFile = (content, filename, type = 'text/plain') => {
+        return new File([content], filename, { type });
+    };
+
+    useEffect(() => {
+        const fetchContent = async () => {
+            try {
+
+                if(params.noteId === 'undefined' || params.noteId === ''){
+                    router.push('/note/');
+                }
+
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/getNoteDetails?note_id=${params.noteId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error(`Failed to load: ${response.status}`);
+
+                const data = await response.json();
+
+                console.log(data.note);
+
+                setMdText(data.note.files.noteFile.content);
+                setSelectedStyle(data.note.template_type);
+                setLectureTopic(data.note.lecture_topic);
+                setFileName(data.note.name);
+                setInstructor(data.note.instructor);
+
+                setSmartTagList({
+                    detect_heading: Boolean(data.note.detect_heading),
+                    highlight_key: Boolean(data.note.highlight_key),
+                    identify_todo: Boolean(data.note.identify_todo),
+                    detect_definitions: Boolean(data.note.detect_definitions), // Fixed typo from 'definitions'
+                    include_summary: Boolean(data.note.include_summary),
+                    extract_key_in_summary: Boolean(data.note.extract_key_in_summary)
+                });
+
+                const syntheticFile = textToFile(
+                    data.note.files.noteFile.content,
+                    data.note.name.endsWith('.txt') ? data.note.name : `${data.note.name}.txt`
+                );
+
+                setUploadedFile(syntheticFile);
+
+
+                // setMdText(res);
+            } catch (err) {
+                console.error('FUCKING ERROR:', err);
+            } finally {
+            }
+        };
+
+        fetchContent();
+    }, [params.noteId]);
+
 
 
     const handleDragOver = (e) => {
@@ -116,118 +173,28 @@ export default function note() {
         setUploadedFile(file)
     };
 
-    const handleGenerateNotes = async (e) => {
-        e.preventDefault();
+    // handleGenerateNotes = async() =>{
+    //     e.preventDefault();
 
-        if (!uploadedFile) {
-            alert("Please upload a file first.");
-            return;
-        }
-        // Show the loading popup
-        setLoadingMessage("Uploading your file...");
-        setLoading(true);
+    //     const formData = new FormData();
+    //     formData.append('file', uploadedFile);
+    //     formData.append('config', JSON.stringify(smartTagList));
+    //     formData.append('style', selectedStyle);
+    // formData.append('topic', lectureTopic);
+    // formData.append('instructor', Instructor);
+    // formData.append('filename', fileName);
 
-        const formData = new FormData();
-        formData.append('file', uploadedFile);
-        formData.append('config', JSON.stringify(smartTagList));
-        formData.append('style', selectedStyle);
-        formData.append('topic', lectureTopic);
-        formData.append('instructor', Instructor);
-        formData.append('filename', fileName);
+    //     const response = fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+    //         method : 'POST',
+    //         credentials : true,
+    //         body : formData
+    //     })
 
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/start-generation`, {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            })
-
-            if (response.status !== 200) { 
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to start the generation process.');
-            }
-
-            const result = await response.json();
-
-            // Set the note ID to start the polling effect
-            setPollingNoteId(result.noteId);
-            setLoadingMessage("Processing your document...");
-
-        } catch (error) {
-            console.log(error);
-            setLoading(false);
-        } 
-    }
-
-    // --- NEW: This useEffect handles the polling logic ---
-    useEffect(() => {
-        // Don't do anything if we don't have a note ID to poll
-        if (!pollingNoteId) {
-            return;
-        }
-
-        // Set up an interval to check the status every 5 seconds
-        const intervalId = setInterval(async () => {
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/status?id=${pollingNoteId}`, {
-                    credentials: 'include',
-                });
-
-                if (!response.ok) {
-                    throw new Error('Could not get job status.');
-                }
-                
-                const data = await response.json();
-
-                console.log(data);
-
-                if (data.status === 'COMPLETED') {
-                    // Job is done! Stop polling and redirect.
-                    clearInterval(intervalId);
-                    setLoading(false);
-                    router.push(`/note/${pollingNoteId}`);
-                } else if (data.status === 'FAILED') {
-                    // Job failed. Stop polling and show an error.
-                    clearInterval(intervalId);
-                    setLoading(false);
-                    alert(`Note generation failed: ${data.errorMessage || 'An unknown error occurred.'}`);
-                    setPollingNoteId(null);
-                }
-                // If status is 'PENDING' or 'PROCESSING', do nothing and let the interval run again.
-
-            } catch (error) {
-                console.error(error);
-                clearInterval(intervalId);
-                setLoading(false);
-                alert('An error occurred while checking the note status.');
-                setPollingNoteId(null);
-            }
-        }, 5000); // Check every 5 seconds
-
-        // Cleanup function: This is crucial to stop the interval 
-        // if the component unmounts for any reason.
-        return () => clearInterval(intervalId);
-
-    }, [pollingNoteId, router]); // This effect re-runs only when pollingNoteId changes
-
-    // --- NEW COMPONENT: Loading Popup ---
-    // This component will overlay the screen with a spinning animation
-    // while waiting for the backend response.
-    const LoadingPopup = () => (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-[#141B3C]/[80%] p-8 rounded-2xl shadow-xl flex flex-col items-center border border-white/[15%]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#00BFFF]"></div>
-                <p className="text-white text-xl mt-5 font-semibold">{loadingMessage}...</p>
-                <p className="text-white/[60%] text-sm mt-1">Please wait a moment.</p>
-            </div>
-        </div>
-    );
+    //     const {noteId} = await response.json();
+    // }
 
     return (
         <div className="flex w-full px-12 h-[93%]">
-
-            {loading && <LoadingPopup />}
-
             <div className="w-[78%] h-full mr-4 flex flex-col pb-3">
                 <div className="w-full h-[12.5%] ">
                     <div className="w-full h-full flex flex-col my-auto">
@@ -315,13 +282,13 @@ export default function note() {
                                         Transcript Details
                                     </h1>
                                     <span className="text-white/[70%]">Course Details</span>
-                                    <input onChange={(e) => setFileName(e.target.value)} placeholder="e.g, Advanced Physics 101" defaultValue={uploadedFile ? uploadedFile.name : ''} className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
+                                    <input onChange={(e) => setFileName(e.target.value)} defaultValue={fileName} placeholder="e.g, Advanced Physics 101" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
 
                                     <span className="text-white/[70%]">Lecture Topic (Optional)</span>
-                                    <input onChange={(e) => setLectureTopic(e.target.value)} placeholder="e.g., Quantum Mechanics Introduction" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
+                                    <input onChange={(e) => setLectureTopic(e.target.value)} defaultValue={lectureTopic} placeholder="e.g., Quantum Mechanics Introduction" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
 
                                     <span className="text-white/[70%]">Instructor (Optional)</span>
-                                    <input onChange={(e) => setInstructor(e.target.value)} placeholder="e.g., Dr. Smith" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
+                                    <input onChange={(e) => setInstructor(e.target.value)} defaultValue={Instructor} placeholder="e.g., Dr. Smith" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
 
                                 </div>
                             </div>
@@ -333,12 +300,38 @@ export default function note() {
                                 Raw Output Text
                             </h1>
                             <div className="flex h-[93%] overflow-hidden">
-
-                                <div className="w-max h-max flex flex-col justify-center m-auto space-y-2 text-white/[50%]">
-                                    <DocumentTextIcon className="w-10 h-10 mx-auto" />
-                                    <h1 className="text-center text-xl">No text extracted yet</h1>
-                                    <span className="text-sm">Upload a recording to begin processing</span>
-                                </div>
+                                {
+                                    mdText !== '' &&
+                                    <MDEditor
+                                        value={mdText}
+                                        onChange={setMdText}
+                                        height="100%"
+                                        className="w-full bg-transparent fixed-height-editor"
+                                        style={{
+                                            height: '100%',
+                                            overflow: 'hidden',
+                                            '--md-editor-font-family': 'inherit',
+                                        }}
+                                        previewOptions={{
+                                            wrapperElement: {
+                                                "data-color-mode": "dark",
+                                                style: {
+                                                    height: '100%',
+                                                    overflow: 'auto',
+                                                    backgroundColor: 'transparent'
+                                                }
+                                            }
+                                        }}
+                                    />
+                                }
+                                {
+                                    mdText === '' &&
+                                    <div className="w-max h-max flex flex-col justify-center m-auto space-y-2 text-white/[50%]">
+                                        <DocumentTextIcon className="w-10 h-10 mx-auto" />
+                                        <h1 className="text-center text-xl">No text extracted yet</h1>
+                                        <span className="text-sm">Upload a recording to begin processing</span>
+                                    </div>
+                                }
 
                             </div>
                         </div>
@@ -350,15 +343,15 @@ export default function note() {
                     <h1 className="text-[#00BFFF] text-2xl font-semibold w-full border-b-[1px] border-white/[25%] px-5 pb-4">Formatting Options</h1>
                     <div className="py-4 w-full flex flex-col px-5 border-b-[1px] border-white/[25%]">
                         <h2 className="text-xl pb-4">Smart Tags</h2>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('detect_heading')} /> <span className="ml-3">Auto-detect headings</span></div>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('highlight_key')} /> <span className="ml-3">Highlight key points</span></div>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('identify_todo')} /> <span className="ml-3">Identify to-do items</span></div>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('detect_definitions')} /> <span className="ml-3">Detect definitions</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('detect_heading')} checked={smartTagList.detect_heading}/> <span className="ml-3">Auto-detect headings</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('highlight_key')} checked={smartTagList.highlight_key}/> <span className="ml-3">Highlight key points</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('identify_todo')} checked={smartTagList.identify_todo}/> <span className="ml-3">Identify to-do items</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('detect_definitions')} checked={smartTagList.detect_definitions}/> <span className="ml-3">Detect definitions</span></div>
                     </div>
                     <div className="py-4 w-full flex flex-col px-5 border-b-[1px] border-white/[25%]">
                         <h2 className="text-xl pb-4">Auto-Summarization</h2>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('include_summary')} /> <span className="ml-3">Include summary in beginning</span></div>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('extract_key_in_summary')} /> <span className="ml-3">Extract key terms</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('include_summary')} checked={smartTagList.include_summary}/> <span className="ml-3">Include summary in beginning</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('extract_key_in_summary')} checked={smartTagList.extract_key_in_summary}/> <span className="ml-3">Extract key terms</span></div>
                     </div>
                     <div className="py-4 w-full flex flex-col px-5 border-b-[1px] border-white/[25%]">
                         <h2 className="text-xl pb-4">Output Styling</h2>
@@ -367,7 +360,7 @@ export default function note() {
                             <StyleCard
                                 id="academic"
                                 title="Academic"
-                                isSelected={selectedStyle === 'academic'}
+                                isSelected={selectedStyle === "academic"}
                                 onSelect={setSelectedStyle}
                             />
                             <StyleCard
@@ -385,7 +378,12 @@ export default function note() {
                         </div>
                     </div>
                     <div className="  flex flex-col mt-auto py-5 mx-6 space-y-5 mb-0 flex-grow justify-end">
-                        <button onClick={handleGenerateNotes} className="flex rounded-lg w-full px-3 py-2 items-center justify-center bg-[#00BFFF]"> <SparklesIcon className="w-4 h-4" /><span className="ml-1">Generate Formatted Notes</span></button>
+                        <button onClick={() => { }} className="flex rounded-lg w-full px-3 py-2 items-center justify-center bg-[#00BFFF]"> <SparklesIcon className="w-4 h-4" /><span className="ml-1">Generate Formatted Notes</span></button>
+                        <div className="flex justify-center gap-x-3">
+                            <button className="w-[30%] rounded-lg py-2 px-2 flex justify-center items-center bg-[#000000]/[40%] text-sm"><ArrowDownTrayIcon className="w-4 h-4 " /> <span className="ml-1">PDF</span></button>
+                            <button className="w-[30%] rounded-lg py-2 px-2 flex justify-center items-center bg-[#000000]/[40%] text-sm"><DocumentArrowDownIcon className="w-4 h-4" /> <span className="ml-1">DOCX</span></button>
+                            <button className="w-[30%] rounded-lg py-2 px-2 flex justify-center items-center bg-[#000000]/[40%] text-sm"><DocumentTextIcon className="w-4 h-4" /><span className="ml-1">Txt</span></button>
+                        </div>
                     </div>
 
                 </div>

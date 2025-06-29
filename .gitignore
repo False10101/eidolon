@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+#uploadfolder
+/public/note/**
+
 # production
 /build
 

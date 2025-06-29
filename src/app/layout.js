@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import "./globals.css";
 import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon} from "@heroicons/react/24/solid";
+import { match } from 'path-to-regexp';
 
 
 const geistSans = Geist({
@@ -57,10 +58,23 @@ export default function RootLayout({ children }) {
 
   const isAuthRoute = pathname.startsWith('/auth');
   const isHomeRoute = pathname.startsWith('/home');
-  const knownRoutes = ['/', '/auth/login', '/auth/signup', '/home', '/dashboard', '/document', '/note']; // Add more as needed
-  const isNotFoundPage = !knownRoutes.includes(pathname);
 
-  const routeName = pathname.split('/')[1];
+  const matchers = [
+  match('/'),
+  match('/auth/login'),
+  match('/auth/signup'),
+  match('/home'),
+  match('/document'),
+  match('/note'),
+  match('/note/:noteId') 
+];
+
+function isKnownRoute(pathname) {
+  return matchers.some(m => m(pathname));
+}
+
+ const isNotFoundPage = !isKnownRoute(pathname);
+
 
   var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : "";
 
