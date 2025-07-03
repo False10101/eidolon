@@ -21,9 +21,11 @@
     "mysql2": "^3.14.1",
     "next": "15.3.4",
     "path-to-regexp": "^8.2.0",
+    "pdfjs-dist": "^5.3.31",
     "rc-checkbox": "^3.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-pdf": "^10.0.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

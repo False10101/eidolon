@@ -13,6 +13,15 @@ export async function GET(req) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    const ALL_API_TYPES_DEFAULTS = [
+      { type: "Document", totalUsage: 0, totalTokenUsage: 0, color: "" }, // Color will be added by addColorsToUsage
+      { type: "Inclass Notes", totalUsage: 0, totalTokenUsage: 0, color: "" },
+      { type: "Textbook Explainer", totalUsage: 0, totalTokenUsage: 0, color: "" },
+      { type: "TTS with Subtitles", totalUsage: 0, totalTokenUsage: 0, color: "" },
+      { type: "Image Generation", totalUsage: 0, totalTokenUsage: 0, color: "" },
+      { type: "Chat with AI", totalUsage: 0, totalTokenUsage: 0, color: "" },
+    ];
+
     var userData = await db.query('SELECT * FROM user WHERE id = ?', [decoded.id]);
     userData = userData[0][0]; // Extract the first row from the result
 
@@ -35,20 +44,40 @@ export async function GET(req) {
     var totalAPICalls = await db.query('SELECT COUNT(*) AS total_api_calls FROM activity WHERE userId = ?', [decoded.id]);
     totalAPICalls = totalAPICalls[0][0].total_api_calls || 0; // Extract the value from the result
 
-    var monthlyTokenUsage = await db.query(`
-      SELECT 
-        type,
-        SUM(token_sent + token_received) AS totalTokenUsage 
-      FROM activity 
-      WHERE userId = ? AND MONTH(date) = MONTH(CURRENT_DATE())
-      GROUP BY type
+    let fetchedMonthlyTokenUsage = await db.query(`
+    SELECT
+      type,
+      SUM(token_sent + token_received) AS totalTokenUsage
+    FROM activity
+    WHERE userId = ? AND MONTH(date) = MONTH(CURRENT_DATE())
+    GROUP BY type
     `, [decoded.id]);
-    monthlyTokenUsage = monthlyTokenUsage[0] || [];
-    monthlyTokenUsage = addColorsToUsage(monthlyTokenUsage); // Add colors to usage data
+    fetchedMonthlyTokenUsage = fetchedMonthlyTokenUsage[0] || [];
+    fetchedMonthlyTokenUsage = addColorsToUsage(fetchedMonthlyTokenUsage);
 
-    var monthlyUsage = await db.query(`SELECT type, COUNT(*) AS totalUsage FROM activity WHERE userId = ? AND MONTH(date) = MONTH(CURRENT_DATE()) GROUP BY type`, [decoded.id]);
-    monthlyUsage = monthlyUsage[0] || []; // Extract
-    monthlyUsage = addColorsToUsage(monthlyUsage); // Add colors to usage data
+    // Merge fetched data with defaults for token usage
+    const finalMonthlyTokenUsageData = ALL_API_TYPES_DEFAULTS.map(defaultType => {
+      const fetched = fetchedMonthlyTokenUsage.find(item => item.type === defaultType.type);
+      return {
+        ...defaultType, // Start with defaults (type, 0 usage)
+        ...(fetched && { totalTokenUsage: fetched.totalTokenUsage, color: fetched.color }) // Override with fetched data if available
+      };
+    });
+
+
+    // --- Process monthlyUsage ---
+    let fetchedMonthlyUsage = await db.query(`SELECT type, COUNT(*) AS totalUsage FROM activity WHERE userId = ? AND MONTH(date) = MONTH(CURRENT_DATE()) GROUP BY type`, [decoded.id]);
+    fetchedMonthlyUsage = fetchedMonthlyUsage[0] || [];
+    fetchedMonthlyUsage = addColorsToUsage(fetchedMonthlyUsage);
+
+    // Merge fetched data with defaults for regular usage
+    const finalMonthlyUsageData = ALL_API_TYPES_DEFAULTS.map(defaultType => {
+      const fetched = fetchedMonthlyUsage.find(item => item.type === defaultType.type);
+      return {
+        ...defaultType, // Start with defaults (type, 0 usage)
+        ...(fetched && { totalUsage: fetched.totalUsage, color: fetched.color }) // Override with fetched data if available
+      };
+    });
 
     userData = {
       ...userData,
@@ -57,8 +86,8 @@ export async function GET(req) {
       totalTokenReceived: formatThousands(totalTokenReceived, { separator: ',' }),
       totalCost: totalCost,
       totalAPICalls: totalAPICalls,
-      monthlyTokenUsage: monthlyTokenUsage,
-      monthlyUsage: monthlyUsage
+      monthlyTokenUsage: finalMonthlyTokenUsageData,
+      monthlyUsage: finalMonthlyUsageData
 
     }
 

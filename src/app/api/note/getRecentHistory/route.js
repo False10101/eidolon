@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import jwt from 'jsonwebtoken';
 
-export default async function GET(req){
+export async function GET(req){
     const cookies = req.headers.get('cookie');
         const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
     
@@ -12,6 +12,18 @@ export default async function GET(req){
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const user_id = decoded.id;
+
+            const [row] = await db.query(`Select id, name, created_at from note WHERE user_id = ? `, [user_id]);
+
+            if(!row){
+                return new Response(JSON.stringify({error : 'Database Error'}), {status : 400});
+            } else if(row.length === 0){
+                return new Response(JSON.stringify({response : 'No History Found!'}), {status : 200})
+            } else {
+                return new Response(JSON.stringify({response : row}), {status : 200})
+            }
+
+
         }catch(error){
             console.log(error);
                     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });

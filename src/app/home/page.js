@@ -172,7 +172,7 @@ export default function home() {
                                     <div className='text-sm text-white/[50%] text-wrap w-[80%] mx-auto text-center group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Transcribe and Organize Notes</div>
                                 </div>
                             </button>
-                            <button className='group grid h-[80%] items-center justify-center'>
+                            <button onClick={() => { router.push('/textbook-explainer'); }} className='group grid h-[80%] items-center justify-center'>
                                 <div className='w-15 h-15 bg-[#5651A3]/[30%] rounded-full mx-auto flex justify-center items-center filter group-hover:bg-[#5B6CC6] group-hover:shadow-[0_0px_10px_rgba(162,218,255,1)]'>
                                     <BookOpenIcon className='size-8 text-[#5B6CC6] m-auto group-hover:text-black' />
                                 </div>
