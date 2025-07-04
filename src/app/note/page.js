@@ -224,7 +224,7 @@ export default function note() {
     );
 
     return (
-        <div className="flex w-full px-12 h-[93%]">
+        <div className="flex w-full px-12 h-[93%] min-w-[1280px] min-h-[800px]">
 
             {loading && <LoadingPopup />}
 
@@ -268,7 +268,7 @@ export default function note() {
                                             <h1 className="text-sm text-center w-[80%] text-white/[80%] mb-3">
                                                 Drag and drop your in-class recording file here
                                             </h1>
-                                            <span className="text-xs text-center w-[90%] text-white/[80%] mb-3">
+                                            <span className="text-xs text-center w-[90%] text-white/[80%] mb-3 truncate">
                                                 Supports PDF, DOCX, TXT (max 500MB)
                                             </span>
                                             <button

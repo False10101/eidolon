@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, Page } from 'react-pdf';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -9,10 +9,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 // This is the modern, recommended way to set up the worker.
 // It uses the version of pdfjs-dist that is installed with react-pdf
 // and does not require a postinstall script or copying files.
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
+
 
 export default function PdfViewer({ file }) {
   const [numPages, setNumPages] = useState(0);
@@ -54,7 +51,7 @@ export default function PdfViewer({ file }) {
     setPageNumber(prevPageNumber => (prevPageNumber + 1 >= numPages ? numPages : prevPageNumber + 1));
 
   return (
-    <div className="bg-[#1A1D2C]/[30%] w-full h-full rounded-t-xl border-2 border-white/[10%] flex flex-col items-center justify-center p-4 relative"
+    <div className="bg-[#1A1D2C]/[30%] w-full h-full flex flex-col items-center justify-center p-4 relative"
          onMouseEnter={() => setIsHovering(true)}
          onMouseLeave={() => setIsHovering(false)}
     >
@@ -65,9 +62,9 @@ export default function PdfViewer({ file }) {
         <Document
           file={file}
           onLoadSuccess={onDocumentLoadSuccess}
-          className="bg-[#000000]/[30%] flex justify-center items-center h-full"
+          className="bg-[#000000]/[30%] flex text-xl text-white/[50%] font-bold italic justify-center items-center h-full mx-4.5 rounded-xl overflow-hidden"
           loading="Loading PDF..."
-          error="Failed to load PDF."
+          error="No Explanation PDF Found!"
         >
           {/* We pass the container's height to the Page component to make it fit vertically */}
           {containerSize.height > 0 && (

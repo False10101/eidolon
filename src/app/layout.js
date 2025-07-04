@@ -2,11 +2,16 @@
 
 import { Geist, Geist_Mono } from "next/font/google";
 import { usePathname, useRouter, useParams } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import "./globals.css";
 import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/solid";
 import { match } from 'path-to-regexp';
+import { pdfjs } from "react-pdf";
 
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -154,15 +159,15 @@ export default function RootLayout({ children }) {
           )}</div>
         <div className="h-[93%] flex ">
           {!isAuthRoute && !isHomeRoute && !isNotFoundPage && (
-            <aside className="w-[17vw] bg-[#000000]/[30%] px-4 border-r-[1px] border-white/[0.2] flex flex-col h-full">
+            <aside className="w-[17vw] bg-[#000000]/[30%] px-4 border-r-[1px] border-white/[0.2] flex flex-col h-full min-h-[768px]">
               <div className="flex flex-col py-4 w-full justify-center h-[40%] items-center border-b-[1px] border-white/[25%]">
                 <button onClick={() => { router.push('/home'); }} className={`px-3 w-full py-3 flex flex-grow`}><HomeIcon className="h-6 w-6" /> <span className="ml-4">Home</span> </button>
-                <button onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><DocumentTextIcon className="h-6 w-6" /> <span className="ml-4">Document Generator</span> </button>
-                <button onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PencilSquareIcon className="h-6 w-6" /> <span className="ml-4">Inclass Notes</span></button>
-                <button onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><BookOpenIcon className="h-6 w-6" /> <span className="ml-4">Textbook Explainer</span></button>
-                <button className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><SpeakerWaveIcon className="h-6 w-6" /> <span className="ml-4">TTS</span></button>
-                <button className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PhotoIcon className="h-6 w-6" /> <span className="ml-4">Image Gen</span></button>
-                <button className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><ChatBubbleLeftIcon className="h-6 w-6" /> <span className="ml-4">Chatbot</span></button>
+                <button onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><DocumentTextIcon className="h-6 w-6" /> <span className="ml-4 truncate">Document Generator</span> </button>
+                <button onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PencilSquareIcon className="h-6 w-6" /> <span className="ml-4 truncate">Inclass Notes</span></button>
+                <button onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><BookOpenIcon className="h-6 w-6 truncate" /> <span className="ml-4 truncate">Textbook Explainer</span></button>
+                <button className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><SpeakerWaveIcon className="h-6 w-6" /> <span className="ml-4 truncate">TTS</span></button>
+                <button className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PhotoIcon className="h-6 w-6" /> <span className="ml-4 truncate">Image Gen</span></button>
+                <button className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><ChatBubbleLeftIcon className="h-6 w-6" /> <span className="ml-4 truncate">Chatbot</span></button>
               </div>
               <div className="flex flex-col h-[60%] mt-5 overflow-y-auto gap-y-3">
 
