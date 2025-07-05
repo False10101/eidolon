@@ -7,22 +7,29 @@ import { DocumentIcon, DocumentDuplicateIcon, PencilIcon, SparklesIcon, CodeBrac
 import dynamic from "next/dynamic";
 import Switch from "react-switch";
 
-
-
-export default function TextbookExplainer() {
-
     // Dynamically import the PdfViewer with SSR turned off
     const PdfViewer = dynamic(() => import('./PdfViewer'), {
         ssr: false,
         loading: () => <p className="text-white">Loading PDF Viewer...</p>
     });
 
+    const PDFExtractor = dynamic(() => import('./UploadedPdfComponent'), {
+        ssr: false,
+        loading: () => <p className="text-white">Loading PDF Viewer...</p>
+    });
+
+
+export default function TextbookExplainer() {
+
     const router = useRouter();
 
     const [isDragging, setIsDragging] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
     const fileInputRef = useRef(null);
-const [formatOptions, setFormatOptions] = useState({
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [extractedText, setExtractedText] = useState(null);
+    const [extractionError, setExtractionError] = useState('');
+    const [formatOptions, setFormatOptions] = useState({
         simple_analogies: false,
         key_people: false,
         historical_timelines: false,
@@ -32,6 +39,12 @@ const [formatOptions, setFormatOptions] = useState({
         references: false,
         instructions: false,
     });
+
+    const [loading, setLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState("Initializing...");
+    const [pollingTextbookId, setPollingTextbookId] = useState(null);
+
+
     // Single handler to update any of the format options
     const handleFormatChange = (optionName) => {
         setFormatOptions(prevState => ({
@@ -69,6 +82,9 @@ const [formatOptions, setFormatOptions] = useState({
 
     const handleRemoveFile = () => {
         setUploadedFile(null);
+        setExtractedText(''); // Also clear the extracted text
+        setExtractionError(''); // And any errors
+
 
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -95,8 +111,111 @@ const [formatOptions, setFormatOptions] = useState({
         setUploadedFile(file);
     }
 
+    const handleGeneratePDF = async (e)=>{
+        e.preventDefault();
+
+        if (!uploadedFile) {
+            alert("Please upload a file first.");
+            return;
+        }
+
+        setLoadingMessage("Uploading your file...");
+        setLoading(true);
+
+        const formData = new FormData();
+        formData.append('file', uploadedFile);
+        formData.append('formatOptions', JSON.stringify(formatOptions));
+        formData.append('extractedText', extractedText);
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/start-generation`, {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+
+            if (response.status !== 200) { 
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to start the generation process.');
+            }
+
+            const result = await response.json();
+
+            // Set the Textbook ID to start the polling effect
+            setPollingTextbookId(result.textbookId);
+            setLoadingMessage("Processing your document...");
+        } catch (error) {
+            console.log(error);
+            setLoading(false);
+        }
+    }
+
+    // --- NEW: This useEffect handles the polling logic ---
+    useEffect(() => {
+        // Don't do anything if we don't have a textbook ID to poll
+        if (!pollingTextbookId) {
+            return;
+        }
+
+        // Set up an interval to check the status every 5 seconds
+        const intervalId = setInterval(async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/status?id=${pollingTextbookId}`, {
+                    credentials: 'include',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Could not get job status.');
+                }
+                
+                const data = await response.json();
+
+                console.log(data);
+
+                if (data.status === 'COMPLETED') {
+                    // Job is done! Stop polling and redirect.
+                    clearInterval(intervalId);
+                    setLoading(false);
+                    router.push(`/textbook-explainer/${pollingTextbookId}`);
+                } else if (data.status === 'FAILED') {
+                    // Job failed. Stop polling and show an error.
+                    clearInterval(intervalId);
+                    setLoading(false);
+                    alert(`Textbook generation failed: ${data.errorMessage || 'An unknown error occurred.'}`);
+                    setPollingTextbookId(null);
+                }
+                // If status is 'PENDING' or 'PROCESSING', do nothing and let the interval run again.
+
+            } catch (error) {
+                console.error(error);
+                clearInterval(intervalId);
+                setLoading(false);
+                alert('An error occurred while checking the textbook status.');
+                setPollingTextbookId(null);
+            }
+        }, 5000); 
+
+        // Cleanup function: This is crucial to stop the interval 
+        // if the component unmounts for any reason.
+        return () => clearInterval(intervalId);
+
+    }, [pollingTextbookId, router]); 
+
+    const LoadingPopup = () => (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-[#141B3C]/[80%] p-8 rounded-2xl shadow-xl flex flex-col items-center border border-white/[15%]">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#00BFFF]"></div>
+                <p className="text-white text-xl mt-5 font-semibold">{loadingMessage}...</p>
+                <p className="text-white/[60%] text-sm mt-1">Please wait a moment.</p>
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex w-full h-full bg-gradient-to-r from-[#000000] to-[#1A2145]">
+
+            {loading && <LoadingPopup />}
+
             <div className="flex w-[32%] flex-col h-full border-r-[1px] border-white/[25%]">
                 <div className="file-upload flex w-full h-[35%] items-center ">
                     <div className={`flex w-[88%] h-[80%] border-[1px] border-white/[20%] rounded-lg my-10 bg-[#1F2687]/[37%] mx-auto flex flex-col
@@ -175,14 +294,34 @@ const [formatOptions, setFormatOptions] = useState({
                             <div className="flex my-auto mr-4 ml-auto"><DocumentDuplicateIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span className=" text-[#00CED1] ml-1">Copy</span></div>
                             <div className="flex my-auto mr-6"><PencilIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span className=" text-[#00CED1] ml-1">Edit</span></div>
                         </div>
-                        <div className="flex h-[83%] w-[90%] m-auto overflow-auto ">
-                            <div className="flex bg-[#000000]/[30%] w-full h-full rounded-lg p-10"> s</div>
-                        </div>
+                        <div className="flex h-[83%] w-[90%] m-auto overflow-auto">
+    <PDFExtractor
+        uploadedFile={uploadedFile}
+        setIsProcessing={setIsProcessing}
+        setExtractedText={setExtractedText}
+        setExtractionError={setExtractionError}
+    />
+
+    <div className="w-full h-full bg-[#000000]/[30%] ">
+        {/* A single <pre> block now handles all states */}
+    <pre
+        className={`flex  w-full h-full rounded-lg p-10 whitespace-pre-wrap break-words text-white overflow-auto 
+        ${!extractedText || isProcessing || extractionError ? 'justify-center items-center text-white/[50%] italic' : 'items-start bg-[#000000]/[30%]'}`}
+    >
+        {
+            isProcessing ? "⏳ Processing..." :
+            extractionError ? `❌ Error: ${extractionError}` :
+            extractedText ? extractedText :
+            "Please upload PDF to extract text!"
+        }
+    </pre>
+    </div>
+</div>
                     </div>
                 </div>
             </div>
             <div className="flex flex-col w-[68%] h-full">
-                <div className="flex w-full h-[10%] border-b-[1px] border-white/[25%] text-2xl font-bold text-[#00BFFF] items-center pl-10">Explained Text</div>
+                <div className="flex w-full h-[10%] border-b-[1px] border-white/[25%] text-2xl font-bold text-[#00BFFF] items-center pl-10">Explained PDF</div>
                 <div className="flex w-full h-[90%] flex-grow">
                     <div className="pdf-viewer flex w-[60%] h-full  bg-[#1F2687]/[37%]">
                         <div className="bg-[#1A1D2C]/[30%] w-full h-full rounded-t-lg border-[1px] border-b-0 border-white/[25%] flex">
@@ -235,11 +374,11 @@ const [formatOptions, setFormatOptions] = useState({
                             </div>
                         </div>
                         <div className="h-[20%] w-full border-t-[1px] border-white/[25%] mt-auto flex flex-col justify-evenly">
-                            <button className="flex bg-[#00BFFF] w-[88%] mx-auto py-3 rounded-lg items-center justify-center-safe space-x-1"><SparklesIcon className="w-5 h-5"/><span className="font-semibold text-lg ">Generate Explanation PDF</span></button>
+                            <button onClick={handleGeneratePDF} className="flex bg-[#00BFFF] w-[88%] mx-auto py-3 rounded-lg items-center justify-center-safe space-x-1"><SparklesIcon className="w-5 h-5" /><span className="font-semibold text-lg ">Generate Explanation PDF</span></button>
                             <div className="flex w-[88%] h-max justify-between mx-auto">
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentIcon className="w-5 h-5"/><span className="ml-1">PDF</span></button>
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><CodeBracketSquareIcon className="w-5 h-5"/><span className="ml-1">MD</span></button>
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentTextIcon className="w-5 h-5"/><span className="ml-1">Text</span></button>
+                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentIcon className="w-5 h-5" /><span className="ml-1">PDF</span></button>
+                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><CodeBracketSquareIcon className="w-5 h-5" /><span className="ml-1">MD</span></button>
+                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentTextIcon className="w-5 h-5" /><span className="ml-1">Text</span></button>
                             </div>
                         </div>
                     </div>

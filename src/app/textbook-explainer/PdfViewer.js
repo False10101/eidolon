@@ -6,10 +6,12 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// This is the modern, recommended way to set up the worker.
-// It uses the version of pdfjs-dist that is installed with react-pdf
-// and does not require a postinstall script or copying files.
+import { pdfjs } from "react-pdf";
 
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 export default function PdfViewer({ file }) {
   const [numPages, setNumPages] = useState(0);

@@ -6,12 +6,6 @@ import { useEffect, useState } from 'react';
 import "./globals.css";
 import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/solid";
 import { match } from 'path-to-regexp';
-import { pdfjs } from "react-pdf";
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,6 +50,7 @@ export default function RootLayout({ children }) {
         }, []);
 
   useEffect(() => {
+    setGroupedHistory({});
     if (pathname.includes('/note')) {
       const getHistory = async () => {
         try {
@@ -121,7 +116,8 @@ export default function RootLayout({ children }) {
     match('/document'),
     match('/note'),
     match('/note/:noteId'),
-    match('/textbook-explainer')
+    match('/textbook-explainer'),
+    match('/textbook-explainer/:textbookId')
   ];
 
   function isKnownRoute(pathname) {
@@ -131,7 +127,7 @@ export default function RootLayout({ children }) {
   const isNotFoundPage = !isKnownRoute(pathname);
 
 
-  var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : "";
+  var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : pathname.startsWith('/textbook-explainer') ? "Textbook Explainer" : "";
 
   return (
     <html lang="en">
