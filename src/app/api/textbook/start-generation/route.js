@@ -36,12 +36,12 @@ export async function POST(req) {
         // 2. Create the unique filename for the extracted text file (as a .txt)
         const uniqueTXTFileName = `${uuidv4()}_${fileBaseName}_textFile.txt`;
         const TXTRelativePath = `/textbook/text/${uniqueTXTFileName}`;
-        const textbookTXTFilePath = path.join(process.cwd(), 'public', TXTRelativePath);
+        const textbookTXTFilePath = path.join(process.cwd(), 'storage', TXTRelativePath);
 
         // 3. Create the unique filename for the original file, forcing a .pdf extension
         const uniqueOriginalFileName = `${uuidv4()}_${fileBaseName}.pdf`;
         const OriginalFileRelativePath = `/textbook/original/${uniqueOriginalFileName}`;
-        const originalFilePath = path.join(process.cwd(), 'public', OriginalFileRelativePath);
+        const originalFilePath = path.join(process.cwd(), 'storage', OriginalFileRelativePath);
         
         // --- End of Changes ---
 

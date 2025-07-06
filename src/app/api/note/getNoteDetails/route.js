@@ -31,8 +31,8 @@ export async function GET(req) {
     }
 
         const [noteFileContent, transcriptFileContent] = await Promise.all([
-      fs.readFile(path.join(process.cwd(), 'public', note.noteFilePath), 'utf-8'),
-      fs.readFile(path.join(process.cwd(), 'public', note.transcriptFilePath), 'utf-8')
+      fs.readFile(path.join(process.cwd(), 'storage', note.noteFilePath), 'utf-8'),
+      fs.readFile(path.join(process.cwd(), 'storage', note.transcriptFilePath), 'utf-8')
     ]);
 
     const responseData = {

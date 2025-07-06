@@ -7,16 +7,13 @@ import { DocumentIcon, DocumentDuplicateIcon, PencilIcon, SparklesIcon, CodeBrac
 import dynamic from "next/dynamic";
 import Switch from "react-switch";
 
-    // Dynamically import the PdfViewer with SSR turned off
-    const PdfViewer = dynamic(() => import('./PdfViewer'), {
-        ssr: false,
-        loading: () => <p className="text-white">Loading PDF Viewer...</p>
-    });
+// Dynamically import the PdfViewer with SSR turned off
 
-    const PDFExtractor = dynamic(() => import('./UploadedPdfComponent'), {
-        ssr: false,
-        loading: () => <p className="text-white">Loading PDF Viewer...</p>
-    });
+
+const PDFExtractor = dynamic(() => import('./UploadedPdfComponent'), {
+    ssr: false,
+    loading: () => <p className="text-white">Loading PDF Viewer...</p>
+});
 
 
 export default function TextbookExplainer() {
@@ -111,7 +108,7 @@ export default function TextbookExplainer() {
         setUploadedFile(file);
     }
 
-    const handleGeneratePDF = async (e)=>{
+    const handleGeneratePDF = async (e) => {
         e.preventDefault();
 
         if (!uploadedFile) {
@@ -134,7 +131,7 @@ export default function TextbookExplainer() {
                 body: formData
             });
 
-            if (response.status !== 200) { 
+            if (response.status !== 200) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to start the generation process.');
             }
@@ -167,7 +164,7 @@ export default function TextbookExplainer() {
                 if (!response.ok) {
                     throw new Error('Could not get job status.');
                 }
-                
+
                 const data = await response.json();
 
                 console.log(data);
@@ -193,13 +190,13 @@ export default function TextbookExplainer() {
                 alert('An error occurred while checking the textbook status.');
                 setPollingTextbookId(null);
             }
-        }, 5000); 
+        }, 5000);
 
         // Cleanup function: This is crucial to stop the interval 
         // if the component unmounts for any reason.
         return () => clearInterval(intervalId);
 
-    }, [pollingTextbookId, router]); 
+    }, [pollingTextbookId, router]);
 
     const LoadingPopup = () => (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -295,28 +292,29 @@ export default function TextbookExplainer() {
                             <div className="flex my-auto mr-6"><PencilIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span className=" text-[#00CED1] ml-1">Edit</span></div>
                         </div>
                         <div className="flex h-[83%] w-[90%] m-auto overflow-auto">
-    <PDFExtractor
-        uploadedFile={uploadedFile}
-        setIsProcessing={setIsProcessing}
-        setExtractedText={setExtractedText}
-        setExtractionError={setExtractionError}
-    />
 
-    <div className="w-full h-full bg-[#000000]/[30%] ">
-        {/* A single <pre> block now handles all states */}
-    <pre
-        className={`flex  w-full h-full rounded-lg p-10 whitespace-pre-wrap break-words text-white overflow-auto 
+                            <PDFExtractor
+                                uploadedFile={uploadedFile}
+                                setIsProcessing={setIsProcessing}
+                                setExtractedText={setExtractedText}
+                                setExtractionError={setExtractionError}
+                            />
+
+                            <div className="w-full h-full bg-[#000000]/[30%] ">
+                                {/* A single <pre> block now handles all states */}
+                                <pre
+                                    className={`flex  w-full h-full rounded-lg p-10 whitespace-pre-wrap break-words text-white overflow-auto 
         ${!extractedText || isProcessing || extractionError ? 'justify-center items-center text-white/[50%] italic' : 'items-start bg-[#000000]/[30%]'}`}
-    >
-        {
-            isProcessing ? "⏳ Processing..." :
-            extractionError ? `❌ Error: ${extractionError}` :
-            extractedText ? extractedText :
-            "Please upload PDF to extract text!"
-        }
-    </pre>
-    </div>
-</div>
+                                >
+                                    {
+                                        isProcessing ? "⏳ Processing..." :
+                                            extractionError ? `❌ Error: ${extractionError}` :
+                                                extractedText ? extractedText :
+                                                    "Please upload PDF to extract text!"
+                                    }
+                                </pre>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -324,8 +322,10 @@ export default function TextbookExplainer() {
                 <div className="flex w-full h-[10%] border-b-[1px] border-white/[25%] text-2xl font-bold text-[#00BFFF] items-center pl-10">Explained PDF</div>
                 <div className="flex w-full h-[90%] flex-grow">
                     <div className="pdf-viewer flex w-[60%] h-full  bg-[#1F2687]/[37%]">
-                        <div className="bg-[#1A1D2C]/[30%] w-full h-full rounded-t-lg border-[1px] border-b-0 border-white/[25%] flex">
-                            <PdfViewer file={'/TestPDF.pdf'} />
+                        <div className="bg-[#1A1D2C]/[30%] w-full h-full rounded-t-lg border-[1px] border-b-0 border-white/[25%] flex flex-col items-center justify-center space-y-4 text-white/[50%]">
+                            <DocumentTextIcon className="w-12 h-12" />
+                            <h1 className="text-xl">No PDF generated yet</h1>
+                            <span>Upload a PDF and click generate to begin processing...</span>
                         </div>
 
                     </div>

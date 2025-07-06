@@ -53,7 +53,7 @@ export async function textbook_explanation_processor(textbookId) {
             instructions: Boolean(textbook.instructions),
         };
 
-        const textFilePath = path.join(process.cwd(), 'public', textbook.textbookTXTFilePath);
+        const textFilePath = path.join(process.cwd(), 'storage', textbook.textbookTXTFilePath);
         const rawText = await readFile(textFilePath, 'utf-8');
 
         const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
@@ -82,7 +82,7 @@ export async function textbook_explanation_processor(textbookId) {
         // 1. Prepare PDF metadata and file paths
         const pdfFileName = `${uuidv4()}_${textbook.name}_explained.pdf`;
         const pdfRelativePath = `/textbook/explanation/${pdfFileName}`;
-        const pdfAbsoluteFilePath = path.join(process.cwd(), 'public', pdfRelativePath);
+        const pdfAbsoluteFilePath = path.join(process.cwd(), 'storage', pdfRelativePath);
         const generationDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
         // 2. Build HTML from your `generatedText`

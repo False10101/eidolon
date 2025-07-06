@@ -34,7 +34,7 @@ export async function processNoteInBackground(noteId) {
         const temperatureParam = note.style === 'minimal' ? 0.3 : note.style === "creative" ? 1 : 0.6;
 
         // Step 3: Read the saved transcript file.
-        const transcriptFilePath = path.join(process.cwd(), 'public', note.transcriptFilePath);
+        const transcriptFilePath = path.join(process.cwd(), 'storage', note.transcriptFilePath);
         const transcriptText = await readFile(transcriptFilePath, 'utf-8');
 
         // Step 4: Construct the prompt and call the Gemini API (the long part).
@@ -46,7 +46,7 @@ export async function processNoteInBackground(noteId) {
             model: 'gemini-2.5-pro', // Using 'gemini-pro' as in the latest SDK examples, adjust if 'gemini-2.5-pro' is a specific fine-tuned model you have access to.
             contents: [{ role: "user", parts: [{ text: buildUserPrompt(transcriptText, configJSON) }] }],
             generationConfig: {
-                maxOutputTokens: 1000000, // Adjusted to a more standard max for gemini-pro. Your 1M token request is likely for a specialized model.
+                maxOutputTokens: 65000, // Adjusted to a more standard max for gemini-pro. Your 1M token request is likely for a specialized model.
                 temperature: temperatureParam,
                 topP: 0.95
             }
@@ -67,7 +67,7 @@ export async function processNoteInBackground(noteId) {
         // Step 5: Save the generated note text to a new file.
         const uniqueNotesFileName = `${uuidv4()}_${note.name}_notes.txt`;
         const notesRelativePath = `/note/${uniqueNotesFileName}`; 
-        const notesFilePath = path.join(process.cwd(), 'public', notesRelativePath);
+        const notesFilePath = path.join(process.cwd(), 'storage', notesRelativePath);
         await writeFile(notesFilePath, generatedText, 'utf-8');
 
         // Step 6: Update the database record to 'COMPLETED' with the final file path.

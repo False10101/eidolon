@@ -41,7 +41,7 @@ export async function POST(req) {
         const fileBaseName = originalName.includes('.') ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
         const uniqueTranscriptFileName = `${uuidv4()}_${fileBaseName}_transcript.txt`;
         const transcriptRelativePath = `/note/${uniqueTranscriptFileName}`;
-        const transcriptFilePath = path.join(process.cwd(), 'public', transcriptRelativePath);
+         const transcriptFilePath = path.join(process.cwd(), 'storage', transcriptRelativePath);
         await writeFile(transcriptFilePath, buffer); // Use the buffer directly
 
         // 2. Get all other configuration details from the form.

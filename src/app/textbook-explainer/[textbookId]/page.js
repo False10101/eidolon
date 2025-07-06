@@ -1,27 +1,28 @@
 'use client'
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useParams,useRouter } from "next/navigation"
 import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
 import { DocumentIcon, DocumentDuplicateIcon, PencilIcon, SparklesIcon, CodeBracketSquareIcon, DocumentTextIcon } from "@heroicons/react/24/solid";
 import dynamic from "next/dynamic";
 import Switch from "react-switch";
 
-    // Dynamically import the PdfViewer with SSR turned off
-    const PdfViewer = dynamic(() => import('../PdfViewer'), {
-        ssr: false,
-        loading: () => <p className="text-white">Loading PDF Viewer...</p>
-    });
+// Dynamically import the PdfViewer with SSR turned off
+const PdfViewer = dynamic(() => import('../PdfViewer'), {
+    ssr: false,
+    loading: () => <p className="text-white">Loading PDF Viewer...</p>
+});
 
-    const PDFExtractor = dynamic(() => import('../UploadedPdfComponent'), {
-        ssr: false,
-        loading: () => <p className="text-white">Loading PDF Viewer...</p>
-    });
+const PDFExtractor = dynamic(() => import('../UploadedPdfComponent'), {
+    ssr: false,
+    loading: () => <p className="text-white">Loading PDF Viewer...</p>
+});
 
 
 export default function TextbookExplainer() {
 
     const router = useRouter();
+    const params = useParams();
 
     const [isDragging, setIsDragging] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
@@ -42,8 +43,12 @@ export default function TextbookExplainer() {
 
     const [loading, setLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("Initializing...");
-    const [pollingTextbookId, setPollingTextbookId] = useState(null);
 
+    const [explanationPdf, setExplanationPdf] = useState(null);
+
+    const [fileForExtraction, setFileForExtraction] = useState(null);
+
+    const copyButtonTextRef = useRef(null);
 
     // Single handler to update any of the format options
     const handleFormatChange = (optionName) => {
@@ -53,7 +58,94 @@ export default function TextbookExplainer() {
         }));
     };
 
+    const getMimeType = (filename = '') => {
+        const extension = filename.split('.').pop().toLowerCase();
+        switch (extension) {
+            case 'pdf': return 'application/pdf';
+            case 'txt': return 'text/plain';
+            case 'jpg':
+            case 'jpeg': return 'image/jpeg';
+            case 'png': return 'image/png';
+            default: return 'application/octet-stream';
+        }
+    };
+
     const formatLabel = (key) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    useEffect(() => {
+
+        const base64ToBlob = (base64, contentType = 'application/octet-stream') => {
+            const byteCharacters = atob(base64);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            return new Blob(byteArrays, { type: contentType });
+        };
+
+        const fetchContent = async () => {
+            setLoading(true);
+            setLoadingMessage("Loading textbook details...");
+
+            try {
+
+                if(params.textbookId === 'undefined' || params.textbookId === ''){
+                    router.push('/textbook-explainer/');
+                }
+
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/getTextbookDetails?textbook_id=${params.textbookId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if(!response.ok) throw new Error(`Failed to load: ${response.status}`);
+
+                const data = await response.json();
+                const textbook = data.textbook;
+
+                console.log(data.textbook);
+
+                setExtractedText(textbook.textbookTXTFile.content);
+                
+                
+                // 1. Set all text and option states
+                setExtractedText(textbook.textbookTXTFile.content);
+
+                const newFormatOptions = Object.keys(formatOptions).reduce((acc, key) => {
+                    acc[key] = Boolean(textbook[key]);
+                    return acc;
+                }, {});
+                setFormatOptions(newFormatOptions);
+
+                // 2. Create the File object for the ORIGINAL uploaded file
+                const originalFileBlob = base64ToBlob(textbook.originalFile.content, getMimeType(textbook.name));
+                const originalFileObject = new File([originalFileBlob], textbook.name, { type: getMimeType(textbook.name) });
+                setUploadedFile(originalFileObject);
+
+                // Create the EXPLANATION file object by decoding its Base64 content
+                const explanationFileBlob = base64ToBlob(textbook.explanationFile.content, 'application/pdf');
+                const explanationFileName = `${textbook.name.replace(/\.[^/.]+$/, "")}_explained.pdf`;
+                const explanationFileObject = new File([explanationFileBlob], explanationFileName, { type: 'application/pdf' });
+                setExplanationPdf(explanationFileObject);
+
+
+            } catch (error) {
+                console.error("Failed to fetch content:", error);
+                setExtractionError("Could not load textbook data.");
+            } finally {
+                // Stop loading regardless of success or failure
+                setLoading(false);
+            }
+        }
+
+        fetchContent();
+    }, [params.textbookId, router])
 
     const handleDragOver = (e) => {
         e.preventDefault();
@@ -67,12 +159,11 @@ export default function TextbookExplainer() {
     const handleDrop = (e) => {
         e.preventDefault();
         setIsDragging(false);
-
         const files = e.dataTransfer.files;
         if (files.length > 0) {
-            validateAndUpload(e.target.files[0]);
+            validateAndUpload(files[0]);
         }
-    }
+    };
 
     const handleFileChange = (e) => {
         if (e.target.files.length > 0) {
@@ -84,7 +175,7 @@ export default function TextbookExplainer() {
         setUploadedFile(null);
         setExtractedText(''); // Also clear the extracted text
         setExtractionError(''); // And any errors
-
+        setFileForExtraction(null);
 
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -109,97 +200,126 @@ export default function TextbookExplainer() {
         console.log('Uploading file:', file.name);
 
         setUploadedFile(file);
+        setFileForExtraction(file); 
     }
 
-    const handleGeneratePDF = async (e)=>{
-        e.preventDefault();
+    // const handleGeneratePDF = async (e)=>{
+    //     e.preventDefault();
 
-        if (!uploadedFile) {
-            alert("Please upload a file first.");
+    //     if (!uploadedFile) {
+    //         alert("Please upload a file first.");
+    //         return;
+    //     }
+
+    //     setLoadingMessage("Uploading your file...");
+    //     setLoading(true);
+
+    //     const formData = new FormData();
+    //     formData.append('file', uploadedFile);
+    //     formData.append('formatOptions', JSON.stringify(formatOptions));
+    //     formData.append('extractedText', extractedText);
+
+    //     try {
+    //         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/start-generation`, {
+    //             method: 'POST',
+    //             credentials: 'include',
+    //             body: formData
+    //         });
+
+    //         if (response.status !== 200) { 
+    //             const errorData = await response.json();
+    //             throw new Error(errorData.error || 'Failed to start the generation process.');
+    //         }
+
+    //         const result = await response.json();
+
+    //         // Set the Textbook ID to start the polling effect
+    //         setPollingTextbookId(result.textbookId);
+    //         setLoadingMessage("Processing your document...");
+    //     } catch (error) {
+    //         console.log(error);
+    //         setLoading(false);
+    //     }
+    // }
+
+    // // --- NEW: This useEffect handles the polling logic ---
+    // useEffect(() => {
+    //     // Don't do anything if we don't have a textbook ID to poll
+    //     if (!pollingTextbookId) {
+    //         return;
+    //     }
+
+    //     // Set up an interval to check the status every 5 seconds
+    //     const intervalId = setInterval(async () => {
+    //         try {
+    //             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/status?id=${pollingTextbookId}`, {
+    //                 credentials: 'include',
+    //             });
+
+    //             if (!response.ok) {
+    //                 throw new Error('Could not get job status.');
+    //             }
+
+    //             const data = await response.json();
+
+    //             console.log(data);
+
+    //             if (data.status === 'COMPLETED') {
+    //                 // Job is done! Stop polling and redirect.
+    //                 clearInterval(intervalId);
+    //                 setLoading(false);
+    //                 router.push(`/textbook-explainer/${pollingTextbookId}`);
+    //             } else if (data.status === 'FAILED') {
+    //                 // Job failed. Stop polling and show an error.
+    //                 clearInterval(intervalId);
+    //                 setLoading(false);
+    //                 alert(`Textbook generation failed: ${data.errorMessage || 'An unknown error occurred.'}`);
+    //                 setPollingTextbookId(null);
+    //             }
+    //             // If status is 'PENDING' or 'PROCESSING', do nothing and let the interval run again.
+
+    //         } catch (error) {
+    //             console.error(error);
+    //             clearInterval(intervalId);
+    //             setLoading(false);
+    //             alert('An error occurred while checking the textbook status.');
+    //             setPollingTextbookId(null);
+    //         }
+    //     }, 5000); 
+
+    //     // Cleanup function: This is crucial to stop the interval 
+    //     // if the component unmounts for any reason.
+    //     return () => clearInterval(intervalId);
+
+    // }, [pollingTextbookId, router]); 
+
+    const handleCopyText = async () => {
+        // 1. Only check if text is empty, as requested
+        if (!extractedText) {
             return;
         }
 
-        setLoadingMessage("Uploading your file...");
-        setLoading(true);
-
-        const formData = new FormData();
-        formData.append('file', uploadedFile);
-        formData.append('formatOptions', JSON.stringify(formatOptions));
-        formData.append('extractedText', extractedText);
-
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/start-generation`, {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            });
-
-            if (response.status !== 200) { 
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to start the generation process.');
-            }
-
-            const result = await response.json();
-
-            // Set the Textbook ID to start the polling effect
-            setPollingTextbookId(result.textbookId);
-            setLoadingMessage("Processing your document...");
-        } catch (error) {
-            console.log(error);
-            setLoading(false);
-        }
-    }
-
-    // --- NEW: This useEffect handles the polling logic ---
-    useEffect(() => {
-        // Don't do anything if we don't have a textbook ID to poll
-        if (!pollingTextbookId) {
-            return;
-        }
-
-        // Set up an interval to check the status every 5 seconds
-        const intervalId = setInterval(async () => {
+        // 2. Make sure the element exists and is not already showing "Copied!"
+        if (copyButtonTextRef.current && copyButtonTextRef.current.textContent !== 'Copied!') {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/status?id=${pollingTextbookId}`, {
-                    credentials: 'include',
-                });
-
-                if (!response.ok) {
-                    throw new Error('Could not get job status.');
-                }
+                await navigator.clipboard.writeText(extractedText);
                 
-                const data = await response.json();
+                // 3. Directly change the text
+                copyButtonTextRef.current.textContent = 'Copied!';
 
-                console.log(data);
+                // 4. Set a timer to change it back after 3 seconds
+                setTimeout(() => {
+                    // Check if the element still exists before changing it back
+                    if (copyButtonTextRef.current) {
+                        copyButtonTextRef.current.textContent = 'Copy';
+                    }
+                }, 3000);
 
-                if (data.status === 'COMPLETED') {
-                    // Job is done! Stop polling and redirect.
-                    clearInterval(intervalId);
-                    setLoading(false);
-                    router.push(`/textbook-explainer/${pollingTextbookId}`);
-                } else if (data.status === 'FAILED') {
-                    // Job failed. Stop polling and show an error.
-                    clearInterval(intervalId);
-                    setLoading(false);
-                    alert(`Textbook generation failed: ${data.errorMessage || 'An unknown error occurred.'}`);
-                    setPollingTextbookId(null);
-                }
-                // If status is 'PENDING' or 'PROCESSING', do nothing and let the interval run again.
-
-            } catch (error) {
-                console.error(error);
-                clearInterval(intervalId);
-                setLoading(false);
-                alert('An error occurred while checking the textbook status.');
-                setPollingTextbookId(null);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
             }
-        }, 5000); 
-
-        // Cleanup function: This is crucial to stop the interval 
-        // if the component unmounts for any reason.
-        return () => clearInterval(intervalId);
-
-    }, [pollingTextbookId, router]); 
+        }
+    };
 
     const LoadingPopup = () => (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -291,41 +411,50 @@ export default function TextbookExplainer() {
                     <div className="w-full h-full flex flex-col bg-[#141B3C]/[64%] inset-shadow-[0_0px_32px_rgba(0,0,0,0.64)] ">
                         <div className="flex w-full h-max items-center pt-6">
                             <h1 className="mx-6 my-auto text-xl font-semibold">Raw Text from PDF</h1>
-                            <div className="flex my-auto mr-4 ml-auto"><DocumentDuplicateIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span className=" text-[#00CED1] ml-1">Copy</span></div>
-                            <div className="flex my-auto mr-6"><PencilIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span className=" text-[#00CED1] ml-1">Edit</span></div>
+                            <div onClick={handleCopyText} className="flex cursor-pointer my-auto mr-8 ml-auto"><DocumentDuplicateIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span ref={copyButtonTextRef} className=" text-[#00CED1] ml-1">Copy</span></div>
                         </div>
                         <div className="flex h-[83%] w-[90%] m-auto overflow-auto">
-    <PDFExtractor
-        uploadedFile={uploadedFile}
-        setIsProcessing={setIsProcessing}
-        setExtractedText={setExtractedText}
-        setExtractionError={setExtractionError}
-    />
+                            <PDFExtractor
+                        uploadedFile={fileForExtraction}
+                        setIsProcessing={setIsProcessing}
+                        setExtractedText={setExtractedText}
+                        setExtractionError={setExtractionError}
+                    />
 
-    <div className="w-full h-full bg-[#000000]/[30%] ">
-        {/* A single <pre> block now handles all states */}
-    <pre
-        className={`flex  w-full h-full rounded-lg p-10 whitespace-pre-wrap break-words text-white overflow-auto 
+                            <div className="w-full h-full bg-[#000000]/[30%] ">
+                                {/* A single <pre> block now handles all states */}
+                                <pre
+                                    className={`flex  w-full h-full rounded-lg p-10 whitespace-pre-wrap break-words text-white overflow-auto 
         ${!extractedText || isProcessing || extractionError ? 'justify-center items-center text-white/[50%] italic' : 'items-start bg-[#000000]/[30%]'}`}
-    >
-        {
-            isProcessing ? "⏳ Processing..." :
-            extractionError ? `❌ Error: ${extractionError}` :
-            extractedText ? extractedText :
-            "Please upload PDF to extract text!"
-        }
-    </pre>
-    </div>
-</div>
+                                >
+                                    {
+                                        isProcessing ? "⏳ Processing..." :
+                                            extractionError ? `❌ Error: ${extractionError}` :
+                                                extractedText ? extractedText :
+                                                    "Please upload PDF to extract text!"
+                                    }
+                                </pre>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div className="flex flex-col w-[68%] h-full">
-                <div className="flex w-full h-[10%] border-b-[1px] border-white/[25%] text-2xl font-bold text-[#00BFFF] items-center pl-10">Explained Text</div>
+                <div className="flex w-full h-[10%] border-b-[1px] border-white/[25%] text-2xl font-bold text-[#00BFFF] items-center pl-10">Explained PDF</div>
                 <div className="flex w-full h-[90%] flex-grow">
                     <div className="pdf-viewer flex w-[60%] h-full  bg-[#1F2687]/[37%]">
                         <div className="bg-[#1A1D2C]/[30%] w-full h-full rounded-t-lg border-[1px] border-b-0 border-white/[25%] flex">
-                            <PdfViewer file={'/TestPDF.pdf'} />
+                            { explanationPdf != null ?
+                                <PdfViewer file={explanationPdf} />
+                                :
+                                <div className="w-full h-full justify-center items-center flex flex-col space-y-5 text-white/[50%]">
+                                    <DocumentTextIcon className="w-12 h-12" />
+                            <h1 className="text-xl">No PDF generated yet</h1>
+                            <span>Upload a PDF and click generate to begin processing...</span>
+                                </div>
+                            }
+
+                            
                         </div>
 
                     </div>
@@ -374,7 +503,7 @@ export default function TextbookExplainer() {
                             </div>
                         </div>
                         <div className="h-[20%] w-full border-t-[1px] border-white/[25%] mt-auto flex flex-col justify-evenly">
-                            <button onClick={handleGeneratePDF} className="flex bg-[#00BFFF] w-[88%] mx-auto py-3 rounded-lg items-center justify-center-safe space-x-1"><SparklesIcon className="w-5 h-5" /><span className="font-semibold text-lg ">Generate Explanation PDF</span></button>
+                            <button className="flex bg-[#00BFFF] w-[88%] mx-auto py-3 rounded-lg items-center justify-center-safe space-x-1"><SparklesIcon className="w-5 h-5" /><span className="font-semibold text-lg ">Generate Explanation PDF</span></button>
                             <div className="flex w-[88%] h-max justify-between mx-auto">
                                 <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentIcon className="w-5 h-5" /><span className="ml-1">PDF</span></button>
                                 <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><CodeBracketSquareIcon className="w-5 h-5" /><span className="ml-1">MD</span></button>
