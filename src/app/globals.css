@@ -36,3 +36,21 @@ textarea.w-md-editor-text-input {
   min-height: 100% !important;
   height: auto !important;
 }
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* 2. Define the keyframes for the animation.
+     We're just animating the '--angle' custom property from 0 to 360 degrees.
+*/
+@keyframes spin-around {
+  0% {
+    --angle: 0deg;
+  }
+  100% {
+    --angle: 360deg;
+  }
+}

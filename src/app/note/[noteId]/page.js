@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import Checkbox from "rc-checkbox"
-import { ChevronDownIcon, SparklesIcon } from "@heroicons/react/24/outline";
-import { ArrowDownTrayIcon, DocumentArrowDownIcon, DocumentTextIcon, CloudArrowUpIcon } from "@heroicons/react/24/solid";
+import { SparklesIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon, CloudArrowUpIcon } from "@heroicons/react/24/solid";
 import MDEditor from "@uiw/react-md-editor";
 import { useParams, useRouter } from 'next/navigation';
 
@@ -39,6 +39,7 @@ const CreativeIcon = ({ className }) => (
 export default function note() {
 
     const [mdText, setMdText] = useState('');
+    const [saveStatus, setSaveStatus] = useState('idle'); 
     const [selectedStyle, setSelectedStyle] = useState('');
     const [smartTagList, setSmartTagList] = useState({ detect_heading: false, highlight_key: false, identify_todo: false, detect_definitions: false, include_summary: false, extract_key_in_summary: false });
     const [isDragging, setIsDragging] = useState(false);
@@ -48,7 +49,7 @@ export default function note() {
     const [Instructor, setInstructor] = useState('');
     const fileInputRef = useRef(null);
     const params = useParams();
-   const router = useRouter();
+    const router = useRouter();
 
 
     const handleCheckbox = (setting, settingValue) => {
@@ -67,7 +68,7 @@ export default function note() {
         const fetchContent = async () => {
             try {
 
-                if(params.noteId === 'undefined' || params.noteId === ''){
+                if (params.noteId === 'undefined' || params.noteId === '') {
                     router.push('/note/');
                 }
 
@@ -105,7 +106,6 @@ export default function note() {
                 setUploadedFile(syntheticFile);
 
 
-                // setMdText(res);
             } catch (err) {
                 console.error('FUCKING ERROR:', err);
             } finally {
@@ -173,6 +173,116 @@ export default function note() {
         setUploadedFile(file)
     };
 
+    const formatFileSize = (bytes) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        // Use toFixed(1) for one decimal place on KB, MB, etc.
+        const size = parseFloat((bytes / Math.pow(k, i)).toFixed(1)); 
+        return `${size} ${sizes[i]}`;
+    };
+
+    const handleDownloadPdf = async () => {
+        if (!mdText) {
+            alert("There is no content to download.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/note/downloadNote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    mdText,
+                    fileName
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`PDF generation failed: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+        } catch (error) {
+            console.error("Failed to download PDF:", error);
+            alert("Could not download the PDF. Please try again.");
+        }
+    };
+
+    const handleSaveText = async () => {
+        if (!mdText) {
+            alert("There is no content to save.");
+            return;
+        }
+
+        setSaveStatus('saving'); // Show popup with spinner
+
+        try {
+            const response = await fetch('/api/note/edit/textMd', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ mdText, noteId: params.noteId }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Text saving failed: ${response.statusText}`);
+            }
+
+            setSaveStatus('success'); // Change popup to show checkmark
+            setTimeout(() => setSaveStatus('idle'), 1500); // Hide popup after 1.5 seconds
+
+        } catch (error) {
+            console.log(error);
+            alert("Could not save the text. Please try again.");
+            setSaveStatus('idle'); // Hide popup on error
+        }
+    }
+
+    const handleSaveDetail = async()=>{
+        if(!fileName && !lectureTopic && !Instructor){
+            alert("There is no content to save.");
+            return;
+        }
+
+        setSaveStatus('saving');
+
+        try {
+            const response = await fetch('/api/note/edit/detail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ fileName : !fileName || fileName === '' ? undefined : fileName, lectureTopic: !lectureTopic || lectureTopic === '' ? undefined : lectureTopic, Instructor : !Instructor || Instructor === '' ? undefined : Instructor ,noteId : params.noteId }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Text saving failed: ${response.statusText}`);
+            }
+
+            setSaveStatus('success'); // Change popup to show checkmark
+            setTimeout(() => setSaveStatus('idle'), 1500); // Hide popup after 1.5 seconds
+
+        } catch (error) {
+            console.log(error);
+            alert("Could not save the lecture details. Please try again.");
+            setSaveStatus('idle'); // Hide popup on error
+        }
+    }
+
     // handleGenerateNotes = async() =>{
     //     e.preventDefault();
 
@@ -193,9 +303,48 @@ export default function note() {
     //     const {noteId} = await response.json();
     // }
 
+    // --- NEW COMPONENT: Save Status Popup ---
+const SaveStatusPopup = ({ status }) => {
+    if (status === 'idle') {
+        return null; 
+    }
+
     return (
-        <div className="flex w-full px-12 h-[93%]">
-            <div className="w-[78%] h-full mr-4 flex flex-col pb-3">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-[#141B3C]/[80%] p-8 rounded-2xl shadow-xl flex flex-col items-center border border-white/[15%] min-w-[250px]">
+                {status === 'saving' && (
+                    <>
+                        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#00BFFF]"></div>
+                        <p className="text-white text-xl mt-5 font-semibold">Saving Note...</p>
+                        <p className="text-white/[60%] text-sm mt-1">Please wait a moment.</p>
+                    </>
+                )}
+                {status === 'success' && (
+                     <>
+                        <svg className="w-20 h-20 text-[#00BFFF]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 24, strokeDashoffset: 'var(--offset, 24)', animation: 'draw 0.5s ease-out forwards' }} />
+                        </svg>
+                        <p className="text-white text-xl mt-5 font-semibold">Saved Successfully!</p>
+                    </>
+                )}
+            </div>
+            <style jsx global>{`
+                @keyframes draw {
+                    to {
+                        --offset: 0;
+                    }
+                }
+            `}</style>
+        </div>
+    );
+};
+
+    return (
+        <>
+        <SaveStatusPopup status={saveStatus} /> 
+
+        <div className="flex w-full px-12 h-full">
+            <div className="w-[78%] h-full mr-4 flex flex-col pb-3 items-center">
                 <div className="w-full h-[12.5%] ">
                     <div className="w-full h-full flex flex-col my-auto">
                         <h1 className="text-3xl text-[#00BFFF] font-extrabold mt-auto">Inclass Note Taker</h1>
@@ -252,7 +401,7 @@ export default function note() {
                                                 {uploadedFile.name}
                                             </h2>
                                             <p className="text-xs text-gray-400 mb-4">
-                                                {uploadedFile.size < 1024 ? Math.round(uploadedFile.size / 1024) + "KB" : Math.round(uploadedFile.size / 1024 / 1024) + "MB"} • {
+                                                {formatFileSize(uploadedFile.size)} • {
                                                     uploadedFile.type === 'application/pdf' ? 'PDF' :
                                                         uploadedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'DOCX' :
                                                             'TXT'
@@ -276,29 +425,30 @@ export default function note() {
                                     )}
                                 </div>
                             </div>
-                            <div className="flex flex-grow px-6">
-                                <div className="w-full h-max my-auto flex flex-col">
-                                    <h1 className="flex text-xl font-semibold pb-6 w-full">
+                            <div className="flex flex-grow px-6 py-3">
+                                <div className="w-full h-full flex flex-col justify-evenly">
+                                    <h1 className="flex text-xl font-semibold w-full">
                                         Transcript Details
                                     </h1>
                                     <span className="text-white/[70%]">Course Details</span>
-                                    <input onChange={(e) => setFileName(e.target.value)} defaultValue={fileName} placeholder="e.g, Advanced Physics 101" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
+                                    <input onChange={(e) => setFileName(e.target.value)} defaultValue={fileName} placeholder="e.g, Advanced Physics 101" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg" />
 
                                     <span className="text-white/[70%]">Lecture Topic (Optional)</span>
-                                    <input onChange={(e) => setLectureTopic(e.target.value)} defaultValue={lectureTopic} placeholder="e.g., Quantum Mechanics Introduction" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
+                                    <input onChange={(e) => setLectureTopic(e.target.value)} defaultValue={lectureTopic} placeholder="e.g., Quantum Mechanics Introduction" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg" />
 
                                     <span className="text-white/[70%]">Instructor (Optional)</span>
-                                    <input onChange={(e) => setInstructor(e.target.value)} defaultValue={Instructor} placeholder="e.g., Dr. Smith" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg my-4" />
-
+                                    <input onChange={(e) => setInstructor(e.target.value)} defaultValue={Instructor} placeholder="e.g., Dr. Smith" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 px-4 rounded-lg" />
+                                    <button onClick={handleSaveDetail} className="px-4 py-2 bg-[#00BFFF] rounded-lg mt-3">Save Details</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div className="raw-text-editor-box w-[62.5%] h-full  border-[1px] rounded-xl border-white/[10%] bg-[#1F2687]/[37%] shadow-[0_8px_32px_rgba(31,38,135,0.37)] overflow-hidden">
                         <div className="w-full h-full flex flex-col bg-[#141B3C]/[64%] overflow-hidden">
-                            <h1 className="flex h-[7%] px-6 text-xl font-bold py-3 border-b-[1px] border-white/[25%] w-full text-[#00BFFF]">
-                                Raw Output Text
-                            </h1>
+                            <div className="flex h-[7%] px-6 text-xl font-bold py-3 border-b-[1px] border-white/[25%] w-full text-[#00BFFF] items-center">
+                                <span>Raw Output Text</span>
+                                <button onClick={handleSaveText} className="text-xs bg-gray-800 py-2 px-3 rounded-md ml-auto">Save Text</button>
+                            </div>
                             <div className="flex h-[93%] overflow-hidden">
                                 {
                                     mdText !== '' &&
@@ -343,20 +493,20 @@ export default function note() {
                     <h1 className="text-[#00BFFF] text-2xl font-semibold w-full border-b-[1px] border-white/[25%] px-5 pb-4">Formatting Options</h1>
                     <div className="py-4 w-full flex flex-col px-5 border-b-[1px] border-white/[25%]">
                         <h2 className="text-xl pb-4">Smart Tags</h2>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('detect_heading')} checked={smartTagList.detect_heading}/> <span className="ml-3">Auto-detect headings</span></div>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('highlight_key')} checked={smartTagList.highlight_key}/> <span className="ml-3">Highlight key points</span></div>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('identify_todo')} checked={smartTagList.identify_todo}/> <span className="ml-3">Identify to-do items</span></div>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('detect_definitions')} checked={smartTagList.detect_definitions}/> <span className="ml-3">Detect definitions</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('detect_heading')} checked={smartTagList.detect_heading} /> <span className="ml-3">Auto-detect headings</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('highlight_key')} checked={smartTagList.highlight_key} /> <span className="ml-3">Highlight key points</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('identify_todo')} checked={smartTagList.identify_todo} /> <span className="ml-3">Identify to-do items</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('detect_definitions')} checked={smartTagList.detect_definitions} /> <span className="ml-3">Detect definitions</span></div>
                     </div>
                     <div className="py-4 w-full flex flex-col px-5 border-b-[1px] border-white/[25%]">
                         <h2 className="text-xl pb-4">Auto-Summarization</h2>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('include_summary')} checked={smartTagList.include_summary}/> <span className="ml-3">Include summary in beginning</span></div>
-                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('extract_key_in_summary')} checked={smartTagList.extract_key_in_summary}/> <span className="ml-3">Extract key terms</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('include_summary')} checked={smartTagList.include_summary} /> <span className="ml-3">Include summary in beginning</span></div>
+                        <div className="flex items-center pb-2"><Checkbox onChange={() => handleCheckbox('extract_key_in_summary')} checked={smartTagList.extract_key_in_summary} /> <span className="ml-3">Extract key terms</span></div>
                     </div>
                     <div className="py-4 w-full flex flex-col px-5 border-b-[1px] border-white/[25%]">
                         <h2 className="text-xl pb-4">Output Styling</h2>
-                        <h3 className="pb-2">PDF Template</h3>
-                        <div className="flex space-x-4 pb-2 ">
+                        <h3 className="pb-4">PDF Template</h3>
+                        <div className="flex space-x-4 pb-4 ">
                             <StyleCard
                                 id="academic"
                                 title="Academic"
@@ -378,18 +528,19 @@ export default function note() {
                         </div>
                     </div>
                     <div className="  flex flex-col mt-auto py-5 mx-6 space-y-5 mb-0 flex-grow justify-end">
-                        <button onClick={() => { }} className="flex rounded-lg w-full px-3 py-2 items-center justify-center bg-[#00BFFF]"> <SparklesIcon className="w-4 h-4" /><span className="ml-1">Generate Formatted Notes</span></button>
-                        <div className="flex justify-center gap-x-3">
-                            <button className="w-[30%] rounded-lg py-2 px-2 flex justify-center items-center bg-[#000000]/[40%] text-sm"><ArrowDownTrayIcon className="w-4 h-4 " /> <span className="ml-1">PDF</span></button>
-                            <button className="w-[30%] rounded-lg py-2 px-2 flex justify-center items-center bg-[#000000]/[40%] text-sm"><DocumentArrowDownIcon className="w-4 h-4" /> <span className="ml-1">DOCX</span></button>
-                            <button className="w-[30%] rounded-lg py-2 px-2 flex justify-center items-center bg-[#000000]/[40%] text-sm"><DocumentTextIcon className="w-4 h-4" /><span className="ml-1">Txt</span></button>
-                        </div>
+                        <button onClick={() => { }} className="flex cursor-pointer rounded-lg w-full px-3 py-2 items-center justify-center bg-[#00BFFF]"> <SparklesIcon className="w-4 h-4" /><span className="ml-1">Regenerate Formatted Notes</span></button>
+                        <button onClick={ handleDownloadPdf } className="flex cursor-pointer justify-center bg-gray-800/[80%] px-3 py-2 rounded-lg text-[#00BFFF] items-center justify-center">
+                            <CloudArrowDownIcon className="w-4 h-4" />
+                            <span className="ml-1">Download ( File Type : PDF )</span>
+                        </button>
+
                     </div>
 
                 </div>
 
             </div>
         </div>
+    </>
     )
 }
 
