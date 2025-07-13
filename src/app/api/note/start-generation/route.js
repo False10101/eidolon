@@ -33,9 +33,7 @@ export async function POST(req) {
             return new Response(JSON.stringify({ error: 'No File Provided' }), { status: 400 });
         }
 
-        // --- All the fast work happens here ---
-
-        // 1. Save the uploaded transcript file so the background job can access it.
+        
         const buffer = Buffer.from(await file.arrayBuffer());
         const originalName = formData.get('fileName') || file.name;
         const fileBaseName = originalName.includes('.') ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
@@ -44,15 +42,13 @@ export async function POST(req) {
          const transcriptFilePath = path.join(process.cwd(), 'storage', transcriptRelativePath);
         await writeFile(transcriptFilePath, buffer); // Use the buffer directly
 
-        // 2. Get all other configuration details from the form.
+       
         const config = formData.get('config');
         const configJSON = JSON.parse(config);
         const lecture_topic = formData.get('topic') || null;
         const instructor = formData.get('instructor') || null;
         const style = formData.get('style');
 
-        // 3. Create the job record in the database with a 'PENDING' status.
-        // We store all the config needed for the background job.
          const insertQuery = `
             INSERT INTO note 
             (name, lecture_topic, instructor, detect_heading, highlight_key, identify_todo, detect_definitions, include_summary, extract_key_in_summary, template_type, created_at, user_id, transcriptFilePath, status) 
@@ -77,12 +73,9 @@ export async function POST(req) {
         
         const noteId = dbResult.insertId;
 
-        // 4. Trigger the background process. NOTE: We do NOT use 'await' here.
-        // This is "fire-and-forget". The API will respond before this function is finished.
         processNoteInBackground(noteId);
 
-        // 5. Respond to the client immediately with the ID of the job.
-        return new Response(JSON.stringify({ noteId: noteId }), { status: 200 }); // 202 Accepted
+        return new Response(JSON.stringify({ noteId: noteId }), { status: 200 }); 
 
     } catch (error) {
         console.error('Error starting note generation:', error);

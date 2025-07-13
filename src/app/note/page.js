@@ -5,6 +5,7 @@ import Checkbox from "rc-checkbox"
 import { SparklesIcon } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon, DocumentArrowDownIcon, DocumentTextIcon, CloudArrowUpIcon } from "@heroicons/react/24/solid";
 import { useRouter } from 'next/navigation';
+import LoadingPopup from "./LoadingPopup";
 
 const AcademicIcon = ({ className }) => (
     <svg className={className} viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -95,13 +96,11 @@ export default function note() {
 
     const validateAndUpload = (file) => {
         const validTypes = [
-            'application/pdf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'text/plain'
         ];
 
         if (!validTypes.includes(file.type)) {
-            alert('Please upload only PDF, DOCX, or TXT files');
+            alert('Please upload only TXT files');
             return;
         }
 
@@ -213,20 +212,12 @@ export default function note() {
     // --- NEW COMPONENT: Loading Popup ---
     // This component will overlay the screen with a spinning animation
     // while waiting for the backend response.
-    const LoadingPopup = () => (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-[#141B3C]/[80%] p-8 rounded-2xl shadow-xl flex flex-col items-center border border-white/[15%]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#00BFFF]"></div>
-                <p className="text-white text-xl mt-5 font-semibold">{loadingMessage}...</p>
-                <p className="text-white/[60%] text-sm mt-1">Please wait a moment.</p>
-            </div>
-        </div>
-    );
+    
 
     return (
         <div className="flex w-full px-12 h-[93%] min-w-[1280px] min-h-[800px]">
 
-            {loading && <LoadingPopup />}
+            {loading && <LoadingPopup loadingMessage={loadingMessage}/>}
 
             <div className="w-[78%] h-full mr-4 flex flex-col pb-3">
                 <div className="w-full h-[12.5%] ">
@@ -239,7 +230,7 @@ export default function note() {
                     <div className="w-[32.5%] h-full border-[1px] rounded-xl border-white/[10%] bg-[#1F2687]/[37%] shadow-[0_8px_32px_rgba(31,38,135,0.37)] ">
                         <div className="w-full h-full bg-[#141B3C]/[64%] flex flex-col">
                             <h1 className="flex h-[7%] px-6 text-xl font-bold py-3 border-b-[1px] border-white/[25%] w-full text-[#00BFFF]">
-                                Raw Output Text
+                                Raw Transcript Text
                             </h1>
                             <div className="flex w-full h-max border-b-[1px] border-white/[20%] items-center ">
                                 <div className={`flex w-[80%] h-max border-[2px] border-dashed border-white/[20%] rounded-lg my-10 py-2 mx-auto flex flex-col
@@ -256,7 +247,7 @@ export default function note() {
                                         type="file"
                                         ref={fileInputRef}
                                         className="hidden"
-                                        accept=".pdf,.docx,.txt"
+                                        accept=".txt"
                                         onChange={handleFileChange}
                                     />
                                     {!uploadedFile ? (
@@ -269,7 +260,7 @@ export default function note() {
                                                 Drag and drop your in-class recording file here
                                             </h1>
                                             <span className="text-xs text-center w-[90%] text-white/[80%] mb-3 truncate">
-                                                Supports PDF, DOCX, TXT (max 500MB)
+                                                Supports TXT file only! (max 500MB)
                                             </span>
                                             <button
                                                 onClick={() => fileInputRef.current.click()}

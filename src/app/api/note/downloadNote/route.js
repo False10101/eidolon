@@ -50,7 +50,7 @@ const PDF_STYLE = `
   a:hover { text-decoration: underline; }
 `;
 
-export async function POST(request) {
+export async function POST(req) {
     const cookies = req.headers.get('cookie');
     const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
 
@@ -60,7 +60,7 @@ export async function POST(request) {
 
     try {
         // 1. Get only the necessary data from the request body
-        const { mdText, fileName } = await request.json();
+        const { mdText, fileName } = await req.json();
 
         if (!mdText) {
             return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });

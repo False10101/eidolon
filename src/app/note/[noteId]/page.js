@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from "react"
 import Checkbox from "rc-checkbox"
 import { SparklesIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline";
-import { DocumentTextIcon, CloudArrowUpIcon } from "@heroicons/react/24/solid";
+import { DocumentTextIcon, CloudArrowUpIcon, TrashIcon } from "@heroicons/react/24/solid";
 import MDEditor from "@uiw/react-md-editor";
 import { useParams, useRouter } from 'next/navigation';
+import LoadingPopup from "../LoadingPopup";
 
 
 
@@ -51,6 +52,11 @@ export default function note() {
     const params = useParams();
     const router = useRouter();
 
+     // --- NEW STATE: For controlling the loading popup ---
+    const [loading, setLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState("Initializing...");
+    const [pollingNoteId, setPollingNoteId] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const handleCheckbox = (setting, settingValue) => {
         setSmartTagList(prev => ({ ...prev, [setting]: !prev[setting] }));
@@ -116,7 +122,6 @@ export default function note() {
     }, [params.noteId]);
 
 
-
     const handleDragOver = (e) => {
         e.preventDefault();
         setIsDragging(true);
@@ -170,7 +175,10 @@ export default function note() {
         // Handle valid file upload
         console.log('Uploading file:', file.name);
 
-        setUploadedFile(file)
+        setUploadedFile(file);
+        setFileName(file.name);
+        setLectureTopic('');
+        setInstructor('');
     };
 
     const formatFileSize = (bytes) => {
@@ -190,7 +198,7 @@ export default function note() {
         }
 
         try {
-            const response = await fetch('/api/note/downloadNote', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/downloadNote`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -283,25 +291,122 @@ export default function note() {
         }
     }
 
-    // handleGenerateNotes = async() =>{
-    //     e.preventDefault();
+    const handleRegenerateNotes = async (e) => {
+        e.preventDefault();
 
-    //     const formData = new FormData();
-    //     formData.append('file', uploadedFile);
-    //     formData.append('config', JSON.stringify(smartTagList));
-    //     formData.append('style', selectedStyle);
-    // formData.append('topic', lectureTopic);
-    // formData.append('instructor', Instructor);
-    // formData.append('filename', fileName);
+        if (!uploadedFile) {
+            alert("Please upload a file first.");
+            return;
+        }
+        // Show the loading popup
+        setLoadingMessage("Uploading your file...");
+        setLoading(true);
 
-    //     const response = fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-    //         method : 'POST',
-    //         credentials : true,
-    //         body : formData
-    //     })
+        const formData = new FormData();
+        formData.append('file', uploadedFile);
+        formData.append('config', JSON.stringify(smartTagList));
+        formData.append('style', selectedStyle);
+        formData.append('topic', lectureTopic);
+        formData.append('instructor', Instructor);
+        formData.append('filename', fileName);
+        formData.append('id', params.noteId);
 
-    //     const {noteId} = await response.json();
-    // }
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/edit/re-generate`, {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            })
+
+            if (response.status !== 200) { 
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to start the regeneration process.');
+            }
+
+            const result = await response.json();
+
+            // Set the note ID to start the polling effect
+            setPollingNoteId(result.noteId);
+            setLoadingMessage("Processing your document...");
+
+        } catch (error) {
+            console.log(error);
+            setLoading(false);
+        } 
+    }
+
+    useEffect(() => {
+        // Don't do anything if we don't have a note ID to poll
+        if (!pollingNoteId) {
+            return;
+        }
+
+        // Set up an interval to check the status every 5 seconds
+        const intervalId = setInterval(async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/status?id=${pollingNoteId}`, {
+                    credentials: 'include',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Could not get job status.');
+                }
+                
+                const data = await response.json();
+
+                console.log(data);
+
+                if (data.status === 'COMPLETED') {
+                    // Job is done! Stop polling and redirect.
+                    clearInterval(intervalId);
+                    setLoading(false);
+                    window.location.reload(); 
+                } else if (data.status === 'FAILED') {
+                    // Job failed. Stop polling and show an error.
+                    clearInterval(intervalId);
+                    setLoading(false);
+                    alert(`Note generation failed: ${data.errorMessage || 'An unknown error occurred.'}`);
+                    setPollingNoteId(null);
+                }
+                // If status is 'PENDING' or 'PROCESSING', do nothing and let the interval run again.
+
+            } catch (error) {
+                console.error(error);
+                clearInterval(intervalId);
+                setLoading(false);
+                alert('An error occurred while checking the note status.');
+                setPollingNoteId(null);
+            }
+        }, 5000); // Check every 5 seconds
+
+        // Cleanup function: This is crucial to stop the interval 
+        // if the component unmounts for any reason.
+        return () => clearInterval(intervalId);
+
+    }, [pollingNoteId, router]);
+
+    const handleDeleteNote = async () => {
+        setIsDeleteModalOpen(false); 
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/delete?id=${params.noteId}`, {
+                method: 'DELETE',
+                credentials: 'include', // Sends cookies with the request
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete note.');
+            }
+
+            // On successful deletion, redirect the user away from the now-deleted note
+            router.push('/note'); // Redirect to your main notes list page
+
+        } catch (error) {
+            console.error("Failed to delete note:", error);
+            alert(error.message);
+        }
+    };
 
     // --- NEW COMPONENT: Save Status Popup ---
 const SaveStatusPopup = ({ status }) => {
@@ -339,9 +444,17 @@ const SaveStatusPopup = ({ status }) => {
     );
 };
 
+
+
     return (
         <>
         <SaveStatusPopup status={saveStatus} /> 
+        {loading && <LoadingPopup loadingMessage={loadingMessage}/>}
+        <DeleteConfirmationPopup
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDeleteNote}
+            />
 
         <div className="flex w-full px-12 h-full">
             <div className="w-[78%] h-full mr-4 flex flex-col pb-3 items-center">
@@ -355,7 +468,7 @@ const SaveStatusPopup = ({ status }) => {
                     <div className="w-[32.5%] h-full border-[1px] rounded-xl border-white/[10%] bg-[#1F2687]/[37%] shadow-[0_8px_32px_rgba(31,38,135,0.37)] ">
                         <div className="w-full h-full bg-[#141B3C]/[64%] flex flex-col">
                             <h1 className="flex h-[7%] px-6 text-xl font-bold py-3 border-b-[1px] border-white/[25%] w-full text-[#00BFFF]">
-                                Raw Output Text
+                                Raw Transcript Text
                             </h1>
                             <div className="flex w-full h-max border-b-[1px] border-white/[20%] items-center ">
                                 <div className={`flex w-[80%] h-max border-[2px] border-dashed border-white/[20%] rounded-lg my-10 py-2 mx-auto flex flex-col
@@ -522,18 +635,21 @@ const SaveStatusPopup = ({ status }) => {
                             <StyleCard
                                 id="Creative"
                                 title="Creative"
-                                isSelected={selectedStyle === 'Creative'}
+                                isSelected={selectedStyle === 'creative'}
                                 onSelect={setSelectedStyle}
                             />
                         </div>
                     </div>
                     <div className="  flex flex-col mt-auto py-5 mx-6 space-y-5 mb-0 flex-grow justify-end">
-                        <button onClick={() => { }} className="flex cursor-pointer rounded-lg w-full px-3 py-2 items-center justify-center bg-[#00BFFF]"> <SparklesIcon className="w-4 h-4" /><span className="ml-1">Regenerate Formatted Notes</span></button>
+                        <button onClick={ handleRegenerateNotes } className="flex cursor-pointer rounded-lg w-full px-3 py-2 items-center justify-center bg-[#00BFFF]"> <SparklesIcon className="w-4 h-4" /><span className="ml-1">Regenerate Formatted Notes</span></button>
                         <button onClick={ handleDownloadPdf } className="flex cursor-pointer justify-center bg-gray-800/[80%] px-3 py-2 rounded-lg text-[#00BFFF] items-center justify-center">
                             <CloudArrowDownIcon className="w-4 h-4" />
                             <span className="ml-1">Download ( File Type : PDF )</span>
                         </button>
-
+                        <button onClick={ () => setIsDeleteModalOpen(true) } className="flex cursor-pointer justify-center bg-red-500 px-3 py-2 rounded-lg items-center justify-center">
+                            <TrashIcon className="w-4 h-4" />
+                            <span className="ml-1">Delete Note</span>
+                        </button>
                     </div>
 
                 </div>
@@ -575,6 +691,39 @@ const StyleCard = ({ id, title, isSelected, onSelect }) => {
             <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-300'} mt-2`}>
                 {title}
             </span>
+        </div>
+    );
+};
+
+
+const DeleteConfirmationPopup = ({ isOpen, onClose, onConfirm }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-[#141B3C]/[90%] p-8 rounded-2xl shadow-xl flex flex-col items-center border border-white/[15%] max-w-md text-center">
+                <div className="w-16 h-16 mb-4 flex items-center justify-center bg-red-500/10 rounded-full">
+                    <TrashIcon className="w-8 h-8 text-red-500" />
+                </div>
+                <h2 className="text-white text-2xl font-bold mb-2">Delete Note</h2>
+                <p className="text-white/[70%] mb-6">
+                    Are you sure you want to permanently delete this note? This action cannot be undone.
+                </p>
+                <div className="flex space-x-4 w-full">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 rounded-lg text-white transition-colors font-semibold"
+                    >
+                        Confirm Delete
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
