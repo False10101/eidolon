@@ -6,17 +6,19 @@ import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
 import { DocumentIcon, DocumentDuplicateIcon, PencilIcon, SparklesIcon, CodeBracketSquareIcon, DocumentTextIcon } from "@heroicons/react/24/solid";
 import dynamic from "next/dynamic";
 import Switch from "react-switch";
+import LoadingPopup from "../LoadingPopup";
 
-// Dynamically import the PdfViewer with SSR turned off
 
-
-const PDFExtractor = dynamic(() => import('./UploadedPdfComponent'), {
+    const PDFExtractor = dynamic(() => import('./UploadedPdfComponent'), {
     ssr: false,
     loading: () => <p className="text-white">Loading PDF Viewer...</p>
 });
 
 
+
 export default function TextbookExplainer() {
+
+
 
     const router = useRouter();
 
@@ -41,6 +43,35 @@ export default function TextbookExplainer() {
     const [loadingMessage, setLoadingMessage] = useState("Initializing...");
     const [pollingTextbookId, setPollingTextbookId] = useState(null);
 
+    const copyButtonTextRef = useRef(null);
+
+    const handleCopyText = async () => {
+        // 1. Only check if text is empty, as requested
+        if (!extractedText) {
+            return;
+        }
+
+        // 2. Make sure the element exists and is not already showing "Copied!"
+        if (copyButtonTextRef.current && copyButtonTextRef.current.textContent !== 'Copied!') {
+            try {
+                await navigator.clipboard.writeText(extractedText);
+
+                // 3. Directly change the text
+                copyButtonTextRef.current.textContent = 'Copied!';
+
+                // 4. Set a timer to change it back after 3 seconds
+                setTimeout(() => {
+                    // Check if the element still exists before changing it back
+                    if (copyButtonTextRef.current) {
+                        copyButtonTextRef.current.textContent = 'Copy';
+                    }
+                }, 3000);
+
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+        }
+    };
 
     // Single handler to update any of the format options
     const handleFormatChange = (optionName) => {
@@ -198,20 +229,11 @@ export default function TextbookExplainer() {
 
     }, [pollingTextbookId, router]);
 
-    const LoadingPopup = () => (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-[#141B3C]/[80%] p-8 rounded-2xl shadow-xl flex flex-col items-center border border-white/[15%]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#00BFFF]"></div>
-                <p className="text-white text-xl mt-5 font-semibold">{loadingMessage}...</p>
-                <p className="text-white/[60%] text-sm mt-1">Please wait a moment.</p>
-            </div>
-        </div>
-    );
 
     return (
         <div className="flex w-full h-full bg-gradient-to-r from-[#000000] to-[#1A2145]">
 
-            {loading && <LoadingPopup />}
+            {loading && <LoadingPopup loadingMessage={ loadingMessage}/>}
 
             <div className="flex w-[32%] flex-col h-full border-r-[1px] border-white/[25%]">
                 <div className="file-upload flex w-full h-[35%] items-center ">
@@ -288,8 +310,7 @@ export default function TextbookExplainer() {
                     <div className="w-full h-full flex flex-col bg-[#141B3C]/[64%] inset-shadow-[0_0px_32px_rgba(0,0,0,0.64)] ">
                         <div className="flex w-full h-max items-center pt-6">
                             <h1 className="mx-6 my-auto text-xl font-semibold">Raw Text from PDF</h1>
-                            <div className="flex my-auto mr-4 ml-auto"><DocumentDuplicateIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span className=" text-[#00CED1] ml-1">Copy</span></div>
-                            <div className="flex my-auto mr-6"><PencilIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span className=" text-[#00CED1] ml-1">Edit</span></div>
+                            <div onClick={handleCopyText} className={`${extractedText ? 'flex' : 'hidden'} cursor-pointer my-auto mr-8 ml-auto`}><DocumentDuplicateIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span ref={copyButtonTextRef} className=" text-[#00CED1] ml-1">Copy</span></div>
                         </div>
                         <div className="flex h-[83%] w-[90%] m-auto overflow-auto">
 
@@ -302,8 +323,8 @@ export default function TextbookExplainer() {
 
                             <div className="w-full h-full bg-[#000000]/[30%] ">
                                 {/* A single <pre> block now handles all states */}
-                                <pre
-                                    className={`flex  w-full h-full rounded-lg p-10 whitespace-pre-wrap break-words text-white overflow-auto 
+                                <p
+                                    className={`flex  w-full h-full rounded-lg whitespace-pre-line break-words text-white overflow-auto word-wrap
         ${!extractedText || isProcessing || extractionError ? 'justify-center items-center text-white/[50%] italic' : 'items-start bg-[#000000]/[30%]'}`}
                                 >
                                     {
@@ -312,7 +333,7 @@ export default function TextbookExplainer() {
                                                 extractedText ? extractedText :
                                                     "Please upload PDF to extract text!"
                                     }
-                                </pre>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -373,13 +394,8 @@ export default function TextbookExplainer() {
                                 ))}
                             </div>
                         </div>
-                        <div className="h-[20%] w-full border-t-[1px] border-white/[25%] mt-auto flex flex-col justify-evenly">
-                            <button onClick={handleGeneratePDF} className="flex bg-[#00BFFF] w-[88%] mx-auto py-3 rounded-lg items-center justify-center-safe space-x-1"><SparklesIcon className="w-5 h-5" /><span className="font-semibold text-lg ">Generate Explanation PDF</span></button>
-                            <div className="flex w-[88%] h-max justify-between mx-auto">
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentIcon className="w-5 h-5" /><span className="ml-1">PDF</span></button>
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><CodeBracketSquareIcon className="w-5 h-5" /><span className="ml-1">MD</span></button>
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentTextIcon className="w-5 h-5" /><span className="ml-1">Text</span></button>
-                            </div>
+                        <div className="h-[25%] w-full border-t-[1px] border-white/[25%] mt-auto flex flex-col justify-evenly">
+                            <button onClick={handleGeneratePDF} className="flex bg-[#00BFFF] w-[88%] mx-auto py-3 rounded-lg items-center justify-center-safe space-x-1 mt-auto mb-7"><SparklesIcon className="w-5 h-5" /><span className="font-semibold text-lg ">Generate Explanation PDF</span></button>
                         </div>
                     </div>
                 </div>

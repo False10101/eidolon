@@ -15,7 +15,6 @@ export async function POST(req) {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user_id = decoded.id;
 
         const formData = await req.formData();
         const file = formData.get('file');
@@ -59,7 +58,6 @@ export async function POST(req) {
             'extract_key_in_summary = ?',
             'template_type = ?',
             'created_at = ?',
-            'user_id = ?',
             'status = ?'
         ];
 
@@ -73,7 +71,6 @@ export async function POST(req) {
             configJSON.extract_key_in_summary,
             style,
             new Date().toISOString().slice(0, 19).replace('T', ' '),
-            user_id,
             'PENDING' 
         ];
 

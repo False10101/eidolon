@@ -20,11 +20,14 @@ export async function GET(req) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
 
-        const [[textbook]] = await db.query('SELECT * from textbook where user_id = ? AND id = ?', [user_id, textbook_id]);
-
+        const [rows] = await db.query('SELECT * from textbook where user_id = ? AND id = ?', [user_id, textbook_id]);
+        const textbook = rows[0];
+        
+        console.log(rows);
         if(!textbook){
-            return new Response(JSON.stringify({error : 'Textbook Not Found'}, {status : 400}));
+            return new Response(JSON.stringify({error : 'Textbook Not Found'}), {status : 400});        
         }
+
 
         const [textbookTXTContent, originalFileBuffer, explanationFileBuffer] = await Promise.all([
             fs.readFile(path.join(process.cwd(), 'storage', textbook.textbookTXTFilePath), 'utf-8'),

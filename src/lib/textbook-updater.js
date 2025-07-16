@@ -1,8 +1,7 @@
-import { db } from "@/lib/db";
+import path from 'path';
 import { GoogleGenAI } from "@google/genai";
+import { db } from './db';
 import { readFile } from 'fs/promises';
-import path from "path";
-import { v4 as uuidv4 } from 'uuid';
 import puppeteer from 'puppeteer';
 import { marked } from 'marked';
 
@@ -28,19 +27,18 @@ function buildTitlePage(title, course, author, date) {
     `;
 }
 
-export async function textbook_explanation_processor(textbookId) {
+export async function updateTextbookInBackground(textbookId){
     let textbook;
 
     try {
-        const [rows] = await queryWithRetry('SELECT * FROM textbook WHERE id= ?', [textbookId]);
-
+        const [rows] = await db.query('SELECT * FROM textbook where id = ?', [textbookId]);
         textbook = rows[0];
 
-        if (!textbook) {
+        if(!textbook){
             throw new Error(`Textbook with ID ${textbookId} not found for processing.`);
         }
 
-        await queryWithRetry(`UPDATE textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId]);
+        await db.query(`Update textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId] );
 
         const formatOptionsJSON = {
             simple_analogies: Boolean(textbook.simple_analogies),
@@ -79,31 +77,27 @@ export async function textbook_explanation_processor(textbookId) {
 
         console.log("Starting PDF generation...");
 
-        // 1. Prepare PDF metadata and file paths
-        const pdfFileName = `${uuidv4()}_${textbook.name}_explained.pdf`;
-        const pdfRelativePath = `/textbook/explanation/${pdfFileName}`;
+        const pdfRelativePath = textbook.explanationFilePath;
         const pdfAbsoluteFilePath = path.join(process.cwd(), 'storage', pdfRelativePath);
         const generationDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        // 2. Build HTML from your `generatedText`
         const titlePageHtml = buildTitlePage(textbook.name || "Generated Explanation", textbook.course || "Textbook Analysis", "A.I. Companion", generationDate);
         const contentHtml = marked(generatedText);
         const finalHtml = titlePageHtml + contentHtml;
 
-        // 3. Use Puppeteer to create the PDF from the HTML string
         const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
         const page = await browser.newPage();
         await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
         await page.addStyleTag({ content: PDF_CSS });
         await page.pdf({ path: pdfAbsoluteFilePath, format: 'A4', printBackground: true });
         await browser.close();
-        
-        console.log(`✅ PDF created: ${pdfFileName}`);
+
+        console.log(`✅ PDF created: ${pdfRelativePath}`);
 
         await queryWithRetry(`UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? WHERE id = ? `, [pdfRelativePath, textbookId]);
 
         console.log(`Successfully processed textbook ID: ${textbookId}`);
-
+        
     } catch (error) {
         console.error("An error occurred during textbook processing:", error);
         if (textbookId) {
@@ -111,6 +105,7 @@ export async function textbook_explanation_processor(textbookId) {
         }
     }
 }
+
 
 async function queryWithRetry(query, values) {
   try {

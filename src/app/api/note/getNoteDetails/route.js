@@ -24,10 +24,8 @@ export async function GET(req) {
         const [[note]] = await db.query("SELECT * from note where user_id = ? AND id = ?", [user_id, note_id]);
 
          if (!note) {
-      return NextResponse.json(
-        { error: 'Note not found' },
-        { status: 404 }
-      );
+      return new Response(JSON.stringify({error : 'Note Not Found'}), {status : 400});
+
     }
 
         const [noteFileContent, transcriptFileContent] = await Promise.all([

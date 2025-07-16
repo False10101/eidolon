@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef } from "react"
-import { useParams,useRouter } from "next/navigation"
+import { useState, useEffect, useRef, useMemo } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
-import { DocumentIcon, DocumentDuplicateIcon, PencilIcon, SparklesIcon, CodeBracketSquareIcon, DocumentTextIcon } from "@heroicons/react/24/solid";
+import { DocumentDuplicateIcon, SparklesIcon, DocumentTextIcon, CloudArrowDownIcon, TrashIcon } from "@heroicons/react/24/solid";
 import dynamic from "next/dynamic";
 import Switch from "react-switch";
+import DeleteConfirmationPopup from "@/app/DeleteModalConfirmation";
+import LoadingPopup from "@/app/LoadingPopup";
 
-// Dynamically import the PdfViewer with SSR turned off
 const PdfViewer = dynamic(() => import('../PdfViewer'), {
     ssr: false,
     loading: () => <p className="text-white">Loading PDF Viewer...</p>
@@ -19,10 +20,15 @@ const PDFExtractor = dynamic(() => import('../UploadedPdfComponent'), {
 });
 
 
+
 export default function TextbookExplainer() {
+
+
 
     const router = useRouter();
     const params = useParams();
+
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
 
     const [isDragging, setIsDragging] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
@@ -43,8 +49,10 @@ export default function TextbookExplainer() {
 
     const [loading, setLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("Initializing...");
+    const [pollingTextbookId, setPollingTextbookId] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-    const [explanationPdf, setExplanationPdf] = useState(null);
+    const [rawPdf, setRawPdf] = useState({ content: null, name: 'Untitled.pdf' });
 
     const [fileForExtraction, setFileForExtraction] = useState(null);
 
@@ -95,8 +103,8 @@ export default function TextbookExplainer() {
 
             try {
 
-                if(params.textbookId === 'undefined' || params.textbookId === ''){
-                    router.push('/textbook-explainer/');
+                if (params.textbookId === 'undefined' || params.textbookId === '') {
+                    return;
                 }
 
                 const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/getTextbookDetails?textbook_id=${params.textbookId}`, {
@@ -104,7 +112,11 @@ export default function TextbookExplainer() {
                     credentials: 'include'
                 });
 
-                if(!response.ok) throw new Error(`Failed to load: ${response.status}`);
+                if(response.status != 200){
+                    console.error("Textbook not found or error occurred, redirecting.");
+                    router.push('/textbook-explainer/');
+                    return; 
+                }
 
                 const data = await response.json();
                 const textbook = data.textbook;
@@ -112,8 +124,8 @@ export default function TextbookExplainer() {
                 console.log(data.textbook);
 
                 setExtractedText(textbook.textbookTXTFile.content);
-                
-                
+
+
                 // 1. Set all text and option states
                 setExtractedText(textbook.textbookTXTFile.content);
 
@@ -128,12 +140,14 @@ export default function TextbookExplainer() {
                 const originalFileObject = new File([originalFileBlob], textbook.name, { type: getMimeType(textbook.name) });
                 setUploadedFile(originalFileObject);
 
-                // Create the EXPLANATION file object by decoding its Base64 content
-                const explanationFileBlob = base64ToBlob(textbook.explanationFile.content, 'application/pdf');
                 const explanationFileName = `${textbook.name.replace(/\.[^/.]+$/, "")}_explained.pdf`;
-                const explanationFileObject = new File([explanationFileBlob], explanationFileName, { type: 'application/pdf' });
-                setExplanationPdf(explanationFileObject);
+                setRawPdf({
+                    content: textbook.explanationFile.content, // The raw Base64 string
+                    name: explanationFileName
+                });
 
+
+                setIsDataLoaded(true);
 
             } catch (error) {
                 console.error("Failed to fetch content:", error);
@@ -146,6 +160,33 @@ export default function TextbookExplainer() {
 
         fetchContent();
     }, [params.textbookId, router])
+
+    const explanationPdf = useMemo(() => {
+        // If there's no raw content, we have no PDF to show.
+        if (!rawPdf.content) {
+            return null;
+        }
+
+        // This conversion logic is now protected and only runs when needed.
+        const base64ToBlob = (base64, contentType = 'application/octet-stream') => {
+            const byteCharacters = atob(base64);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            return new Blob(byteArrays, { type: contentType });
+        };
+
+        const blob = base64ToBlob(rawPdf.content, 'application/pdf');
+        return new File([blob], rawPdf.name, { type: 'application/pdf' });
+
+    }, [rawPdf.content, rawPdf.name]);
 
     const handleDragOver = (e) => {
         e.preventDefault();
@@ -173,7 +214,6 @@ export default function TextbookExplainer() {
 
     const handleRemoveFile = () => {
         setUploadedFile(null);
-        setExtractedText(''); // Also clear the extracted text
         setExtractionError(''); // And any errors
         setFileForExtraction(null);
 
@@ -200,98 +240,119 @@ export default function TextbookExplainer() {
         console.log('Uploading file:', file.name);
 
         setUploadedFile(file);
-        setFileForExtraction(file); 
+        setFileForExtraction(file);
     }
 
-    // const handleGeneratePDF = async (e)=>{
-    //     e.preventDefault();
+    const handleRegeneratePDF = async (e) => {
+        e.preventDefault();
 
-    //     if (!uploadedFile) {
-    //         alert("Please upload a file first.");
-    //         return;
-    //     }
+        if (!uploadedFile) {
+            alert("Please upload a file first.");
+            return;
+        }
 
-    //     setLoadingMessage("Uploading your file...");
-    //     setLoading(true);
+        setLoadingMessage("Uploading your file...");
+        setLoading(true);
 
-    //     const formData = new FormData();
-    //     formData.append('file', uploadedFile);
-    //     formData.append('formatOptions', JSON.stringify(formatOptions));
-    //     formData.append('extractedText', extractedText);
+        const formData = new FormData();
+        formData.append('file', uploadedFile);
+        formData.append('formatOptions', JSON.stringify(formatOptions));
+        formData.append('extractedText', extractedText);
+        formData.append('id', params.textbookId);
 
-    //     try {
-    //         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/start-generation`, {
-    //             method: 'POST',
-    //             credentials: 'include',
-    //             body: formData
-    //         });
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/re-generate`, {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
 
-    //         if (response.status !== 200) { 
-    //             const errorData = await response.json();
-    //             throw new Error(errorData.error || 'Failed to start the generation process.');
-    //         }
+            if (response.status !== 200) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to start the generation process.');
+            }
 
-    //         const result = await response.json();
+            const result = await response.json();
 
-    //         // Set the Textbook ID to start the polling effect
-    //         setPollingTextbookId(result.textbookId);
-    //         setLoadingMessage("Processing your document...");
-    //     } catch (error) {
-    //         console.log(error);
-    //         setLoading(false);
-    //     }
-    // }
+            // Set the Textbook ID to start the polling effect
+            setPollingTextbookId(result.textbookId);
+            setLoadingMessage("Processing your document...");
+        } catch (error) {
+            console.log(error);
+            setLoading(false);
+        }
+    }
 
-    // // --- NEW: This useEffect handles the polling logic ---
-    // useEffect(() => {
-    //     // Don't do anything if we don't have a textbook ID to poll
-    //     if (!pollingTextbookId) {
-    //         return;
-    //     }
+    // --- NEW: This useEffect handles the polling logic ---
+    useEffect(() => {
+        // Don't do anything if we don't have a textbook ID to poll
+        if (!pollingTextbookId) {
+            return;
+        }
 
-    //     // Set up an interval to check the status every 5 seconds
-    //     const intervalId = setInterval(async () => {
-    //         try {
-    //             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/status?id=${pollingTextbookId}`, {
-    //                 credentials: 'include',
-    //             });
+        // Set up an interval to check the status every 5 seconds
+        const intervalId = setInterval(async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/status?id=${pollingTextbookId}`, {
+                    credentials: 'include',
+                });
 
-    //             if (!response.ok) {
-    //                 throw new Error('Could not get job status.');
-    //             }
+                if (!response.ok) {
+                    throw new Error('Could not get job status.');
+                }
 
-    //             const data = await response.json();
+                const data = await response.json();
 
-    //             console.log(data);
+                console.log(data);
 
-    //             if (data.status === 'COMPLETED') {
-    //                 // Job is done! Stop polling and redirect.
-    //                 clearInterval(intervalId);
-    //                 setLoading(false);
-    //                 router.push(`/textbook-explainer/${pollingTextbookId}`);
-    //             } else if (data.status === 'FAILED') {
-    //                 // Job failed. Stop polling and show an error.
-    //                 clearInterval(intervalId);
-    //                 setLoading(false);
-    //                 alert(`Textbook generation failed: ${data.errorMessage || 'An unknown error occurred.'}`);
-    //                 setPollingTextbookId(null);
-    //             }
-    //             // If status is 'PENDING' or 'PROCESSING', do nothing and let the interval run again.
+                if (data.status === 'COMPLETED') {
+                    // Job is done! Stop polling and redirect.
+                    clearInterval(intervalId);
+                    setLoading(false);
+                    window.location.reload();
+                } else if (data.status === 'FAILED') {
+                    // Job failed. Stop polling and show an error.
+                    clearInterval(intervalId);
+                    setLoading(false);
+                    alert(`Textbook generation failed: ${data.errorMessage || 'An unknown error occurred.'}`);
+                    setPollingTextbookId(null);
+                }
+                // If status is 'PENDING' or 'PROCESSING', do nothing and let the interval run again.
 
-    //         } catch (error) {
-    //             console.error(error);
-    //             clearInterval(intervalId);
-    //             setLoading(false);
-    //             alert('An error occurred while checking the textbook status.');
-    //             setPollingTextbookId(null);
-    //         }
-    //     }, 5000); 
+            } catch (error) {
+                console.error(error);
+                clearInterval(intervalId);
+                setLoading(false);
+                alert('An error occurred while checking the textbook status.');
+                setPollingTextbookId(null);
+            }
+        }, 5000);
 
-    //     // Cleanup function: This is crucial to stop the interval 
-    //     // if the component unmounts for any reason.
-    //     return () => clearInterval(intervalId);
+        // Cleanup function: This is crucial to stop the interval 
+        // if the component unmounts for any reason.
+        return () => clearInterval(intervalId);
 
-    // }, [pollingTextbookId, router]); 
+    }, [pollingTextbookId, router]);
+
+    const handleDownloadTextbook = () => {
+        if (!explanationPdf) {
+            alert("No explanation PDF is available to download.");
+            return;
+        }
+
+        const fileUrl = URL.createObjectURL(explanationPdf);
+
+        const link = document.createElement('a');
+        link.href = fileUrl;
+
+        link.download = explanationPdf.name || 'explanation.pdf'; // Fallback filename
+
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        URL.revokeObjectURL(fileUrl);
+    };
 
     const handleCopyText = async () => {
         // 1. Only check if text is empty, as requested
@@ -303,7 +364,7 @@ export default function TextbookExplainer() {
         if (copyButtonTextRef.current && copyButtonTextRef.current.textContent !== 'Copied!') {
             try {
                 await navigator.clipboard.writeText(extractedText);
-                
+
                 // 3. Directly change the text
                 copyButtonTextRef.current.textContent = 'Copied!';
 
@@ -321,20 +382,39 @@ export default function TextbookExplainer() {
         }
     };
 
-    const LoadingPopup = () => (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-[#141B3C]/[80%] p-8 rounded-2xl shadow-xl flex flex-col items-center border border-white/[15%]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#00BFFF]"></div>
-                <p className="text-white text-xl mt-5 font-semibold">{loadingMessage}...</p>
-                <p className="text-white/[60%] text-sm mt-1">Please wait a moment.</p>
-            </div>
-        </div>
-    );
+    const handleDeleteTextbook = async () => {
+        setIsDeleteModalOpen(false); 
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/delete?id=${params.textbookId}`, {
+                method: 'DELETE',
+                credentials: 'include', // Sends cookies with the request
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete textbook.');
+            }
+
+            // On successful deletion, redirect the user away from the now-deleted textbook
+            router.push('/textbook-explainer'); // Redirect to your main textbooks list page
+
+        } catch (error) {
+            console.error("Failed to delete textbook:", error);
+            alert(error.message);
+        }
+    };
 
     return (
         <div className="flex w-full h-full bg-gradient-to-r from-[#000000] to-[#1A2145]">
 
-            {loading && <LoadingPopup />}
+            {loading && <LoadingPopup loadingMessage={loadingMessage} />}
+            <DeleteConfirmationPopup
+                            isOpen={isDeleteModalOpen}
+                            onClose={() => setIsDeleteModalOpen(false)}
+                            onConfirm={handleDeleteTextbook}
+                            type = 'textbook'
+                        />
 
             <div className="flex w-[32%] flex-col h-full border-r-[1px] border-white/[25%]">
                 <div className="file-upload flex w-full h-[35%] items-center ">
@@ -414,17 +494,19 @@ export default function TextbookExplainer() {
                             <div onClick={handleCopyText} className="flex cursor-pointer my-auto mr-8 ml-auto"><DocumentDuplicateIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span ref={copyButtonTextRef} className=" text-[#00CED1] ml-1">Copy</span></div>
                         </div>
                         <div className="flex h-[83%] w-[90%] m-auto overflow-auto">
-                            <PDFExtractor
-                        uploadedFile={fileForExtraction}
-                        setIsProcessing={setIsProcessing}
-                        setExtractedText={setExtractedText}
-                        setExtractionError={setExtractionError}
-                    />
+                            {isDataLoaded && (
+                                <PDFExtractor
+                                    uploadedFile={fileForExtraction}
+                                    setIsProcessing={setIsProcessing}
+                                    setExtractedText={setExtractedText}
+                                    setExtractionError={setExtractionError}
+                                />
+                            )}
 
                             <div className="w-full h-full bg-[#000000]/[30%] ">
                                 {/* A single <pre> block now handles all states */}
-                                <pre
-                                    className={`flex  w-full h-full rounded-lg p-10 whitespace-pre-wrap break-words text-white overflow-auto 
+                                <p
+                                    className={`flex  w-full h-full rounded-lg whitespace-pre-line break-words text-white overflow-auto 
         ${!extractedText || isProcessing || extractionError ? 'justify-center items-center text-white/[50%] italic' : 'items-start bg-[#000000]/[30%]'}`}
                                 >
                                     {
@@ -433,7 +515,7 @@ export default function TextbookExplainer() {
                                                 extractedText ? extractedText :
                                                     "Please upload PDF to extract text!"
                                     }
-                                </pre>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -444,17 +526,17 @@ export default function TextbookExplainer() {
                 <div className="flex w-full h-[90%] flex-grow">
                     <div className="pdf-viewer flex w-[60%] h-full  bg-[#1F2687]/[37%]">
                         <div className="bg-[#1A1D2C]/[30%] w-full h-full rounded-t-lg border-[1px] border-b-0 border-white/[25%] flex">
-                            { explanationPdf != null ?
+                            {isDataLoaded && explanationPdf != null ?
                                 <PdfViewer file={explanationPdf} />
                                 :
                                 <div className="w-full h-full justify-center items-center flex flex-col space-y-5 text-white/[50%]">
                                     <DocumentTextIcon className="w-12 h-12" />
-                            <h1 className="text-xl">No PDF generated yet</h1>
-                            <span>Upload a PDF and click generate to begin processing...</span>
+                                    <h1 className="text-xl">No PDF generated yet</h1>
+                                    <span>Upload a PDF and click generate to begin processing...</span>
                                 </div>
                             }
 
-                            
+
                         </div>
 
                     </div>
@@ -502,13 +584,18 @@ export default function TextbookExplainer() {
                                 ))}
                             </div>
                         </div>
-                        <div className="h-[20%] w-full border-t-[1px] border-white/[25%] mt-auto flex flex-col justify-evenly">
-                            <button className="flex bg-[#00BFFF] w-[88%] mx-auto py-3 rounded-lg items-center justify-center-safe space-x-1"><SparklesIcon className="w-5 h-5" /><span className="font-semibold text-lg ">Generate Explanation PDF</span></button>
-                            <div className="flex w-[88%] h-max justify-between mx-auto">
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentIcon className="w-5 h-5" /><span className="ml-1">PDF</span></button>
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><CodeBracketSquareIcon className="w-5 h-5" /><span className="ml-1">MD</span></button>
-                                <button className="w-[27%] flex justify-center items-center py-2 rounded-lg px-2 bg-black/40"><DocumentTextIcon className="w-5 h-5" /><span className="ml-1">Text</span></button>
-                            </div>
+                        <div className="h-[25%] w-full border-t-[1px] border-white/[25%] my-auto flex flex-col justify-evenly">
+                            <button onClick={handleRegeneratePDF} className="flex cursor-pointer bg-[#00BFFF] w-[88%] mx-auto py-2.5 rounded-lg items-center justify-center-safe space-x-1"><SparklesIcon className="w-5 h-5" /><span className=" ">Regenerate Explanation PDF</span></button>
+                            <button onClick={handleDownloadTextbook} className="flex cursor-pointer bg-gray-800 text-[#00BFFF] w-[88%] mx-auto py-2.5 rounded-lg items-center justify-center-safe space-x-1 ">
+                                <CloudArrowDownIcon className="w-6 h-6" />
+                                <span className="ml-1"> Download Explanation PDF</span>
+
+                            </button>
+                            <button onClick={ () => setIsDeleteModalOpen(true) } className="flex cursor-pointer bg-red-500 w-[88%] mx-auto py-2.5 rounded-lg items-center justify-center-safe space-x-1 ">
+                                <TrashIcon className="w-6 h-6" />
+                                <span className="ml-1"> Delete Textbook</span>
+
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -516,3 +603,4 @@ export default function TextbookExplainer() {
         </div>
     )
 }
+

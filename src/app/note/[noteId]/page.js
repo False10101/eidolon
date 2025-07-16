@@ -6,7 +6,8 @@ import { SparklesIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline";
 import { DocumentTextIcon, CloudArrowUpIcon, TrashIcon } from "@heroicons/react/24/solid";
 import MDEditor from "@uiw/react-md-editor";
 import { useParams, useRouter } from 'next/navigation';
-import LoadingPopup from "../LoadingPopup";
+import LoadingPopup from "../../LoadingPopup";
+import DeleteConfirmationPopup from "@/app/DeleteModalConfirmation";
 
 
 
@@ -83,7 +84,10 @@ export default function note() {
                     credentials: 'include'
                 });
 
-                if (!response.ok) throw new Error(`Failed to load: ${response.status}`);
+                if(response.status != 200){
+                    router.push('/note/');
+                    return; 
+                }
 
                 const data = await response.json();
 
@@ -454,6 +458,7 @@ const SaveStatusPopup = ({ status }) => {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleDeleteNote}
+                type = 'note'
             />
 
         <div className="flex w-full px-12 h-full">
@@ -695,35 +700,3 @@ const StyleCard = ({ id, title, isSelected, onSelect }) => {
     );
 };
 
-
-const DeleteConfirmationPopup = ({ isOpen, onClose, onConfirm }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-[#141B3C]/[90%] p-8 rounded-2xl shadow-xl flex flex-col items-center border border-white/[15%] max-w-md text-center">
-                <div className="w-16 h-16 mb-4 flex items-center justify-center bg-red-500/10 rounded-full">
-                    <TrashIcon className="w-8 h-8 text-red-500" />
-                </div>
-                <h2 className="text-white text-2xl font-bold mb-2">Delete Note</h2>
-                <p className="text-white/[70%] mb-6">
-                    Are you sure you want to permanently delete this note? This action cannot be undone.
-                </p>
-                <div className="flex space-x-4 w-full">
-                    <button
-                        onClick={onClose}
-                        className="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 rounded-lg text-white transition-colors font-semibold"
-                    >
-                        Confirm Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};

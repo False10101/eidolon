@@ -13,7 +13,7 @@ export async function GET(req){
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const user_id = decoded.id;
 
-            const [row] = await queryWithRetry(`Select id, name, created_at from note WHERE user_id = ? `, [user_id]);
+            const [row] = await queryWithRetry(`Select id, name, created_at from textbook WHERE user_id = ? `, [user_id]);
 
             if(!row){
                 return new Response(JSON.stringify({error : 'Database Error'}), {status : 400});

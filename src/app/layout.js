@@ -76,6 +76,31 @@ export default function RootLayout({ children }) {
 
       getHistory();
     }
+    else if (pathname.includes('/textbook')) {
+      const getHistory = async () => {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/getRecentHistory`, {
+            method: 'GET',
+            credentials: 'include',
+          });
+
+          const data = await response.json();
+
+          if (Array.isArray(data.response)) {
+
+            // Process the data and set the new grouped state
+            const groupedData = groupHistoryByDate(data.response);
+            setGroupedHistory(groupedData);
+          } else {
+            setGroupedHistory({}); // Reset or handle cases where no data is returned
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      getHistory();
+    }
   }, [pathname])
 
   useEffect(() => {
@@ -126,6 +151,9 @@ export default function RootLayout({ children }) {
 
   const isNotFoundPage = !isKnownRoute(pathname);
 
+  const activeId = params ? Object.values(params)[0] : null;
+
+  const basePath = pathname.split('/')[1] || 'home';
 
   var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : pathname.startsWith('/textbook-explainer') ? "Textbook Explainer" : "";
 
@@ -167,22 +195,18 @@ export default function RootLayout({ children }) {
               </div>
               <div className="flex flex-col h-[60%] mt-5 overflow-y-auto gap-y-3">
 
-                {/* Use Object.keys to loop over your groups: ['Today', 'Last Week', ...] */}
                 {Object.keys(groupedHistory).map(groupName => (
 
-                  // Only render a group section if it has items
                   groupedHistory[groupName].length > 0 && (
                     <div key={groupName} className=" space-y-1">
                       <h2 className=" font-semibold px-1 text-[#00BFFF] text-xl font-semibold">{groupName}</h2>
 
-                      {/* Now, map over the items within that specific group */}
                       {groupedHistory[groupName].map(history => (
                         <div
-                          onClick={()=>{router.push(`/note/${history.id}`)}}
+                          onClick={()=>{router.push(`/${basePath}/${history.id}`)}}
                           key={history.id}
-                          className={`py-3 px-3 rounded-xl cursor-pointer ${params.noteId == history.id ? "bg-[#3366FF]/[30%] border-white/[10%] border-[1px]" : "hover:bg-white/10"}`}
+                          className={`py-3 px-3 rounded-xl cursor-pointer ${activeId == history.id ? "bg-[#3366FF]/[30%] border-white/[10%] border-[1px]" : "hover:bg-white/10"}`}
                         >
-                          {/* It's good practice to truncate long names */}
                           <div className="truncate">{history.name}</div>
                         </div>
                       ))}

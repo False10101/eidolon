@@ -5,7 +5,7 @@ import Checkbox from "rc-checkbox"
 import { SparklesIcon } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon, DocumentArrowDownIcon, DocumentTextIcon, CloudArrowUpIcon } from "@heroicons/react/24/solid";
 import { useRouter } from 'next/navigation';
-import LoadingPopup from "./LoadingPopup";
+import LoadingPopup from "../LoadingPopup";
 
 const AcademicIcon = ({ className }) => (
     <svg className={className} viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
