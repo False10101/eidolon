@@ -107,7 +107,7 @@ export default function TextbookExplainer() {
                     return;
                 }
 
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/getTextbookDetails?textbook_id=${params.textbookId}`, {
+                const response = await fetch(`/api/textbook/getTextbookDetails?textbook_id=${params.textbookId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -261,7 +261,7 @@ export default function TextbookExplainer() {
         formData.append('id', params.textbookId);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/re-generate`, {
+            const response = await fetch(`/api/textbook/re-generate`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formData
@@ -293,7 +293,7 @@ export default function TextbookExplainer() {
         // Set up an interval to check the status every 5 seconds
         const intervalId = setInterval(async () => {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/status?id=${pollingTextbookId}`, {
+                const response = await fetch(`/api/textbook/status?id=${pollingTextbookId}`, {
                     credentials: 'include',
                 });
 
@@ -386,7 +386,7 @@ export default function TextbookExplainer() {
         setIsDeleteModalOpen(false); 
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/delete?id=${params.textbookId}`, {
+            const response = await fetch(`/api/textbook/delete?id=${params.textbookId}`, {
                 method: 'DELETE',
                 credentials: 'include', // Sends cookies with the request
             });

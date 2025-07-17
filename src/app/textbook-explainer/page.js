@@ -156,7 +156,7 @@ export default function TextbookExplainer() {
         formData.append('extractedText', extractedText);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/start-generation`, {
+            const response = await fetch(`/api/textbook/start-generation`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formData
@@ -188,7 +188,7 @@ export default function TextbookExplainer() {
         // Set up an interval to check the status every 5 seconds
         const intervalId = setInterval(async () => {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/status?id=${pollingTextbookId}`, {
+                const response = await fetch(`/api/textbook/status?id=${pollingTextbookId}`, {
                     credentials: 'include',
                 });
 

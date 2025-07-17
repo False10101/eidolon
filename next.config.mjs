@@ -12,7 +12,7 @@ const nextConfig = {
           },
           {
             key: "Access-Control-Allow-Origin",
-            value: "http://minpainghein.us.kg", // IMPORTANT: Your frontend domain
+            value: "https://www.minpainghein.com", // IMPORTANT: Your frontend domain
           },
           {
             key: "Access-Control-Allow-Methods",

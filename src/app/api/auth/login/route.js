@@ -26,8 +26,8 @@ export async function POST(req) {
 
   const serialized = serialize('token', token, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 4 // 4 days
   });
@@ -50,8 +50,11 @@ export async function GET(req) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decoded.username, decoded.id);
     return new Response(JSON.stringify({ username: decoded.username, userId: decoded.id }), { status: 200 });
+    
   } catch (error) {
+    console.log(error);
     return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 });
   }
 }

@@ -135,7 +135,7 @@ export default function note() {
         formData.append('filename', fileName);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/start-generation`, {
+            const response = await fetch(`/api/note/start-generation`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formData
@@ -168,7 +168,7 @@ export default function note() {
         // Set up an interval to check the status every 5 seconds
         const intervalId = setInterval(async () => {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/status?id=${pollingNoteId}`, {
+                const response = await fetch(`/api/note/status?id=${pollingNoteId}`, {
                     credentials: 'include',
                 });
 

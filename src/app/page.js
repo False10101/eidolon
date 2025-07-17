@@ -10,7 +10,7 @@ export default function Home() {
   useEffect(() => {
       const checkAuth = async () => {
           try {
-              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+              const res = await fetch(`/api/auth/login`, {
                   method: 'GET',
                   credentials: 'include'
               });
@@ -22,7 +22,7 @@ export default function Home() {
               }
               } catch (err) {
                   console.error('Auth check failed:', err);
-              }
+                }
             };
     
             checkAuth();

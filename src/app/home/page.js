@@ -20,7 +20,7 @@ export default function home() {
      useEffect(() => {
             const checkAuth = async () => {
                 try {
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+                    const res = await fetch(`/api/auth/login`, {
                         method: 'GET',
                         credentials: 'include'
                     });
@@ -38,7 +38,7 @@ export default function home() {
         useEffect(() => {
             const getUserData = async () => {
                 try {
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/home/getUserInfo`, {
+                    const res = await fetch(`/api/home/getUserInfo`, {
                         method: 'GET',
                         credentials: 'include'
                     });

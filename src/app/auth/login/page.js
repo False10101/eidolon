@@ -11,7 +11,7 @@ export default function login (){
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+                const res = await fetch(`/api/auth/login`, {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -32,11 +32,12 @@ export default function login (){
     const handleLogin = async () => {
         setError(null); // Reset error state before making the request
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+            const res = await fetch(`/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include',  
                 body: JSON.stringify(form),
             });
 

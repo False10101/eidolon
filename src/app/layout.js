@@ -27,14 +27,14 @@ export default function RootLayout({ children }) {
   const [groupedHistory, setGroupedHistory] = useState({});
 
   const handleLogout = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, { method: 'POST' });
+    await fetch(`/api/auth/logout`, { method: 'POST' });
     router.push('/auth/login');
   };
 
   useEffect(() => {
       const checkAuth = async () => {
           try {
-              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+              const res = await fetch(`/api/auth/login`, {
                   method: 'GET',
                   credentials: 'include'
               });
@@ -54,7 +54,7 @@ export default function RootLayout({ children }) {
     if (pathname.includes('/note')) {
       const getHistory = async () => {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/getRecentHistory`, {
+          const response = await fetch(`/api/note/getRecentHistory`, {
             method: 'GET',
             credentials: 'include',
           });
@@ -79,7 +79,7 @@ export default function RootLayout({ children }) {
     else if (pathname.includes('/textbook')) {
       const getHistory = async () => {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/textbook/getRecentHistory`, {
+          const response = await fetch(`/api/textbook/getRecentHistory`, {
             method: 'GET',
             credentials: 'include',
           });
@@ -108,7 +108,7 @@ export default function RootLayout({ children }) {
       if (pathname.includes('/document')) {
         try {
           setTokenCount("Unlimited"); // Reset token count before fetching
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/navbar/getAPITokenCount?type=document`, {
+          const response = await fetch(`/api/navbar/getAPITokenCount?type=document`, {
             method: 'GET',
             credentials: 'include',
           });

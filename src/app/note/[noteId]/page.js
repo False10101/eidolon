@@ -79,7 +79,7 @@ export default function note() {
                     router.push('/note/');
                 }
 
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/getNoteDetails?note_id=${params.noteId}`, {
+                const response = await fetch(`/api/note/getNoteDetails?note_id=${params.noteId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -202,7 +202,7 @@ export default function note() {
         }
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/downloadNote`, {
+            const response = await fetch(`/api/note/downloadNote`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -316,7 +316,7 @@ export default function note() {
         formData.append('id', params.noteId);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/edit/re-generate`, {
+            const response = await fetch(`/api/note/edit/re-generate`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formData
@@ -348,7 +348,7 @@ export default function note() {
         // Set up an interval to check the status every 5 seconds
         const intervalId = setInterval(async () => {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/status?id=${pollingNoteId}`, {
+                const response = await fetch(`/api/note/status?id=${pollingNoteId}`, {
                     credentials: 'include',
                 });
 
@@ -393,7 +393,7 @@ export default function note() {
         setIsDeleteModalOpen(false); 
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/note/delete?id=${params.noteId}`, {
+            const response = await fetch(`/api/note/delete?id=${params.noteId}`, {
                 method: 'DELETE',
                 credentials: 'include', // Sends cookies with the request
             });
