@@ -1,9 +1,10 @@
-import path from 'path';
 import { GoogleGenAI } from "@google/genai";
-import { db } from './db';
-import { readFile } from 'fs/promises';
+import { r2 } from '@/lib/r2'; // Import R2 client
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 commands
 import puppeteer from 'puppeteer';
 import { marked } from 'marked';
+import { v4 as uuidv4 } from 'uuid';
+import { queryWithRetry } from "@/lib/queryWithQuery";
 
 const PDF_CSS = `
   body { font-family: "Segoe UI", "Helvetica Neue", "Arial", sans-serif; font-size: 15px; line-height: 1.75; color: #111; background-color: white; padding: 3em; max-width: 800px; margin: auto; }
@@ -27,18 +28,20 @@ function buildTitlePage(title, course, author, date) {
     `;
 }
 
-export async function updateTextbookInBackground(textbookId){
+export async function updateTextbookInBackground(textbookId) {
     let textbook;
 
     try {
-        const [rows] = await db.query('SELECT * FROM textbook where id = ?', [textbookId]);
+        // Step 1: Fetch textbook data
+        const [rows] = await queryWithRetry('SELECT * FROM textbook WHERE id = ?', [textbookId]);
         textbook = rows[0];
 
-        if(!textbook){
+        if (!textbook) {
             throw new Error(`Textbook with ID ${textbookId} not found for processing.`);
         }
 
-        await db.query(`Update textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId] );
+        // Step 2: Update status to PROCESSING
+        await queryWithRetry(`UPDATE textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId]);
 
         const formatOptionsJSON = {
             simple_analogies: Boolean(textbook.simple_analogies),
@@ -51,11 +54,19 @@ export async function updateTextbookInBackground(textbookId){
             instructions: Boolean(textbook.instructions),
         };
 
-        const textFilePath = path.join(process.cwd(), 'storage', textbook.textbookTXTFilePath);
-        const rawText = await readFile(textFilePath, 'utf-8');
+        // Step 3: Read text file from R2
+        const textPath = textbook.textbookTXTFilePath.startsWith('/') 
+            ? textbook.textbookTXTFilePath.slice(1) 
+            : textbook.textbookTXTFilePath;
+        
+        const { Body: textBody } = await r2.send(new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: textPath
+        }));
+        const rawText = await textBody.transformToString();
 
+        // Step 4: Generate new content with Gemini
         const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
-
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: [{ role: "user", parts: [{ text: buildUserPrompt(rawText, formatOptionsJSON) }] }],
@@ -63,7 +74,7 @@ export async function updateTextbookInBackground(textbookId){
                 maxOutputTokens: 65000,
                 topP: 0.95
             }
-        })
+        });
 
         const generatedText = result.text;
         const usageMetadata = result.usageMetadata;
@@ -75,53 +86,70 @@ export async function updateTextbookInBackground(textbookId){
         }
         console.log("Gemini API call finished.");
 
+        // Step 5: Generate new PDF
         console.log("Starting PDF generation...");
+        const generationDate = new Date().toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
 
-        const pdfRelativePath = textbook.explanationFilePath;
-        const pdfAbsoluteFilePath = path.join(process.cwd(), 'storage', pdfRelativePath);
-        const generationDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-        const titlePageHtml = buildTitlePage(textbook.name || "Generated Explanation", textbook.course || "Textbook Analysis", "A.I. Companion", generationDate);
+        const titlePageHtml = buildTitlePage(
+            textbook.name || "Generated Explanation", 
+            textbook.course || "Textbook Analysis", 
+            "A.I. Companion", 
+            generationDate
+        );
         const contentHtml = marked(generatedText);
         const finalHtml = titlePageHtml + contentHtml;
 
+        // Generate PDF in memory
         const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
         const page = await browser.newPage();
         await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
         await page.addStyleTag({ content: PDF_CSS });
-        await page.pdf({ path: pdfAbsoluteFilePath, format: 'A4', printBackground: true });
+        
+        // Create PDF buffer instead of saving to file
+        const pdfBuffer = await page.pdf({ 
+            format: 'A4', 
+            printBackground: true 
+        });
         await browser.close();
 
-        console.log(`✅ PDF created: ${pdfRelativePath}`);
+        // Step 6: Upload new PDF to R2 (overwrite existing file)
+        const pdfPath = textbook.explanationFilePath.startsWith('/') 
+            ? textbook.explanationFilePath.slice(1) 
+            : textbook.explanationFilePath;
+        
+        await r2.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: pdfPath,
+            Body: pdfBuffer,
+            ContentType: 'application/pdf'
+        }));
 
-        await queryWithRetry(`UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? WHERE id = ? `, [pdfRelativePath, textbookId]);
+        console.log(`✅ PDF regenerated and uploaded to R2: ${pdfPath}`);
 
-        console.log(`Successfully processed textbook ID: ${textbookId}`);
+        // Step 7: Update database status
+        await queryWithRetry(
+            `UPDATE textbook SET status = 'COMPLETED', updated_at = NOW() WHERE id = ?`,
+            [textbookId]
+        );
+
+        console.log(`Successfully regenerated textbook ID: ${textbookId}`);
         
     } catch (error) {
-        console.error("An error occurred during textbook processing:", error);
+        console.error("Error during textbook regeneration:", error);
         if (textbookId) {
-            await queryWithRetry(`UPDATE textbook SET status = 'FAILED' WHERE id = ?`, [textbookId]);
+            await queryWithRetry(
+                `UPDATE textbook SET status = 'FAILED', error_message = ? WHERE id = ?`,
+                [error.message, textbookId]
+            );
         }
     }
 }
 
-
-async function queryWithRetry(query, values) {
-  try {
-    return await db.query(query, values);
-  } catch (err) {
-    // If it's a timeout or connection reset error, try one more time.
-    if (err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET') {
-      console.log('Database connection timed out. Retrying once...');
-      return await db.query(query, values);
-    }
-    // For all other errors, throw them immediately.
-    throw err;
-  }
-}
 function buildUserPrompt(rawText, formatOptionsJSON) {
-    // A prompt that enforces slide-by-slide processing while remaining concise.
     const basePrompt = `You are an expert technical writer and editor. Your task is to rewrite dense and complex textbook content into a clear, concise, and sequentially structured explanation.
 
 **Your Core Mission:**
@@ -133,13 +161,9 @@ function buildUserPrompt(rawText, formatOptionsJSON) {
 
 **What to Avoid:**
 * **Do not** group multiple slides under one explanation.
-* **Avoid** adding tangential topics, deep historical dives, or exhaustive line-by-line code analysis.
+* **Avoid** adding tangential topics, deep historical dives, or exhaustive line-by-line code analysis.`;
 
-Your task is to act as a clarifier, rewriting the material for each slide in order. Now, begin.`;
-
-    // Dynamically build the final prompt using inline ternary operators
     const finalPrompt = `${basePrompt}
-${/* Add each instruction on a new line if its option is true */''}
 ${formatOptionsJSON.key_people ? "→ If a key person is mentioned, briefly state their contribution." : ""}
 ${formatOptionsJSON.historical_timelines ? "→ If the text discusses historical context, briefly summarize it." : ""}
 ${formatOptionsJSON.cross_references ? "→ If the text explicitly references another concept, maintain that reference." : ""}
@@ -150,6 +174,5 @@ ${formatOptionsJSON.references ? "→ If the original text includes sources, lis
 ---
 ${rawText}`;
 
-    // The .replace() call cleans up any blank lines created if an option is false
     return finalPrompt.replace(/^\s*[\r\n]/gm, '');
 }

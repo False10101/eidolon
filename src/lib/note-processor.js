@@ -1,8 +1,8 @@
-import { db } from "@/lib/db";
+import { r2 } from "@/lib/r2"; // Import R2 client
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 commands
 import { GoogleGenAI } from "@google/genai";
-import { writeFile, readFile } from 'fs/promises';
-import path from "path";
 import { v4 as uuidv4 } from 'uuid';
+import { queryWithRetry } from "@/lib/queryWithQuery";
 
 /**
  * This function runs the long note-generation process in the background.
@@ -12,7 +12,7 @@ export async function processNoteInBackground(noteId) {
     let note;
     try {
         // Step 1: Fetch the job details from the database.
-        const [rows] = await db.query('SELECT * FROM note WHERE id = ?', [noteId]);
+        const [rows] = await queryWithRetry('SELECT * FROM note WHERE id = ?', [noteId]);
         note = rows[0];
 
         if (!note) {
@@ -20,7 +20,7 @@ export async function processNoteInBackground(noteId) {
         }
 
         // Step 2: Update the status to 'PROCESSING'.
-        await db.query(`UPDATE note SET status = 'PROCESSING' WHERE id = ?`, [noteId]);
+        await queryWithRetry(`UPDATE note SET status = 'PROCESSING' WHERE id = ?`, [noteId]);
 
         const configJSON = {
             detect_heading: Boolean(note.detect_heading),
@@ -33,26 +33,30 @@ export async function processNoteInBackground(noteId) {
 
         const temperatureParam = note.style === 'minimal' ? 0.3 : note.style === "creative" ? 1 : 0.6;
 
-        // Step 3: Read the saved transcript file.
-        const transcriptFilePath = path.join(process.cwd(), 'storage', note.transcriptFilePath);
-        const transcriptText = await readFile(transcriptFilePath, 'utf-8');
+        // Step 3: Read the transcript file from R2
+        const transcriptPath = note.transcriptFilePath.startsWith('/') 
+            ? note.transcriptFilePath.slice(1) 
+            : note.transcriptFilePath;
+        
+        const { Body: transcriptBody } = await r2.send(new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: transcriptPath
+        }));
+        const transcriptText = await transcriptBody.transformToString();
 
-        // Step 4: Construct the prompt and call the Gemini API (the long part).
-        // Using the GoogleGenerativeAI constructor as per your code
+        // Step 4: Construct the prompt and call the Gemini API
         const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
-        // Using your exact 'generateContent' method with the full configuration object
         const result = await genAI.models.generateContent({
-            model: 'gemini-2.5-pro', // Using 'gemini-pro' as in the latest SDK examples, adjust if 'gemini-2.5-pro' is a specific fine-tuned model you have access to.
+            model: 'gemini-2.5-pro',
             contents: [{ role: "user", parts: [{ text: buildUserPrompt(transcriptText, configJSON) }] }],
             generationConfig: {
-                maxOutputTokens: 65000, // Adjusted to a more standard max for gemini-pro. Your 1M token request is likely for a specialized model.
+                maxOutputTokens: 65000,
                 temperature: temperatureParam,
                 topP: 0.95
             }
         });
 
-        // Extracting text and metadata exactly as you did
         const generatedText = result.text;
         const usageMetadata = result.usageMetadata;
 
@@ -63,35 +67,42 @@ export async function processNoteInBackground(noteId) {
         }
         console.log("Gemini API call finished.");
 
-
-        // Step 5: Save the generated note text to a new file.
+        // Step 5: Save the generated note text to R2
         const uniqueNotesFileName = `${uuidv4()}_${note.name}_notes.txt`;
-        const notesRelativePath = `/note/${uniqueNotesFileName}`; 
-        const notesFilePath = path.join(process.cwd(), 'storage', notesRelativePath);
-        await writeFile(notesFilePath, generatedText, 'utf-8');
+        const notesRelativePath = `note/${uniqueNotesFileName}`; // No leading slash for R2
+        
+        await r2.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: notesRelativePath,
+            Body: generatedText,
+            ContentType: 'text/plain'
+        }));
 
-        // Step 6: Update the database record to 'COMPLETED' with the final file path.
-        await db.query(`UPDATE note SET status = 'COMPLETED', noteFilePath = ? WHERE id = ?`,
-            [notesRelativePath, noteId]
+        // Step 6: Update the database record to 'COMPLETED' with the final file path
+        await queryWithRetry(
+            `UPDATE note SET status = 'COMPLETED', noteFilePath = ? WHERE id = ?`,
+            [`/${notesRelativePath}`, noteId] // Add leading slash for DB consistency
         );
 
         console.log(`Successfully processed note ID: ${noteId}`);
 
     } catch (error) {
         console.error(`Failed to process note ID ${noteId}:`, error);
-        // Step 7 (Error Handling): Update the record to 'FAILED' with an error message.
+        // Step 7 (Error Handling): Update the record to 'FAILED'
         if (noteId) {
             const errorMessage = error.message.includes('SAFETY') 
                 ? 'Content blocked by safety features. Try adjusting your transcript content.' 
                 : error.message;
-            await db.query(`UPDATE note SET status = 'FAILED' WHERE id = ?`, [noteId]);
+            await queryWithRetry(
+                `UPDATE note SET status = 'FAILED', error_message = ? WHERE id = ?`,
+                [errorMessage, noteId]
+            );
         }
     }
 }
 
-
+// (buildUserPrompt function remains exactly the same as in your original code)
 function buildUserPrompt(transcriptText, configJSON) {
-    // This is the same prompt logic from your original file.
     return `
     You are a university lecturer tasked with rewriting your full 3-hour lecture into a student-facing teaching document. This document will be read by a student who missed class entirely and needs to understand everything deeply — as if they were there.
     Your job is to convert the entire transcript into a comprehensive, structured, and easy-to-follow explanation, covering **all** details, logic, transitions, and background context.
@@ -116,9 +127,9 @@ function buildUserPrompt(transcriptText, configJSON) {
     - Professional, but easy to follow.
     - Your voice is that of a helpful professor explaining clearly to a student.
     - Do not sound robotic or just like a transcript.
-    ${configJSON.include_summary === true && configJSON.extract_key_in_summary === true ? ` At the end of the document, include a “**Study Tip Summary**” with a recap of: - Key exam topics - Common misunderstandings - Critical formulas or definitions to memorize` : ''}
-    ${configJSON.include_summary === true ? ` At the end of the document, include a “**Study Tip Summary**”` : ''}
-    ${configJSON.extract_key_in_summary === true ? ` At the end of the document, include a “**Study Tip Summary**” with a recap of: - Key exam topics` : ''}
+    ${configJSON.include_summary === true && configJSON.extract_key_in_summary === true ? ` At the end of the document, include a "**Study Tip Summary**" with a recap of: - Key exam topics - Common misunderstandings - Critical formulas or definitions to memorize` : ''}
+    ${configJSON.include_summary === true ? ` At the end of the document, include a "**Study Tip Summary**"` : ''}
+    ${configJSON.extract_key_in_summary === true ? ` At the end of the document, include a "**Study Tip Summary**" with a recap of: - Key exam topics` : ''}
     Now rewrite the following lecture transcript into a complete, self-contained, deeply explained document:
     Transcript:
     ${transcriptText}

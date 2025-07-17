@@ -1,6 +1,6 @@
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
-export default function document(){
+export default function imageGen(){
     return (
         <div className="flex h-full w-full justify-center items-center">
             <ExclamationTriangleIcon className="w-10 h-10 mr-1 text-white/[50%]"/>

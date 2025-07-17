@@ -1,8 +1,9 @@
-import { db } from "@/lib/db";
+import { r2 } from "@/lib/r2"; // Import R2 client
+import { PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 command
 import { updateTextbookInBackground } from "@/lib/textbook-updater";
-import { writeFile } from "fs/promises";
 import jwt from 'jsonwebtoken';
-import path from 'path';
+import { NextResponse } from 'next/server';
+import { queryWithRetry } from "@/lib/queryWithQuery";
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -27,7 +28,7 @@ export async function POST(req) {
         const fileBuffer = Buffer.from(await file.arrayBuffer());
         const originalName = file.name;
 
-        const [row] = await db.query('SELECT * FROM textbook where id = ? ', [textbookId]);
+        const [row] = await queryWithRetry('SELECT * FROM textbook where id = ?', [textbookId]);
 
         if (row.length === 0) {
             return NextResponse.json({ message: 'Textbook not found.' }, { status: 404 });
@@ -37,17 +38,46 @@ export async function POST(req) {
         if (!textbook) {
             return NextResponse.json({ message: 'Textbook not found or you do not have permission.' }, { status: 404 });
         }
-        console.log(textbook);
-        const originalFilePath = path.join(process.cwd(), 'storage', textbook.originalFilePath);
-        const transcriptFilePath = path.join(process.cwd(), 'storage', textbook.textbookTXTFilePath);
 
-        await writeFile(originalFilePath, fileBuffer);
-        await writeFile(transcriptFilePath, rawText);
+        // Upload files to R2 (using existing paths from database)
+        await Promise.all([
+            // Original file (PDF/other binary)
+            r2.send(new PutObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: textbook.originalFilePath.startsWith('/') 
+                    ? textbook.originalFilePath.slice(1) 
+                    : textbook.originalFilePath,
+                Body: fileBuffer,
+                ContentType: file.type || 'application/octet-stream'
+            })),
+            
+            // Text transcript
+            r2.send(new PutObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: textbook.textbookTXTFilePath.startsWith('/') 
+                    ? textbook.textbookTXTFilePath.slice(1) 
+                    : textbook.textbookTXTFilePath,
+                Body: rawText,
+                ContentType: 'text/plain'
+            }))
+        ]);
 
         const formatOptions = formData.get('formatOptions');
         const formatOptionJSON = JSON.parse(formatOptions);
 
-        const updateQuery = `UPDATE textbook SET name = ? , simple_analogies = ? , key_people = ? , historical_timelines = ?, flashcards = ?, practice_questions = ?, cross_references = ?, \`references\` = ?, instructions = ?, created_at = ?, status = ? WHERE id = ? `;
+        const updateQuery = `UPDATE textbook SET 
+            name = ?, 
+            simple_analogies = ?, 
+            key_people = ?, 
+            historical_timelines = ?, 
+            flashcards = ?, 
+            practice_questions = ?, 
+            cross_references = ?, 
+            \`references\` = ?, 
+            instructions = ?, 
+            created_at = ?, 
+            status = ? 
+            WHERE id = ?`;
 
         const queryParams = [
             originalName,
@@ -64,14 +94,16 @@ export async function POST(req) {
             textbookId
         ];
 
-        const [dbResult] = await db.query(updateQuery, queryParams);
-
+        const [dbResult] = await queryWithRetry(updateQuery, queryParams);
         updateTextbookInBackground(textbookId);
 
         return new Response(JSON.stringify({ textbookId: textbookId }), { status: 200 });
 
     } catch (error) {
         console.error('Error starting textbook generation:', error);
-        return new Response(JSON.stringify({ error: 'Failed to start textbook regeneration process.' }), { status: 500 });
+        return new Response(JSON.stringify({ 
+            error: 'Failed to start textbook regeneration process.',
+            details: error.message 
+        }), { status: 500 });
     }
 }

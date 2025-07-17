@@ -142,7 +142,10 @@ export default function RootLayout({ children }) {
     match('/note'),
     match('/note/:noteId'),
     match('/textbook-explainer'),
-    match('/textbook-explainer/:textbookId')
+    match('/textbook-explainer/:textbookId'),
+    match('/tts'),
+    match('/image-gen'),
+    match('/chatbot'),
   ];
 
   function isKnownRoute(pathname) {
@@ -155,7 +158,7 @@ export default function RootLayout({ children }) {
 
   const basePath = pathname.split('/')[1] || 'home';
 
-  var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : pathname.startsWith('/textbook-explainer') ? "Textbook Explainer" : "";
+  var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : pathname.startsWith('/textbook-explainer') ? "Textbook Explainer" : pathname.startsWith('/tts') ? "Text-To-Speech" : pathname.startsWith('/image-gen') ? "Image Generation" : pathname.startsWith('/chatbot') ? "Chatbot" : "";
 
   return (
     <html lang="en">
@@ -189,9 +192,9 @@ export default function RootLayout({ children }) {
                 <button onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><DocumentTextIcon className="h-6 w-6" /> <span className="ml-4 truncate">Document Generator</span> </button>
                 <button onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PencilSquareIcon className="h-6 w-6" /> <span className="ml-4 truncate">Inclass Notes</span></button>
                 <button onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><BookOpenIcon className="h-6 w-6 truncate" /> <span className="ml-4 truncate">Textbook Explainer</span></button>
-                <button className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><SpeakerWaveIcon className="h-6 w-6" /> <span className="ml-4 truncate">TTS</span></button>
-                <button className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PhotoIcon className="h-6 w-6" /> <span className="ml-4 truncate">Image Gen</span></button>
-                <button className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><ChatBubbleLeftIcon className="h-6 w-6" /> <span className="ml-4 truncate">Chatbot</span></button>
+                <button onClick={() => { router.push('/tts'); }} className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><SpeakerWaveIcon className="h-6 w-6" /> <span className="ml-4 truncate">TTS</span></button>
+                <button onClick={() => { router.push('/image-gen'); }} className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PhotoIcon className="h-6 w-6" /> <span className="ml-4 truncate">Image Gen</span></button>
+                <button onClick={() => { router.push('/chatbot'); }} className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><ChatBubbleLeftIcon className="h-6 w-6" /> <span className="ml-4 truncate">Chatbot</span></button>
               </div>
               <div className="flex flex-col h-[60%] mt-5 overflow-y-auto gap-y-3">
 

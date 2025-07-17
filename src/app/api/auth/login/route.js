@@ -50,7 +50,6 @@ export async function GET(req) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log(decoded.username, decoded.id);
     return new Response(JSON.stringify({ username: decoded.username, userId: decoded.id }), { status: 200 });
     
   } catch (error) {

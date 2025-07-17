@@ -10,7 +10,6 @@ export async function GET(req) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
-  console.log(token);
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

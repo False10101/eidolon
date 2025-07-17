@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.846.0",
     "@codaworks/react-glow": "^1.0.6",
     "@google/genai": "^1.7.0",
     "@heroicons/react": "^2.2.0",

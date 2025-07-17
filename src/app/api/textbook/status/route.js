@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import jwt from 'jsonwebtoken';
+import { queryWithRetry } from "@/lib/queryWithQuery";
 
 export async function GET(req) {
     const cookies = req.headers.get('cookie');
@@ -20,7 +20,7 @@ export async function GET(req) {
             return new Response(JSON.stringify({ error: 'Textbook ID is required. ' }), { status: 400 });
         }
 
-        const [textbook] = await db.query(`SELECT status, explanationFilePath FROM textbook WHERE id = ? AND user_id = ?`, [textbookId, user_id]);
+        const [textbook] = await queryWithRetry(`SELECT status, explanationFilePath FROM textbook WHERE id = ? AND user_id = ?`, [textbookId, user_id]);
 
         if (!textbook) {
             return new Response(JSON.stringify({ error: 'Textbook not found or access denied.' }), { status: 404 });

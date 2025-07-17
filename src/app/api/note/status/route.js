@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import jwt from 'jsonwebtoken';
+import { queryWithRetry } from "@/lib/queryWithQuery";
 
 /**
  * This API route checks the status of a note generation job.
@@ -25,7 +25,7 @@ export async function GET(req) {
             return new Response(JSON.stringify({ error: 'Note ID is required.' }), { status: 400 });
         }
 
-        const [note] = await db.query(`SELECT status, noteFilePath FROM note WHERE id = ? AND user_id = ?`,
+        const [note] = await queryWithRetry(`SELECT status, noteFilePath FROM note WHERE id = ? AND user_id = ?`,
             [noteId, user_id]
         );
 

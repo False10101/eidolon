@@ -181,7 +181,7 @@ export default function home() {
                     <div className='font-bold mx-auto text-center mb-1 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Explainer</div>
                     <div><div className='text-sm text-white/[50%] text-wrap w-[80%] mx-auto text-center group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Simplify Complex Content</div></div>
                 </button>
-                <button className=' group grid h-[80%] items-center justify-center p-1'>
+                <button onClick={() => { router.push('/tts'); }} className=' group grid h-[80%] items-center justify-center p-1'>
                     <div className=' w-15 h-15 bg-[#3E49BD]/[30%] rounded-full mx-auto flex justify-center items-center filter group-hover:bg-[#4A60DE] group-hover:shadow-[0_0px_10px_rgba(162,218,255,1)]'>
                         <SpeakerWaveIcon className='size-8 text-[#4A60DE] m-auto group-hover:text-black' />
                     </div>
@@ -189,7 +189,7 @@ export default function home() {
                     <div className='font-bold mx-auto text-center mb-1 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Subtitles</div>
                     <div><div className='text-sm text-white/[50%] text-wrap w-[80%] mx-auto text-center group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Convert Text to Audio</div></div>
                 </button>
-                <button className='group grid h-[80%] items-center justify-center p-1'>
+                <button onClick={() => { router.push('/image-gen'); }} className='group grid h-[80%] items-center justify-center p-1'>
                     <div className='w-15 h-15 bg-[#1E76A9]/[30%] rounded-full mx-auto flex justify-center items-center filter group-hover:bg-[#8AD3CC] group-hover:shadow-[0_0px_10px_rgba(162,218,255,1)]'>
                         <PhotoIcon className='size-8 text-[#8AD3CC]/[65%] m-auto group-hover:text-black' />
                     </div>
@@ -197,7 +197,7 @@ export default function home() {
                     <div className='font-bold text-center mx-auto mb-1 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Generator</div>
                     <div><div className='text-sm text-white/[50%] text-wrap w-[80%] mx-auto text-center group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Generate High Quality Images</div></div>
                 </button>
-                <button className='group grid h-[80%] items-center justify-center p-1'>
+                <button onClick={() => { router.push('/chatbot'); }} className='group grid h-[80%] items-center justify-center p-1'>
                     <div className='w-15 h-15 bg-[#2C4C7F]/[30%] rounded-full mx-auto flex justify-center items-center filter group-hover:bg-[#7796C7] group-hover:shadow-[0_0px_10px_rgba(162,218,255,1)]'>
                         <ChatBubbleLeftIcon className='size-8 text-[#7796C7] m-auto group-hover:text-black' />
                     </div>

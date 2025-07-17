@@ -1,10 +1,10 @@
-import { db } from "@/lib/db";
+import { r2 } from "@/lib/r2"; // Import R2 client
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 commands
 import { GoogleGenAI } from "@google/genai";
-import { readFile } from 'fs/promises';
-import path from "path";
 import { v4 as uuidv4 } from 'uuid';
 import puppeteer from 'puppeteer';
 import { marked } from 'marked';
+import { queryWithRetry } from "@/lib/queryWithQuery";
 
 const PDF_CSS = `
   body { font-family: "Segoe UI", "Helvetica Neue", "Arial", sans-serif; font-size: 15px; line-height: 1.75; color: #111; background-color: white; padding: 3em; max-width: 800px; margin: auto; }
@@ -33,7 +33,6 @@ export async function textbook_explanation_processor(textbookId) {
 
     try {
         const [rows] = await queryWithRetry('SELECT * FROM textbook WHERE id= ?', [textbookId]);
-
         textbook = rows[0];
 
         if (!textbook) {
@@ -53,8 +52,16 @@ export async function textbook_explanation_processor(textbookId) {
             instructions: Boolean(textbook.instructions),
         };
 
-        const textFilePath = path.join(process.cwd(), 'storage', textbook.textbookTXTFilePath);
-        const rawText = await readFile(textFilePath, 'utf-8');
+        // Read text file from R2
+        const textPath = textbook.textbookTXTFilePath.startsWith('/') 
+            ? textbook.textbookTXTFilePath.slice(1) 
+            : textbook.textbookTXTFilePath;
+        
+        const { Body: textBody } = await r2.send(new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: textPath
+        }));
+        const rawText = await textBody.transformToString();
 
         const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
@@ -65,7 +72,7 @@ export async function textbook_explanation_processor(textbookId) {
                 maxOutputTokens: 65000,
                 topP: 0.95
             }
-        })
+        });
 
         const generatedText = result.text;
         const usageMetadata = result.usageMetadata;
@@ -79,54 +86,56 @@ export async function textbook_explanation_processor(textbookId) {
 
         console.log("Starting PDF generation...");
 
-        // 1. Prepare PDF metadata and file paths
+        // Generate PDF
         const pdfFileName = `${uuidv4()}_${textbook.name}_explained.pdf`;
-        const pdfRelativePath = `/textbook/explanation/${pdfFileName}`;
-        const pdfAbsoluteFilePath = path.join(process.cwd(), 'storage', pdfRelativePath);
+        const pdfRelativePath = `textbook/explanation/${pdfFileName}`; // No leading slash for R2
         const generationDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        // 2. Build HTML from your `generatedText`
         const titlePageHtml = buildTitlePage(textbook.name || "Generated Explanation", textbook.course || "Textbook Analysis", "A.I. Companion", generationDate);
         const contentHtml = marked(generatedText);
         const finalHtml = titlePageHtml + contentHtml;
 
-        // 3. Use Puppeteer to create the PDF from the HTML string
         const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
         const page = await browser.newPage();
         await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
         await page.addStyleTag({ content: PDF_CSS });
-        await page.pdf({ path: pdfAbsoluteFilePath, format: 'A4', printBackground: true });
+        
+        // Generate PDF buffer instead of saving to file
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
         await browser.close();
         
-        console.log(`✅ PDF created: ${pdfFileName}`);
+        console.log(`✅ PDF created in memory`);
 
-        await queryWithRetry(`UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? WHERE id = ? `, [pdfRelativePath, textbookId]);
+        // Upload PDF to R2
+        await r2.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: pdfRelativePath,
+            Body: pdfBuffer,
+            ContentType: 'application/pdf'
+        }));
+
+        console.log(`✅ PDF uploaded to R2: ${pdfRelativePath}`);
+
+        // Update database with path (with leading slash for consistency)
+        await queryWithRetry(
+            `UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? WHERE id = ?`,
+            [`/${pdfRelativePath}`, textbookId]
+        );
 
         console.log(`Successfully processed textbook ID: ${textbookId}`);
 
     } catch (error) {
         console.error("An error occurred during textbook processing:", error);
         if (textbookId) {
-            await queryWithRetry(`UPDATE textbook SET status = 'FAILED' WHERE id = ?`, [textbookId]);
+            await queryWithRetry(
+                `UPDATE textbook SET status = 'FAILED', error_message = ? WHERE id = ?`,
+                [error.message, textbookId]
+            );
         }
     }
 }
 
-async function queryWithRetry(query, values) {
-  try {
-    return await db.query(query, values);
-  } catch (err) {
-    // If it's a timeout or connection reset error, try one more time.
-    if (err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET') {
-      console.log('Database connection timed out. Retrying once...');
-      return await db.query(query, values);
-    }
-    // For all other errors, throw them immediately.
-    throw err;
-  }
-}
 function buildUserPrompt(rawText, formatOptionsJSON) {
-    // A prompt that enforces slide-by-slide processing while remaining concise.
     const basePrompt = `You are an expert technical writer and editor. Your task is to rewrite dense and complex textbook content into a clear, concise, and sequentially structured explanation.
 
 **Your Core Mission:**
@@ -138,13 +147,9 @@ function buildUserPrompt(rawText, formatOptionsJSON) {
 
 **What to Avoid:**
 * **Do not** group multiple slides under one explanation.
-* **Avoid** adding tangential topics, deep historical dives, or exhaustive line-by-line code analysis.
+* **Avoid** adding tangential topics, deep historical dives, or exhaustive line-by-line code analysis.`;
 
-Your task is to act as a clarifier, rewriting the material for each slide in order. Now, begin.`;
-
-    // Dynamically build the final prompt using inline ternary operators
     const finalPrompt = `${basePrompt}
-${/* Add each instruction on a new line if its option is true */''}
 ${formatOptionsJSON.key_people ? "→ If a key person is mentioned, briefly state their contribution." : ""}
 ${formatOptionsJSON.historical_timelines ? "→ If the text discusses historical context, briefly summarize it." : ""}
 ${formatOptionsJSON.cross_references ? "→ If the text explicitly references another concept, maintain that reference." : ""}
@@ -155,6 +160,5 @@ ${formatOptionsJSON.references ? "→ If the original text includes sources, lis
 ---
 ${rawText}`;
 
-    // The .replace() call cleans up any blank lines created if an option is false
     return finalPrompt.replace(/^\s*[\r\n]/gm, '');
 }
