@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import "./globals.css";
 import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/solid";
 import { match } from 'path-to-regexp';
+import { Analytics } from "@vercel/analytics/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
