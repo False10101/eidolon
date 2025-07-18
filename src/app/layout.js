@@ -256,6 +256,7 @@ export default function RootLayout({ children }) {
 
           {/* 5. The {children} container takes all remaining HORIZONTAL space and handles its own internal scrolling. */}
           <main className="flex-1 min-w-0 overflow-y-auto">
+            <Analytics />
             {children}
           </main>
         </div>
