@@ -7,6 +7,7 @@ import "./globals.css";
 import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/solid";
 import { match } from 'path-to-regexp';
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -258,6 +259,7 @@ export default function RootLayout({ children }) {
           <main className="flex-1 min-w-0 overflow-y-auto">
             <Analytics />
             {children}
+            <SpeedInsights />
           </main>
         </div>
       </body>
