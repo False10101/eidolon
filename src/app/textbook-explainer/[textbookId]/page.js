@@ -410,20 +410,15 @@ export default function TextbookExplainer() {
 
             {loading && <LoadingPopup loadingMessage={loadingMessage} />}
             <DeleteConfirmationPopup
-                            isOpen={isDeleteModalOpen}
-                            onClose={() => setIsDeleteModalOpen(false)}
-                            onConfirm={handleDeleteTextbook}
-                            type = 'textbook'
-                        />
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDeleteTextbook}
+                type='textbook'
+            />
 
             <div className="flex w-[32%] flex-col h-full border-r-[1px] border-white/[25%]">
                 <div className="file-upload flex w-full h-[35%] items-center ">
-                    <div className={`flex w-[88%] h-[80%] border-[1px] border-white/[20%] rounded-lg my-10 bg-[#1F2687]/[37%] mx-auto flex flex-col
-                                        ${isDragging
-                            ? 'border-solid border-[#00BFFF] bg-[#00bfff20] scale-105'
-                            : ''
-                        }
-                                `}
+                    <div className={`flex w-[88%] h-[80%] border-[1px] border-white/[20%] rounded-lg my-6 2xl:my-10 bg-[#1F2687]/[37%] mx-auto flex-col ${isDragging ? 'border-solid border-[#00BFFF] bg-[#00bfff20] scale-105' : ''}`}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
@@ -438,11 +433,8 @@ export default function TextbookExplainer() {
                         {!uploadedFile ? (
                             <div className="group flex flex-col w-full h-full mx-auto my-auto justify-center items-center  bg-[#141B3C]/[64%] shadow-[0_0px_45px_rgba(31,38,135,0.64)]">
                                 <div className="flex flex-col justify-center items-center w-[85%] h-[85%] border-[2px] border-dashed border-white/[20%] rounded-md ">
-                                    <CloudArrowUpIcon
-                                        className={`text-[#00BFFF] w-10 h-10 transition-all duration-300 ${isDragging ? 'animate-bounce' : 'group-hover:scale-110'
-                                            }`}
-                                    />
-                                    <h1 className="text-sm text-center w-[80%] text-white/[80%] mb-2">
+                                    <CloudArrowUpIcon className={`text-[#00BFFF] w-8 h-8 2xl:w-10 2xl:h-10 transition-all duration-300 ${isDragging ? 'animate-bounce' : 'group-hover:scale-110'}`} />
+                                    <h1 className="text-sm text-center w-[80%] text-white/[80%] my-2">
                                         Drag & drop PDF here
                                     </h1>
                                     <span className="text-sm text-center w-[90%] text-white/[80%] mb-2">
@@ -450,7 +442,7 @@ export default function TextbookExplainer() {
                                     </span>
                                     <button
                                         onClick={() => fileInputRef.current.click()}
-                                        className="bg-[#00BFFF] py-2 px-4 mb-3 rounded-lg transition-all duration-300 hover:scale-105 hover:bg-[#00a5d9] active:scale-95"
+                                        className="bg-[#00BFFF] py-1.5 2xl:py-2 px-3 2xl:px-4 mb-3 rounded-lg transition-all duration-300 hover:scale-105 hover:bg-[#00a5d9] active:scale-95 text-sm"
                                     >
                                         Browse Files
                                     </button>
@@ -458,28 +450,18 @@ export default function TextbookExplainer() {
                             </div>
                         ) : (
                             <div className="flex flex-col items-center w-full h-full p-4 justify-center">
-                                <DocumentTextIcon className="w-12 h-12 text-[#00BFFF] mb-3" />
-                                <h2 className="text-xl font-medium text-white mb-1 truncate w-full text-center">
+                                <DocumentTextIcon className="w-10 h-10 2xl:w-12 2xl:h-12 text-[#00BFFF] mb-3" />
+                                <h2 className="text-lg 2xl:text-xl font-medium text-white mb-1 truncate w-full text-center">
                                     {uploadedFile.name}
                                 </h2>
-                                <p className=" text-gray-400 mb-4">
-                                    {uploadedFile.size < 1024 ? Math.round(uploadedFile.size / 1024) + "KB" : Math.round(uploadedFile.size / 1024 / 1024) + "MB"} • {
-                                        uploadedFile.type === 'application/pdf' ? 'PDF' :
-                                            uploadedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? 'DOCX' :
-                                                'TXT'
-                                    }
+                                <p className="text-sm text-gray-400 mb-4">
+                                    {uploadedFile.size < 1024 * 1024 ? Math.round(uploadedFile.size / 1024) + "KB" : Math.round(uploadedFile.size / (1024 * 1024)) + "MB"} • PDF
                                 </p>
-                                <div className="flex space-x-6">
-                                    <button
-                                        onClick={() => fileInputRef.current.click()}
-                                        className=" bg-blue-600 hover:bg-blue-700 py-1 px-3 rounded transition-colors"
-                                    >
+                                <div className="flex space-x-4 2xl:space-x-6">
+                                    <button onClick={() => fileInputRef.current.click()} className="text-sm bg-blue-600 hover:bg-blue-700 py-1 px-3 rounded transition-colors">
                                         Replace
                                     </button>
-                                    <button
-                                        onClick={handleRemoveFile}
-                                        className=" bg-red-600 hover:bg-red-700 py-1 px-3 rounded transition-colors"
-                                    >
+                                    <button onClick={handleRemoveFile} className="text-sm bg-red-600 hover:bg-red-700 py-1 px-3 rounded transition-colors">
                                         Remove
                                     </button>
                                 </div>
@@ -489,9 +471,12 @@ export default function TextbookExplainer() {
                 </div>
                 <div className="raw-text-to-output flex flex-col w-full h-[65%] bg-[#1F2687]/[37%] rounded-t-lg border-[1px] border-white/[10%] ">
                     <div className="w-full h-full flex flex-col bg-[#141B3C]/[64%] inset-shadow-[0_0px_32px_rgba(0,0,0,0.64)] ">
-                        <div className="flex w-full h-max items-center pt-6">
-                            <h1 className="mx-6 my-auto text-xl font-semibold">Raw Text from PDF</h1>
-                            <div onClick={handleCopyText} className="flex cursor-pointer my-auto mr-8 ml-auto"><DocumentDuplicateIcon className=" w-5 h-5 my-auto text-[#00CED1]" /><span ref={copyButtonTextRef} className=" text-[#00CED1] ml-1">Copy</span></div>
+                        <div className="flex w-full h-max items-center pt-4 2xl:pt-6">
+                            <h1 className="mx-4 2xl:mx-6 my-auto text-lg 2xl:text-xl font-semibold">Raw Text from PDF</h1>
+                            <div onClick={handleCopyText} className="flex cursor-pointer my-auto mr-6 2xl:mr-8 ml-auto">
+                                <DocumentDuplicateIcon className="w-5 h-5 my-auto text-[#00CED1]" />
+                                <span ref={copyButtonTextRef} className="text-sm text-[#00CED1] ml-1">Copy</span>
+                            </div>
                         </div>
                         <div className="flex h-[83%] w-[90%] m-auto overflow-auto">
                             {isDataLoaded && (
@@ -502,18 +487,11 @@ export default function TextbookExplainer() {
                                     setExtractionError={setExtractionError}
                                 />
                             )}
-
                             <div className="w-full h-full bg-[#000000]/[30%] ">
-                                {/* A single <pre> block now handles all states */}
-                                <p
-                                    className={`flex  w-full h-full rounded-lg whitespace-pre-line break-words text-white overflow-auto 
-        ${!extractedText || isProcessing || extractionError ? 'justify-center items-center text-white/[50%] italic' : 'items-start bg-[#000000]/[30%]'}`}
-                                >
-                                    {
-                                        isProcessing ? "⏳ Processing..." :
-                                            extractionError ? `❌ Error: ${extractionError}` :
-                                                extractedText ? extractedText :
-                                                    "Please upload PDF to extract text!"
+                                <p className={`flex w-full h-full rounded-lg whitespace-pre-line break-words text-white overflow-auto p-2 text-sm ${!extractedText || isProcessing || extractionError ? 'justify-center items-center text-white/[50%] italic' : 'items-start bg-[#000000]/[30%]'}`}>
+                                    {isProcessing ? "⏳ Processing..." :
+                                        extractionError ? `❌ Error: ${extractionError}` :
+                                            extractedText ? extractedText : "Please upload PDF to extract text!"
                                     }
                                 </p>
                             </div>
@@ -522,79 +500,67 @@ export default function TextbookExplainer() {
                 </div>
             </div>
             <div className="flex flex-col w-[68%] h-full">
-                <div className="flex w-full h-[10%] border-b-[1px] border-white/[25%] text-2xl font-bold text-[#00BFFF] items-center pl-10">Explained PDF</div>
+                <div className="flex w-full h-[10%] border-b-[1px] border-white/[25%] text-xl 2xl:text-2xl font-bold text-[#00BFFF] items-center pl-6 2xl:pl-10">Explained PDF</div>
                 <div className="flex w-full h-[90%] flex-grow">
-                    <div className="pdf-viewer flex w-[60%] h-full  bg-[#1F2687]/[37%]">
+                    <div className="pdf-viewer flex w-[60%] h-full bg-[#1F2687]/[37%]">
                         <div className="bg-[#1A1D2C]/[30%] w-full h-full rounded-t-lg border-[1px] border-b-0 border-white/[25%] flex">
                             {isDataLoaded && explanationPdf != null ?
                                 <PdfViewer file={explanationPdf} />
                                 :
-                                <div className="w-full h-full justify-center items-center flex flex-col space-y-5 text-white/[50%]">
-                                    <DocumentTextIcon className="w-12 h-12" />
-                                    <h1 className="text-xl">No PDF generated yet</h1>
-                                    <span>Upload a PDF and click generate to begin processing...</span>
+                                <div className="w-full h-full justify-center items-center flex flex-col space-y-4 text-white/[50%]">
+                                    <DocumentTextIcon className="w-10 h-10 2xl:w-12 2xl:h-12" />
+                                    <h1 className="text-lg 2xl:text-xl">No PDF generated yet</h1>
+                                    <span className="text-sm">Upload a PDF and click generate to begin processing...</span>
                                 </div>
                             }
-
-
                         </div>
-
                     </div>
-                    <div className="format-options flex flex-col w-[40%] h-full border-[1px] flex flex-col border-white/[25%] pt-5">
-                        <h1 className="h-min flex text-xl font-bold text-[#00BFFF] px-7">Output Format Settings</h1>
-                        <div className="w-[88%] h-[30%] mx-auto flex justify-center border-[1px] border-white/[5%] my-auto rounded-lg overflow-hidden bg-[#1F2687]/[37%] inset-shadow-[0_0px_24px_rgba(0,0,0,0.37)]  shadow-[0_0px_45px_rgba(31,38,135,0.37)]">
-                            <div className="w-full h-full bg-black/[30%] px-4 pb-2 flex flex-col justify-evenly">
-                                <h1 className=" font-bold">Content Analysis</h1>
+                    <div className="format-options flex flex-col w-[40%] h-full border-[1px] border-white/[25%] pt-4 2xl:pt-5">
+                        <h1 className="h-min flex text-lg 2xl:text-xl font-bold text-[#00BFFF] px-5 2xl:px-7">Output Format Settings</h1>
+                        <div className="w-[88%] h-[30%] mx-auto flex justify-center border-[1px] border-white/[5%] my-auto rounded-lg overflow-hidden bg-[#1F2687]/[37%] inset-shadow-[0_0px_24px_rgba(0,0,0,0.37)] shadow-[0_0px_45px_rgba(31,38,135,0.37)]">
+                            <div className="w-full h-full bg-black/[30%] px-3 2xl:px-4 pb-1 2xl:pb-2 flex flex-col justify-evenly">
+                                <h1 className="font-bold text-sm 2xl:text-base">Content Analysis</h1>
                                 {['simple_analogies', 'key_people', 'historical_timelines', 'flashcards'].map(option => (
                                     <div key={option} className="flex justify-between items-center">
-                                        <span className="text-white/[80%]">{formatLabel(option)}</span>
+                                        <span className="text-sm text-white/[80%]">{formatLabel(option)}</span>
                                         <Switch
                                             onChange={() => handleFormatChange(option)}
-                                            checked={formatOptions[option]}
-                                            checkedIcon={false}
-                                            uncheckedIcon={false}
-                                            height={20}
-                                            width={40}
-                                            handleDiameter={16}
-                                            onColor="#00BFFF"
-                                            offColor="#334155"
+                                            checked={!!formatOptions[option]}
+                                            height={20} width={40} handleDiameter={16}
+                                            onColor="#00BFFF" offColor="#334155"
                                         />
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        <div className="w-[88%] mx-auto h-[30%] flex border-[1px] border-white/[5%] my-auto rounded-lg overflow-hidden bg-[#1F2687]/[37%] inset-shadow-[0_0px_24px_rgba(0,0,0,0.37)]  shadow-[0_0px_45px_rgba(31,38,135,0.37)]">
-                            <div className="w-full h-full bg-black/[30%] px-4 pb-2 flex flex-col justify-evenly">
-                                <h1 className=" font-bold">Study Tools</h1>
+                        <div className="w-[88%] mx-auto h-[30%] flex border-[1px] border-white/[5%] my-auto rounded-lg overflow-hidden bg-[#1F2687]/[37%] inset-shadow-[0_0px_24px_rgba(0,0,0,0.37)] shadow-[0_0px_45px_rgba(31,38,135,0.37)]">
+                            <div className="w-full h-full bg-black/[30%] px-3 2xl:px-4 pb-1 2xl:pb-2 flex flex-col justify-evenly">
+                                <h1 className="font-bold text-sm 2xl:text-base">Study Tools</h1>
                                 {['practice_questions', 'cross_references', 'references', 'instructions'].map(option => (
                                     <div key={option} className="flex justify-between items-center">
-                                        <span className="text-white/[80%]">{formatLabel(option)}</span>
+                                        <span className="text-sm text-white/[80%]">{formatLabel(option)}</span>
                                         <Switch
                                             onChange={() => handleFormatChange(option)}
-                                            checked={formatOptions[option]}
-                                            checkedIcon={false}
-                                            uncheckedIcon={false}
-                                            height={20}
-                                            width={40}
-                                            handleDiameter={16}
-                                            onColor="#00BFFF"
-                                            offColor="#334155"
+                                            checked={!!formatOptions[option]}
+                                            height={20} width={40} handleDiameter={16}
+                                            onColor="#00BFFF" offColor="#334155"
                                         />
                                     </div>
                                 ))}
                             </div>
                         </div>
                         <div className="h-[25%] w-full border-t-[1px] border-white/[25%] my-auto flex flex-col justify-evenly">
-                            <button onClick={handleRegeneratePDF} className="flex cursor-pointer bg-[#00BFFF] w-[88%] mx-auto py-2.5 rounded-lg items-center justify-center-safe space-x-1"><SparklesIcon className="w-5 h-5" /><span className=" ">Regenerate Explanation PDF</span></button>
-                            <button onClick={handleDownloadTextbook} className="flex cursor-pointer bg-gray-800 text-[#00BFFF] w-[88%] mx-auto py-2.5 rounded-lg items-center justify-center-safe space-x-1 ">
-                                <CloudArrowDownIcon className="w-6 h-6" />
-                                <span className="ml-1"> Download Explanation PDF</span>
-
+                            <button onClick={handleRegeneratePDF} className="flex cursor-pointer bg-[#00BFFF] w-[88%] mx-auto py-2 2xl:py-2.5 rounded-lg items-center justify-center space-x-1 text-sm 2xl:text-base">
+                                <SparklesIcon className="w-5 h-5" />
+                                <span>Regenerate Explanation PDF</span>
                             </button>
-                            <button onClick={ () => setIsDeleteModalOpen(true) } className="flex cursor-pointer bg-red-500 w-[88%] mx-auto py-2.5 rounded-lg items-center justify-center-safe space-x-1 ">
-                                <TrashIcon className="w-6 h-6" />
+                            <button onClick={handleDownloadTextbook} className="flex cursor-pointer bg-gray-800 text-[#00BFFF] w-[88%] mx-auto py-2 2xl:py-2.5 rounded-lg items-center justify-center space-x-1 text-sm 2xl:text-base">
+                                <CloudArrowDownIcon className="w-5 h-5 2xl:w-6 2xl:h-6" />
+                                <span className="ml-1"> Download Explanation PDF</span>
+                            </button>
+                            <button onClick={() => setIsDeleteModalOpen(true)} className="flex cursor-pointer bg-red-500 w-[88%] mx-auto py-2 2xl:py-2.5 rounded-lg items-center justify-center space-x-1 text-sm 2xl:text-base">
+                                <TrashIcon className="w-5 h-5 2xl:w-6 2xl:h-6" />
                                 <span className="ml-1"> Delete Textbook</span>
-
                             </button>
                         </div>
                     </div>
@@ -603,4 +569,3 @@ export default function TextbookExplainer() {
         </div>
     )
 }
-

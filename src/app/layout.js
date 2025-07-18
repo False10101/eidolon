@@ -32,22 +32,22 @@ export default function RootLayout({ children }) {
   };
 
   useEffect(() => {
-      const checkAuth = async () => {
-          try {
-              const res = await fetch(`/api/auth/login`, {
-                  method: 'GET',
-                  credentials: 'include'
-              });
-              if (res.status != 200) {
-                      router.push('/auth/login');
-              }
-              } catch (err) {
-                  console.error('Auth check failed:', err);
-              }
-            };
-    
-            checkAuth();
-        }, []);
+    const checkAuth = async () => {
+      try {
+        const res = await fetch(`/api/auth/login`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+        if (res.status != 200) {
+          router.push('/auth/login');
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     setGroupedHistory({});
@@ -115,7 +115,7 @@ export default function RootLayout({ children }) {
 
           if (response.ok) {
             const data = await response.json();
-            setTokenCount(data.tokenCount || Unlimited); // Set token count from response
+            setTokenCount(data.tokenCount || "Unlimited"); // Set token count from response
           } else {
             console.error('Failed to fetch token count:', response.statusText);
           }
@@ -162,55 +162,84 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen overflow-hidden m-0 bg-gradient-to-r from-[#0B0F2E] to-[#081022]  text-white`}>
-        <div className="flex flex-col h-max">
-          {!isNotFoundPage && (
-            <nav className="h-[7vh] w-full bg-[#000000]/[20%] text-white flex items-center flex-row flex-grow px-7 border-b-[1px] border-white/[0.2]">
-              <div className="text-[#00BFFF] font-extrabold text-2xl h-min pr-5 my-auto">Eidolon</div>
-              <span className="text-white/[70%] h-min text-sm border-l-[1px] border-white/[25%] px-5 my-auto">{routeDisplayName}</span>
-              {!isAuthRoute &&
-                <div className="flex flex-row ml-auto my-auto">
-                  <div className="flex items-center justify-center mr-4">
-                    <BoltIcon className="h-4 w-4 text-[#00BFFF] ml-6 my-auto mr-2 font-extrabold" />
-                    <span className="text-white/[70%] text-sm">API Usage : <span className="text-[#00BFFF]">{!isHomeRoute ? tokenCount : "Unlimited"}</span></span>
-                  </div>
-                  <button className="flex  align-center justify-center">
-                    <Cog6ToothIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto font-extrabold" />
-                  </button>
-                  <button onClick={handleLogout} className="flex  align-center justify-center">
-                    <ArrowRightStartOnRectangleIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto mr-4 font-extrabold" />
-                  </button>
+      {/* 1. The <body> is the master container. It controls the overall page structure. */}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen bg-gradient-to-r from-[#0B0F2E] to-[#081022] text-white flex flex-col`}>
+
+        {/* 2. The <nav> has a fixed height and will NOT shrink. */}
+        {!isNotFoundPage && (
+          <nav className="h-16 flex-shrink-0 w-full bg-[#000000]/[20%] text-white flex items-center flex-row px-7 border-b-[1px] border-white/[0.2]">
+            <div className="text-[#00BFFF] font-extrabold text-xl 2xl:text-2xl h-min pr-5 my-auto">Eidolon</div>
+            <span className="text-white/[70%] h-min text-xs 2xl:text-sm border-l-[1px] border-white/[25%] px-5 my-auto">{routeDisplayName}</span>
+            {!isAuthRoute &&
+              <div className="flex flex-row ml-auto my-auto">
+                <div className="flex items-center justify-center mr-4">
+                  <BoltIcon className="h-4 w-4 text-[#00BFFF] ml-6 my-auto mr-2 font-extrabold" />
+                  <span className="text-white/[70%] text-xs 2xl:text-sm">API Usage : <span className="text-[#00BFFF]">{!isHomeRoute ? tokenCount : "Unlimited"}</span></span>
                 </div>
-              }
-            </nav>
-          )}</div>
-        <div className="h-[93%] flex ">
-          {!isAuthRoute && !isHomeRoute && !isNotFoundPage && (
-            <aside className="w-[17vw] bg-[#000000]/[30%] px-4 border-r-[1px] border-white/[0.2] flex flex-col h-full min-h-[768px]">
-              <div className="flex flex-col py-4 w-full justify-center h-[40%] items-center border-b-[1px] border-white/[25%]">
-                <button onClick={() => { router.push('/home'); }} className={`px-3 w-full py-3 flex flex-grow`}><HomeIcon className="h-6 w-6" /> <span className="ml-4">Home</span> </button>
-                <button onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><DocumentTextIcon className="h-6 w-6" /> <span className="ml-4 truncate">Document Generator</span> </button>
-                <button onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PencilSquareIcon className="h-6 w-6" /> <span className="ml-4 truncate">Inclass Notes</span></button>
-                <button onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><BookOpenIcon className="h-6 w-6 truncate" /> <span className="ml-4 truncate">Textbook Explainer</span></button>
-                <button onClick={() => { router.push('/tts'); }} className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><SpeakerWaveIcon className="h-6 w-6" /> <span className="ml-4 truncate">TTS</span></button>
-                <button onClick={() => { router.push('/image-gen'); }} className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><PhotoIcon className="h-6 w-6" /> <span className="ml-4 truncate">Image Gen</span></button>
-                <button onClick={() => { router.push('/chatbot'); }} className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%] text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]" : ""} px-3 w-full py-3 flex flex-grow`}><ChatBubbleLeftIcon className="h-6 w-6" /> <span className="ml-4 truncate">Chatbot</span></button>
+                <button className="flex align-center justify-center">
+                  <Cog6ToothIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto font-extrabold" />
+                </button>
+                <button onClick={handleLogout} className="flex align-center justify-center">
+                  <ArrowRightStartOnRectangleIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto mr-4 font-extrabold" />
+                </button>
               </div>
-              <div className="flex flex-col h-[60%] mt-5 overflow-y-auto gap-y-3">
+            }
+          </nav>
+        )}
 
+        {/* 3. This main <div> takes up all remaining VERTICAL space and arranges its children (sidebar, content) in a ROW. */}
+        <div className="flex flex-row flex-1 min-h-0">
+          {!isAuthRoute && !isHomeRoute && !isNotFoundPage && (
+            // 4. The <aside> has a fixed width, does NOT shrink, and handles its own internal scrolling.
+            <aside className="w-[15vw] flex-shrink-0 bg-[#000000]/[30%] px-4 border-r-[1px] border-white/[0.2] flex flex-col">
+              <div className="flex flex-col py-4 w-full justify-center h-max border-b-[1px] border-white/[25%]">
+                <button onClick={() => { router.push('/home'); }} className={`px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <HomeIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">Home</span>
+                </button>
+
+                <button onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <DocumentTextIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">Document Generator</span>
+                </button>
+
+                <button onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <PencilSquareIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">Inclass Notes</span>
+                </button>
+
+                <button onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <BookOpenIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">Textbook Explainer</span>
+                </button>
+
+                <button onClick={() => { router.push('/tts'); }} className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <SpeakerWaveIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">TTS</span>
+                </button>
+
+                <button onClick={() => { router.push('/image-gen'); }} className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <PhotoIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">Image Gen</span>
+                </button>
+
+                <button onClick={() => { router.push('/chatbot'); }} className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <ChatBubbleLeftIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">Chatbot</span>
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 mt-5 overflow-y-auto gap-y-3">
                 {Object.keys(groupedHistory).map(groupName => (
-
                   groupedHistory[groupName].length > 0 && (
                     <div key={groupName} className=" space-y-1">
-                      <h2 className=" font-semibold px-1 text-[#00BFFF] text-xl font-semibold">{groupName}</h2>
-
+                      <h2 className=" font-semibold px-1 text-[#00BFFF] text-lg ">{groupName}</h2>
                       {groupedHistory[groupName].map(history => (
                         <div
-                          onClick={()=>{router.push(`/${basePath}/${history.id}`)}}
+                          onClick={() => { router.push(`/${basePath}/${history.id}`) }}
                           key={history.id}
-                          className={`py-3 px-3 rounded-xl cursor-pointer ${activeId == history.id ? "bg-[#3366FF]/[30%] border-white/[10%] border-[1px]" : "hover:bg-white/10"}`}
+                          className={`py-2.5 2xl:py-3 px-3 rounded-xl cursor-pointer ${activeId == history.id ? "bg-[#3366FF]/[30%] border-white/[10%] border-[1px]" : "hover:bg-white/10"}`}
                         >
-                          <div className="truncate">{history.name}</div>
+                          <div className="truncate text-sm 2xl:text-base">{history.name}</div>
                         </div>
                       ))}
                     </div>
@@ -223,7 +252,11 @@ export default function RootLayout({ children }) {
               </div>
             </aside>
           )}
-          <div className={` ${!isHomeRoute ? "" : ""} w-full`}>{children}</div>
+
+          {/* 5. The {children} container takes all remaining HORIZONTAL space and handles its own internal scrolling. */}
+          <main className="flex-1 min-w-0 overflow-y-auto">
+            {children}
+          </main>
         </div>
       </body>
     </html>
