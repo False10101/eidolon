@@ -500,13 +500,13 @@ export default function Note() {
                                             Transcript Details
                                         </h1>
                                         <span className="text-sm text-white/[70%]">Course Details</span>
-                                        <input onChange={(e) => setFileName(e.target.value)} defaultValue={fileName} placeholder="e.g, Advanced Physics 101" className="text-sm border-[1px] border-white/[20%] bg-[#000000]/[50%] py-1.5 2xl:py-2 px-3 2xl:px-4 rounded-lg" />
+                                        <input onChange={(e) => setFileName(e.target.value)} defaultValue={fileName} placeholder="e.g, Advanced Physics 101" className="text-sm border-[1px] focus:outline-none focus:border-[#00BFFF] border-white/[20%] bg-[#000000]/[50%] py-2 2xl:py-2 px-3 2xl:px-4 rounded-lg" />
 
                                         <span className="text-sm text-white/[70%]">Lecture Topic (Optional)</span>
-                                        <input onChange={(e) => setLectureTopic(e.target.value)} defaultValue={lectureTopic} placeholder="e.g., Quantum Mechanics Introduction" className="text-sm border-[1px] border-white/[20%] bg-[#000000]/[50%] py-1.5 2xl:py-2 px-3 2xl:px-4 rounded-lg" />
+                                        <input onChange={(e) => setLectureTopic(e.target.value)} defaultValue={lectureTopic} placeholder="e.g., Quantum Mechanics Introduction" className="text-sm border-[1px] focus:outline-none focus:border-[#00BFFF] border-white/[20%] bg-[#000000]/[50%] py-2 2xl:py-2 px-3 2xl:px-4 rounded-lg" />
 
                                         <span className="text-sm text-white/[70%]">Instructor (Optional)</span>
-                                        <input onChange={(e) => setInstructor(e.target.value)} defaultValue={Instructor} placeholder="e.g., Dr. Smith" className="text-sm border-[1px] border-white/[20%] bg-[#000000]/[50%] py-1.5 2xl:py-2 px-3 2xl:px-4 rounded-lg" />
+                                        <input onChange={(e) => setInstructor(e.target.value)} defaultValue={Instructor} placeholder="e.g., Dr. Smith" className="text-sm border-[1px] border-white/[20%] focus:outline-none focus:border-[#00BFFF] bg-[#000000]/[50%] py-2 2xl:py-2 px-3 2xl:px-4 rounded-lg" />
                                         <button onClick={handleSaveDetail} className="text-sm px-4 py-1.5 2xl:py-2 bg-[#00BFFF] rounded-lg mt-3">Save Details</button>
                                     </div>
                                 </div>

@@ -262,13 +262,13 @@ export default function Note() {
                                         Transcript Details
                                     </h1>
                                     <span className="text-white/[70%] text-sm 2xl:text-base ">Course Details</span>
-                                    <input onChange={(e) => setFileName(e.target.value)} placeholder="e.g, Advanced Physics 101" defaultValue={uploadedFile ? uploadedFile.name : ''} className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-1.5 2xl:py-2 px-3 2xl:px-4 rounded-lg my-3 2xl:my-4 text-sm 2xl:text-base" />
+                                    <input onChange={(e) => setFileName(e.target.value)} placeholder="e.g, Advanced Physics 101" defaultValue={uploadedFile ? uploadedFile.name : ''} className="border-[1px] focus:outline-none focus:border-[#00BFFF] border-white/[20%] bg-[#000000]/[50%] py-2 2xl:py-2 px-3 2xl:px-4 rounded-lg my-3 2xl:my-4 text-sm 2xl:text-base" />
 
                                     <span className="text-white/[70%] text-sm 2xl:text-base">Lecture Topic (Optional)</span>
-                                    <input onChange={(e) => setLectureTopic(e.target.value)} placeholder="e.g., Quantum Mechanics Introduction" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-1.5 2xl:py-2 px-3 2xl:px-4 rounded-lg my-3 2xl:my-4 text-sm 2xl:text-base" />
+                                    <input onChange={(e) => setLectureTopic(e.target.value)} placeholder="e.g., Quantum Mechanics Introduction" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] focus:outline-none focus:border-[#00BFFF] py-2 2xl:py-2 px-3 2xl:px-4 rounded-lg my-3 2xl:my-4 text-sm 2xl:text-base" />
 
                                     <span className="text-white/[70%] text-sm 2xl:text-base">Instructor (Optional)</span>
-                                    <input onChange={(e) => setInstructor(e.target.value)} placeholder="e.g., Dr. Smith" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-1.5 2xl:py-2 px-3 2xl:px-4 rounded-lg my-3 2xl:my-4 text-sm 2xl:text-base" />
+                                    <input onChange={(e) => setInstructor(e.target.value)} placeholder="e.g., Dr. Smith" className="border-[1px] border-white/[20%] bg-[#000000]/[50%] py-2 2xl:py-2 px-3 focus:outline-none focus:border-[#00BFFF] 2xl:px-4 rounded-lg my-3 2xl:my-4 text-sm 2xl:text-base" />
                                 </div>
                             </div>
                         </div>

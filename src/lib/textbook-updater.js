@@ -55,10 +55,10 @@ export async function updateTextbookInBackground(textbookId) {
         };
 
         // Step 3: Read text file from R2
-        const textPath = textbook.textbookTXTFilePath.startsWith('/') 
-            ? textbook.textbookTXTFilePath.slice(1) 
+        const textPath = textbook.textbookTXTFilePath.startsWith('/')
+            ? textbook.textbookTXTFilePath.slice(1)
             : textbook.textbookTXTFilePath;
-        
+
         const { Body: textBody } = await r2.send(new GetObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: textPath
@@ -88,16 +88,16 @@ export async function updateTextbookInBackground(textbookId) {
 
         // Step 5: Generate new PDF
         console.log("Starting PDF generation...");
-        const generationDate = new Date().toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        const generationDate = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
 
         const titlePageHtml = buildTitlePage(
-            textbook.name || "Generated Explanation", 
-            textbook.course || "Textbook Analysis", 
-            "A.I. Companion", 
+            textbook.name || "Generated Explanation",
+            textbook.course || "Textbook Analysis",
+            "A.I. Companion",
             generationDate
         );
         const contentHtml = marked(generatedText);
@@ -108,25 +108,54 @@ export async function updateTextbookInBackground(textbookId) {
         const page = await browser.newPage();
         await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
         await page.addStyleTag({ content: PDF_CSS });
-        
+
         // Create PDF buffer instead of saving to file
-        const pdfBuffer = await page.pdf({ 
-            format: 'A4', 
-            printBackground: true 
+        const pdfBuffer = await page.pdf({
+            format: 'A4',
+            printBackground: true
         });
         await browser.close();
 
         // Step 6: Upload new PDF to R2 (overwrite existing file)
-        const pdfPath = textbook.explanationFilePath.startsWith('/') 
-            ? textbook.explanationFilePath.slice(1) 
+        const pdfPath = textbook.explanationFilePath.startsWith('/')
+            ? textbook.explanationFilePath.slice(1)
             : textbook.explanationFilePath;
-        
-        await r2.send(new PutObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: pdfPath,
-            Body: pdfBuffer,
-            ContentType: 'application/pdf'
-        }));
+
+        if (!pdfPath) {
+            const pdfFileName = `${uuidv4()}_${textbook.name}_explained.pdf`;
+            const pdfRelativePath = `textbook/explanation/${pdfFileName}`; // No leading slash for R2
+            const generationDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const titlePageHtml = buildTitlePage(textbook.name || "Generated Explanation", textbook.course || "Textbook Analysis", "A.I. Companion", generationDate);
+            const contentHtml = marked(generatedText);
+            const finalHtml = titlePageHtml + contentHtml;
+
+            const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+            const page = await browser.newPage();
+            await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
+            await page.addStyleTag({ content: PDF_CSS });
+
+            // Generate PDF buffer instead of saving to file
+            const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+            await browser.close();
+
+            console.log(`✅ PDF created in memory`);
+
+            // Upload PDF to R2
+            await r2.send(new PutObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: pdfRelativePath,
+                Body: pdfBuffer,
+                ContentType: 'application/pdf'
+            }));
+        } else {
+            await r2.send(new PutObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: pdfPath,
+                Body: pdfBuffer,
+                ContentType: 'application/pdf'
+            }));
+        }
 
         console.log(`✅ PDF regenerated and uploaded to R2: ${pdfPath}`);
 
@@ -137,7 +166,7 @@ export async function updateTextbookInBackground(textbookId) {
         );
 
         console.log(`Successfully regenerated textbook ID: ${textbookId}`);
-        
+
     } catch (error) {
         console.error("Error during textbook regeneration:", error);
         if (textbookId) {

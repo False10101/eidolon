@@ -30,10 +30,10 @@ export async function updateNoteInBackground(noteId) {
         const temperatureParam = note.style === 'minimal' ? 0.3 : note.style === "creative" ? 1 : 0.6;
 
         // Step 3: Read transcript from R2
-        const transcriptPath = note.transcriptFilePath.startsWith('/') 
-            ? note.transcriptFilePath.slice(1) 
+        const transcriptPath = note.transcriptFilePath.startsWith('/')
+            ? note.transcriptFilePath.slice(1)
             : note.transcriptFilePath;
-        
+
         const { Body: transcriptBody } = await r2.send(new GetObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: transcriptPath
@@ -64,16 +64,29 @@ export async function updateNoteInBackground(noteId) {
         console.log("Gemini API call finished.");
 
         // Step 5: Save updated note to R2 (overwriting existing file)
-        const notePath = note.noteFilePath.startsWith('/') 
-            ? note.noteFilePath.slice(1) 
+        const notePath = note.noteFilePath.startsWith('/')
+            ? note.noteFilePath.slice(1)
             : note.noteFilePath;
-        
-        await r2.send(new PutObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: notePath,
-            Body: generatedText,
-            ContentType: 'text/plain'
-        }));
+
+        if (!notePath) {
+            const uniqueNotesFileName = `${uuidv4()}_${note.name}_notes.txt`;
+            const notesRelativePath = `note/${uniqueNotesFileName}`; // No leading slash for R2
+
+            await r2.send(new PutObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: notesRelativePath,
+                Body: generatedText,
+                ContentType: 'text/plain'
+            }));
+        } else {
+            await r2.send(new PutObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: notePath,
+                Body: generatedText,
+                ContentType: 'text/plain'
+            }));
+        }
+
 
         // Step 6: Update status to COMPLETED
         await queryWithRetry(
@@ -87,8 +100,8 @@ export async function updateNoteInBackground(noteId) {
         console.error(`Failed to update note ID ${noteId}:`, error);
         // Step 7: Update status to FAILED if error occurs
         if (noteId) {
-            const errorMessage = error.message.includes('SAFETY') 
-                ? 'Content blocked by safety features. Try adjusting your transcript content.' 
+            const errorMessage = error.message.includes('SAFETY')
+                ? 'Content blocked by safety features. Try adjusting your transcript content.'
                 : error.message;
             await queryWithRetry(
                 `UPDATE note SET status = 'FAILED', error_message = ? WHERE id = ?`,

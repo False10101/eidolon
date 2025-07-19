@@ -103,6 +103,32 @@ export default function RootLayout({ children }) {
 
       getHistory();
     }
+
+    else if (pathname.includes('/document')) {
+      const getHistory = async () => {
+        try {
+          const response = await fetch(`/api/document/getRecentHistory`, {
+            method: 'GET',
+            credentials: 'include',
+          });
+
+          const data = await response.json();
+
+          if (Array.isArray(data.response)) {
+
+            // Process the data and set the new grouped state
+            const groupedData = groupHistoryByDate(data.response);
+            setGroupedHistory(groupedData);
+          } else {
+            setGroupedHistory({}); // Reset or handle cases where no data is returned
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      getHistory();
+    }
   }, [pathname])
 
   useEffect(() => {
@@ -141,6 +167,7 @@ export default function RootLayout({ children }) {
     match('/auth/signup'),
     match('/home'),
     match('/document'),
+    match('/document/:documentId'),
     match('/note'),
     match('/note/:noteId'),
     match('/textbook-explainer'),
