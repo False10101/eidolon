@@ -30,6 +30,7 @@
     "next": "15.3.4",
     "path-to-regexp": "^8.2.0",
     "pdfjs-dist": "^5.3.31",
+    "puppeteer": "^24.15.0",
     "puppeteer-core": "^24.15.0",
     "rc-checkbox": "^3.5.0",
     "react": "^19.0.0",
