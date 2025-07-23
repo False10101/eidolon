@@ -4,10 +4,13 @@ import { useState, useEffect, useRef } from "react"
 import Checkbox from "rc-checkbox"
 import { SparklesIcon, CloudArrowDownIcon } from "@heroicons/react/24/outline";
 import { DocumentTextIcon, CloudArrowUpIcon, TrashIcon } from "@heroicons/react/24/solid";
-import MDEditor from "@uiw/react-md-editor";
 import { useParams, useRouter } from 'next/navigation';
 import LoadingPopup from "../../LoadingPopup";
 import DeleteConfirmationPopup from "@/app/DeleteModalConfirmation";
+
+import dynamic from 'next/dynamic';
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
 const AcademicIcon = ({ className }) => (
     <svg className={className} viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">

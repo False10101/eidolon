@@ -1,11 +1,13 @@
 'use client';
 import React, { useState, useEffect } from "react";
 import { InformationCircleIcon, BoltIcon, DocumentDuplicateIcon, TrashIcon, DocumentTextIcon, DocumentArrowDownIcon } from "@heroicons/react/24/solid";
-import MDEditor from "@uiw/react-md-editor";
 import { useParams, useRouter } from "next/navigation";
 import { formatTimeAgo } from "@/app/timeHelper";
 import LoadingPopup from "@/app/LoadingPopup";
 import DeleteConfirmationPopup from "@/app/DeleteModalConfirmation";
+import dynamic from 'next/dynamic';
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
 export default function document() {
     const [name, setName] = useState("");
