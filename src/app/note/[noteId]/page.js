@@ -194,7 +194,7 @@ export default function Note() {
         }
 
         try {
-            const response = await fetch(`/api/note/downloadNote`, {
+            const response = await fetch(`/api/document/downloadDocument`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
