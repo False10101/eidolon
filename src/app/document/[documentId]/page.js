@@ -173,7 +173,7 @@ export default function document() {
                 credentials: 'include',
                 body: JSON.stringify({
                     mdText : documentText,
-                    fileName
+                    fileName : name
                 }),
             });
 
