@@ -158,8 +158,7 @@ export default function document() {
         }
     };
 
-    const handleDownloadPdf = async (e) => {
-        e.preventDefault(); 
+    const handleDownloadPdf = async () => {
 
         if (!documentText) {
             alert("No document generated yet to download.");
