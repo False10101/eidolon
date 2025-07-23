@@ -9,7 +9,7 @@ import dynamic from 'next/dynamic';
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
-export default function document() {
+export default function Document() {
     const [name, setName] = useState("");
     const [inputText, setInputText] = useState("");
     const [wordCount, setWordCount] = useState(0);
