@@ -186,7 +186,7 @@ export default function Document() {
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+            a.download = name.endsWith('.pdf') ? name : `${name}.pdf`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
