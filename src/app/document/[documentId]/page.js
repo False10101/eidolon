@@ -159,44 +159,59 @@ export default function document() {
     };
 
     const handleDownloadPdf = async () => {
+    if (!documentText) {
+        alert("No document generated yet to download.");
+        return;
+    }
 
-        if (!documentText) {
-            alert("No document generated yet to download.");
-            return;
-        }   
+    setLoading(true);
+    setLoadingMessage("Preparing PDF download...");
 
-        try {
-            const response = await fetch('/api/document/downloadDocument', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    mdText: documentText,
-                    fileName: name || 'document.pdf',
-                }),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                alert(`Error downloading PDF: ${errorData.error || 'Unknown error'}`);
-                return;
-            }
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = name ? `${name}.pdf` : 'document.pdf';
-            document.body.appendChild(a);
-            a.click();
+    try {
+        const response = await fetch('/api/document/downloadDocument', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                mdText: documentText,
+                fileName: name || 'document',
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to download PDF');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create a temporary anchor element
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Sanitize the filename
+        const sanitizedFileName = (name || 'document')
+            .replace(/[^a-z0-9]/gi, '_')
+            .substring(0, 50); // Limit length
+        
+        a.download = `${sanitizedFileName}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        setTimeout(() => {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-        } catch (error) {
-            console.error("Error downloading PDF:", error);
-            alert("Failed to download PDF. Please try again later.");
-        }
-    };
+        }, 100);
+    } catch (error) {
+        console.error("Error downloading PDF:", error);
+        alert(`Failed to download PDF: ${error.message || 'Unknown error'}`);
+    } finally {
+        setLoading(false);
+    }
+};
 
     useEffect(() => {
         // Initialize the document with default values or fetch from API if needed
