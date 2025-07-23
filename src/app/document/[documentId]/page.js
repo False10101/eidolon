@@ -166,7 +166,7 @@ export default function document() {
         }   
 
         try {
-            const response = await fetch('/api/document/downloadDocument', {
+            const response = await fetch('/api/note/downloadNote', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
