@@ -1,9 +1,9 @@
 import jwt from 'jsonwebtoken';
 import { queryWithRetry } from "@/lib/queryWithQuery";
-import { DeleteBucketCommand } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { r2 } from "@/lib/r2";
 
-export async function GET(req) {
+export async function DELETE(req) {
     const cookies = req.headers.get('cookie');
     const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
 
@@ -46,7 +46,7 @@ export async function GET(req) {
 
                 await Promise.all(
                     filesToDelete.map(path => 
-                        r2.send(new DeleteBucketCommand({
+                        r2.send(new DeleteObjectCommand({
                             Bucket: process.env.R2_BUCKET_NAME,
                             Key: path
                         }))

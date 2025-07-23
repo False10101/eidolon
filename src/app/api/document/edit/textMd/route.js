@@ -18,7 +18,7 @@ export async function POST(req) {
         const { textMd, documentId } = await req.json();
 
         if (!textMd || !documentId) {
-            return new Response(JSON.stringify({ error: 'No File Provided' }), { status: 400 });
+            return new Response(JSON.stringify({ error: 'Not Sufficient Data Provided' }), { status: 400 });
         }
 
         const [[row]] = await queryWithRetry('SELECT generatedFilePath FROM document WHERE id = ? AND user_id = ?', [documentId, user_id]);
@@ -27,9 +27,9 @@ export async function POST(req) {
             return NextResponse.json({ message: 'Document not found or you do not have permission.' }, { status: 404 });
         }
 
-        const r2FilePath = row.noteFilePath.startsWith('/') 
-            ? row.noteFilePath.substring(1) 
-            : row.noteFilePath;
+        const r2FilePath = row.generatedFilePath.startsWith('/') 
+            ? row.generatedFilePath.substring(1) 
+            : row.generatedFilePath;
 
         // SECURITY CHECK: Prevent path traversal attacks
         if (r2FilePath.includes('..')) {
@@ -40,7 +40,7 @@ export async function POST(req) {
         await r2.send(new PutObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: r2FilePath,
-            Body: mdText,
+            Body: textMd,
             ContentType: 'text/plain', // Specific MIME type for markdown
         }));
 

@@ -41,7 +41,7 @@ export async function POST(req) {
 
         updateDocumentInBackground(documentId);
 
-        return NextResponse.json({ message: 'Document re-generated successfully.' }, { status: 200 });
+        return NextResponse.json({ documentId : documentId }, { status: 200 });
 
     } catch (error) {
         console.error("Re-generate Document Error:", error);

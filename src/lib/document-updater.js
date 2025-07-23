@@ -45,9 +45,9 @@ export async function updateDocumentInBackground(documentId) {
         console.log("Gemini API call finished.");
 
         // Step 5: Save the generated content back to R2
-        const documentPath = document.documentFilePath.startsWith('/')
-            ? document.documentFilePath.slice(1)
-            : document.documentFilePath;
+        const documentPath = document.generatedFilePath.startsWith('/')
+            ? document.generatedFilePath.slice(1)
+            : document.generatedFilePath;
 
         if (!documentPath) {
             const outputFileName = `document_${documentId}_${uuidv4()}.txt`;
@@ -59,6 +59,10 @@ export async function updateDocumentInBackground(documentId) {
                 Body: generatedText,
                 ContentType: 'text/plain',
             }));
+
+            // Step 6: Update the document status to 'COMPLETED'
+            await queryWithRetry(`UPDATE document SET status = 'COMPLETED', generatedFilePath = ? WHERE id = ?`, [`/${outputFilePath}`, documentId]);
+            console.log(`Document with ID ${documentId} processed successfully.`);
         } else {
             await r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
@@ -66,11 +70,10 @@ export async function updateDocumentInBackground(documentId) {
                 Body: generatedText,
                 ContentType: 'text/plain'
             }));
-        }
 
-        // Step 6: Update the document status to 'COMPLETED'
-        await queryWithRetry(`UPDATE document SET status = 'COMPLETED', generated_text = ? WHERE id = ?`, [generatedText, documentId]);
-        console.log(`Document with ID ${documentId} processed successfully.`);
+            await queryWithRetry(`UPDATE document SET status = 'COMPLETED', created_at = NOW() WHERE id = ?`, [documentId]);
+            console.log(`Document with ID ${documentId} processed successfully.`);
+        }
 
     } catch (error) {
         console.error(`Error processing document ${documentId}:`, error);
@@ -79,7 +82,7 @@ export async function updateDocumentInBackground(documentId) {
             const errorMessage = error.message.includes('SAFETY')
                 ? 'Content blocked by safety features. Try adjusting your document content.'
                 : error.message;
-            await queryWithRetry(`UPDATE document SET status = 'FAILED', error_message = ? WHERE id = ?`, [errorMessage, documentId]);
+            await queryWithRetry(`UPDATE document SET status = 'FAILED' WHERE id = ?`, [documentId]);
         }
     }
 }

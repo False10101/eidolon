@@ -148,6 +148,13 @@ export async function updateTextbookInBackground(textbookId) {
                 Body: pdfBuffer,
                 ContentType: 'application/pdf'
             }));
+
+            // Step 7: Update database status
+            await queryWithRetry(
+                `UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? , created_at = NOW() WHERE id = ?`,
+                [`/${pdfRelativePath}` , textbookId]
+            );
+
         } else {
             await r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
@@ -155,15 +162,16 @@ export async function updateTextbookInBackground(textbookId) {
                 Body: pdfBuffer,
                 ContentType: 'application/pdf'
             }));
+
+            // Step 7: Update database status
+            await queryWithRetry(
+                `UPDATE textbook SET status = 'COMPLETED', created_at = NOW() WHERE id = ?`,
+                [textbookId]
+            );
+
         }
 
         console.log(`✅ PDF regenerated and uploaded to R2: ${pdfPath}`);
-
-        // Step 7: Update database status
-        await queryWithRetry(
-            `UPDATE textbook SET status = 'COMPLETED', updated_at = NOW() WHERE id = ?`,
-            [textbookId]
-        );
 
         console.log(`Successfully regenerated textbook ID: ${textbookId}`);
 

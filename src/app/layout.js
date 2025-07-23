@@ -257,11 +257,11 @@ export default function RootLayout({ children }) {
                   <span className="ml-2 truncate text-sm 2xl:text-base">Chatbot</span>
                 </button>
               </div>
-              <div className="flex-1 min-h-0 mt-5 overflow-y-auto gap-y-3">
+              <div className="flex-1 min-h-0 overflow-y-auto mt-1 gap-y-3">
                 {Object.keys(groupedHistory).map(groupName => (
                   groupedHistory[groupName].length > 0 && (
                     <div key={groupName} className=" space-y-1">
-                      <h2 className=" font-semibold px-1 text-[#00BFFF] text-lg ">{groupName}</h2>
+                      <h2 className=" font-semibold px-1 text-[#00BFFF] text-lg pt-3 pb-1">{groupName}</h2>
                       {groupedHistory[groupName].map(history => (
                         <div
                           onClick={() => { router.push(`/${basePath}/${history.id}`) }}

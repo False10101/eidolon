@@ -78,6 +78,13 @@ export async function updateNoteInBackground(noteId) {
                 Body: generatedText,
                 ContentType: 'text/plain'
             }));
+
+            // Step 6: Update status to COMPLETED
+            await queryWithRetry(
+                `UPDATE note SET status = 'COMPLETED', noteFilePath = ?, created_at = NOW() WHERE id = ?`,
+                [`/${notesRelativePath}` , noteId]
+            );
+
         } else {
             await r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
@@ -85,14 +92,13 @@ export async function updateNoteInBackground(noteId) {
                 Body: generatedText,
                 ContentType: 'text/plain'
             }));
+
+            // Step 6: Update status to COMPLETED
+            await queryWithRetry(
+                `UPDATE note SET status = 'COMPLETED', created_at = NOW() WHERE id = ?`,
+                [noteId]
+            );
         }
-
-
-        // Step 6: Update status to COMPLETED
-        await queryWithRetry(
-            `UPDATE note SET status = 'COMPLETED', created_at = NOW() WHERE id = ?`,
-            [noteId]
-        );
 
         console.log(`Successfully updated note ID: ${noteId}`);
 
