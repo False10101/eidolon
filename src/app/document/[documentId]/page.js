@@ -69,14 +69,14 @@ export default function Document() {
         if (!documentText) {
             alert("There is no content to save.");
             return;
-        }   
+        }
 
         setSaveStatus('saving');
-        try {   
+        try {
             const response = await fetch('/api/document/edit/textMd', {
                 method: 'POST',
                 body: JSON.stringify({
-                    textMd : documentText,
+                    textMd: documentText,
                     documentId: params.documentId,
                 }),
             });
@@ -87,7 +87,7 @@ export default function Document() {
             }
             setSaveStatus('success');
             setTimeout(() => setSaveStatus('idle'), 1500);
-        } catch (error) {   
+        } catch (error) {
             console.error("Error saving document:", error);
             alert("Failed to save document. Please try again later.");
             setSaveStatus('idle');
@@ -113,7 +113,7 @@ export default function Document() {
         } catch (error) {
             console.error("Error deleting document:", error);
             alert("Failed to delete document. Please try again later.");
-            
+
         }
     }
 
@@ -159,59 +159,59 @@ export default function Document() {
     };
 
     const handleDownloadPdf = async () => {
-    if (!documentText) {
-        alert("No document generated yet to download.");
-        return;
-    }
-
-    setLoading(true);
-    setLoadingMessage("Preparing PDF download...");
-
-    try {
-        const response = await fetch('/api/document/downloadDocument', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                mdText: documentText,
-                fileName: name || 'document',
-            }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || 'Failed to download PDF');
+        if (!documentText) {
+            alert("No document generated yet to download.");
+            return;
         }
 
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        
-        // Create a temporary anchor element
-        const a = document.createElement('a');
-        a.href = url;
-        
-        // Sanitize the filename
-        const sanitizedFileName = (name || 'document')
-            .replace(/[^a-z0-9]/gi, '_')
-            .substring(0, 50); // Limit length
-        
-        a.download = `${sanitizedFileName}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        
-        // Cleanup
-        setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        }, 100);
-    } catch (error) {
-        console.error("Error downloading PDF:", error);
-        alert(`Failed to download PDF: ${error.message || 'Unknown error'}`);
-    } finally {
-        setLoading(false);
-    }
-};
+        setLoading(true);
+        setLoadingMessage("Preparing PDF download...");
+
+        try {
+            const response = await fetch('/api/document/downloadDocument', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    mdText: documentText,
+                    fileName: name || 'document',
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Failed to download PDF');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            // Create a temporary anchor element
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Sanitize the filename
+            const sanitizedFileName = (name || 'document')
+                .replace(/[^a-z0-9]/gi, '_')
+                .substring(0, 50); // Limit length
+
+            a.download = `${sanitizedFileName}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
+        } catch (error) {
+            console.error("Error downloading PDF:", error);
+            alert(`Failed to download PDF: ${error.message || 'Unknown error'}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         // Initialize the document with default values or fetch from API if needed
@@ -320,7 +320,7 @@ export default function Document() {
 
     }, [creationTimestamp]);
 
-       const SaveStatusPopup = ({ status }) => {
+    const SaveStatusPopup = ({ status }) => {
         if (status === 'idle') {
             return null;
         }
@@ -361,11 +361,11 @@ export default function Document() {
 
             {loading && <LoadingPopup loadingMessage={loadingMessage} />}
             <DeleteConfirmationPopup
-                            isOpen={isDeleteModalOpen}
-                            onClose={() => setIsDeleteModalOpen(false)}
-                            onConfirm={handleDeleteDocument}
-                            type='document'
-                        />
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDeleteDocument}
+                type='document'
+            />
 
             <div className="flex flex-col w-[21.5%] h-full border-r-[1px] border-white/[25%] p-4 bg-[#141B3C]/[64%]">
                 <h1 className="text-xl text-[#00BFFF] font-bold w-max pb-7">Document Settings</h1>
@@ -469,11 +469,11 @@ export default function Document() {
                         }
                     </div>
                     <div className="h-[7%] items-center border-t border-white/[25%] flex pt-3 space-x-2 px-3 ">
-                        <button onClick={ () => setIsDeleteModalOpen(true) } className="flex w-[25%] bg-red-500/70 py-2 text-white rounded-md hover:bg-red-500/60 transition-colors items-center justify-center">
+                        <button onClick={() => setIsDeleteModalOpen(true)} className="flex w-[25%] bg-red-500/70 py-2 text-white rounded-md hover:bg-red-500/60 transition-colors items-center justify-center">
                             <TrashIcon className="w-4 h-4 mr-2 flex" />
                             <span className="text-sm flex mr-1">Delete</span>
                         </button>
-                        <button onClick={ handleDownloadPdf } className="flex w-[35%] bg-[#00CED1] px-2 py-2 text-white rounded-md hover:bg-[#0099CC] transition-colors flex items-center justify-center">
+                        <button onClick={handleDownloadPdf} className="flex w-[35%] bg-[#00CED1] px-2 py-2 text-white rounded-md hover:bg-[#0099CC] transition-colors flex items-center justify-center">
                             <DocumentArrowDownIcon className="w-4 h-4 mr-1" />
                             <span className="text-sm">Export (PDF)</span>
                         </button>

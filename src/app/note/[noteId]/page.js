@@ -193,37 +193,53 @@ export default function Note() {
             return;
         }
 
+        setLoading(true);
+        setLoadingMessage("Preparing PDF download...");
+
         try {
-            const response = await fetch(`/api/document/downloadDocument`, {
+            const response = await fetch('/api/document/downloadDocument', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    mdText,
-                    fileName
+                    mdText: mdText,
+                    fileName: fileName || 'note',
                 }),
             });
 
             if (!response.ok) {
-                throw new Error(`PDF generation failed: ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(errorText || 'Failed to download PDF');
             }
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
+
+            // Create a temporary anchor element
             const a = document.createElement('a');
-            a.style.display = 'none';
             a.href = url;
-            a.download = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+
+            // Sanitize the filename
+            const sanitizedFileName = (fileName || 'note')
+                .replace(/[^a-z0-9]/gi, '_')
+                .substring(0, 50); // Limit length
+
+            a.download = `${sanitizedFileName}.pdf`;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
 
+            // Cleanup
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
         } catch (error) {
-            console.error("Failed to download PDF:", error);
-            alert("Could not download the PDF. Please try again.");
+            console.error("Error downloading PDF:", error);
+            alert(`Failed to download PDF: ${error.message || 'Unknown error'}`);
+        } finally {
+            setLoading(false);
         }
     };
 
