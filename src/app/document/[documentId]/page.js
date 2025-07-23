@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { InformationCircleIcon, BoltIcon, DocumentDuplicateIcon, TrashIcon, DocumentTextIcon, DocumentArrowDownIcon } from "@heroicons/react/24/solid";
 import { useParams, useRouter } from "next/navigation";
 import { formatTimeAgo } from "@/app/timeHelper";
@@ -178,8 +178,9 @@ export default function document() {
                 fileName: name || 'document',
             }),
         });
-
-        if (!response.ok) {
+        
+        console.log("Download response:", response);
+        if (response.status !== 200) {
             const errorText = await response.text();
             throw new Error(errorText || 'Failed to download PDF');
         }
