@@ -184,12 +184,13 @@ export default function document() {
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
+            a.style.display = 'none';
             a.href = url;
             a.download = name ? `${name}.pdf` : 'document.pdf';
             document.body.appendChild(a);
             a.click();
-            a.remove();
             window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
         } catch (error) {
             console.error("Error downloading PDF:", error);
             alert("Failed to download PDF. Please try again later.");
