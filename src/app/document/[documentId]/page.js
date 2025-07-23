@@ -167,6 +167,7 @@ export default function document() {
         try {
             const response = await fetch('/api/document/downloadDocument', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },
