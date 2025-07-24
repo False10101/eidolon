@@ -205,7 +205,7 @@ export default function RootLayout({ children }) {
                   <BoltIcon className="h-4 w-4 text-[#00BFFF] ml-6 my-auto mr-2 font-extrabold" />
                   <span className="text-white/[70%] text-xs 2xl:text-sm">API Usage : <span className="text-[#00BFFF]">{!isHomeRoute ? tokenCount : "Unlimited"}</span></span>
                 </div>
-                <button className="flex align-center justify-center">
+                <button onClick={() => { router.push('/setting'); }} className="flex cursor-pointer align-center justify-center">
                   <Cog6ToothIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto font-extrabold" />
                 </button>
                 <button onClick={handleLogout} className="flex align-center justify-center">

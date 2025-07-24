@@ -110,8 +110,8 @@ export async function updateNoteInBackground(noteId) {
                 ? 'Content blocked by safety features. Try adjusting your transcript content.'
                 : error.message;
             await queryWithRetry(
-                `UPDATE note SET status = 'FAILED', error_message = ? WHERE id = ?`,
-                [errorMessage, noteId]
+                `UPDATE note SET status = 'FAILED' WHERE id = ?`,
+                [ noteId]
             );
         }
     }

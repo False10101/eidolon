@@ -1,20 +1,33 @@
-import { queryWithRetry } from "./queryWithQuery";
+import { db } from "@/lib/db"; // Assuming db connection import
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "./r2";
 import { GoogleGenAI } from "@google/genai";
+import { v4 as uuidv4 } from 'uuid'; // Added for the new file path case
+import { queryWithRetry } from "@/lib/queryWithQuery"; // Importing queryWithRetry for database operations
 
-export async function updateDocumentInBackground(documentId) {
-    let document;
-
+export async function updateDocumentInBackground(documentId, activityId) {
+    let connection;
     try {
-        const [rows] = await queryWithRetry('SELECT * FROM document WHERE id = ?', [documentId]);
-        document = rows[0];
+        const [rows] = await db.query('SELECT * FROM document WHERE id = ?', [documentId]);
+        const document = rows[0];
 
         if (!document) {
             throw new Error(`Document with ID ${documentId} not found for processing.`);
         }
 
-        await queryWithRetry(`UPDATE document SET status = 'PROCESSING' WHERE id = ?`, [documentId]);
+        // --- TRANSACTION 1: SET 'PROCESSING' ---
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute(`UPDATE document SET status = 'PROCESSING' WHERE id = ?`, [documentId]);
+            await connection.execute(`UPDATE activity SET title = ?, status = 'PROCESSING' WHERE type = 'Document' AND user_id = ? AND respective_table_id = ? AND id = ?`, [document.name, document.user_id, documentId, activityId]);
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err; // Propagate error to the main catch block
+        } finally {
+            if (connection) connection.release();
+        }
 
         const format_type = document.format_type || 'research_paper';
 
@@ -22,8 +35,8 @@ export async function updateDocumentInBackground(documentId) {
 
         const topic = document.name;
 
+        // --- EXTERNAL CALLS (NO TRANSACTION OPEN) ---
         const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
-
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: [{ role: "user", parts: [{ text: buildUserPrompt(topic, additionalDetails, format_type) }] }],
@@ -37,22 +50,13 @@ export async function updateDocumentInBackground(documentId) {
         const generatedText = result.text;
         const usageMetadata = result.usageMetadata;
 
-        if (usageMetadata) {
-            console.log(`Input Tokens: ${usageMetadata.promptTokenCount}`);
-            console.log(`Output Tokens: ${usageMetadata.candidatesTokenCount}`);
-            console.log(`Total Tokens: ${usageMetadata.totalTokenCount}`);
-        }
-        console.log("Gemini API call finished.");
-
-        // Step 5: Save the generated content back to R2
-        const documentPath = document.generatedFilePath.startsWith('/')
+        const documentPath = document.generatedFilePath && document.generatedFilePath.startsWith('/')
             ? document.generatedFilePath.slice(1)
             : document.generatedFilePath;
 
         if (!documentPath) {
             const outputFileName = `document_${documentId}_${uuidv4()}.txt`;
             const outputFilePath = `document/${outputFileName}`;
-
             await r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
                 Key: outputFilePath,
@@ -60,9 +64,19 @@ export async function updateDocumentInBackground(documentId) {
                 ContentType: 'text/plain',
             }));
 
-            // Step 6: Update the document status to 'COMPLETED'
-            await queryWithRetry(`UPDATE document SET status = 'COMPLETED', generatedFilePath = ? WHERE id = ?`, [`/${outputFilePath}`, documentId]);
-            console.log(`Document with ID ${documentId} processed successfully.`);
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+            try {
+                await connection.execute(`UPDATE document SET status = 'COMPLETED', generatedFilePath = ? WHERE id = ?`, [`/${outputFilePath}`, documentId]);
+                await connection.execute(`UPDATE activity SET status = 'COMPLETED', token_sent = ?, token_received = ? WHERE type = 'Document' AND respective_table_id = ? AND id = ?`, [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, documentId, activityId]);
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                if (connection) connection.release();
+            }
+
         } else {
             await r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
@@ -71,22 +85,32 @@ export async function updateDocumentInBackground(documentId) {
                 ContentType: 'text/plain'
             }));
 
-            await queryWithRetry(`UPDATE document SET status = 'COMPLETED', created_at = NOW() WHERE id = ?`, [documentId]);
-            console.log(`Document with ID ${documentId} processed successfully.`);
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+            try {
+                await connection.execute(`UPDATE document SET status = 'COMPLETED' WHERE id = ?`, [documentId]);
+                await connection.execute(`UPDATE activity SET status = 'COMPLETED', token_sent = ?, token_received = ? WHERE type = 'Document' AND respective_table_id = ? AND id = ?`, [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, documentId, activityId]);
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                if (connection) connection.release();
+            }
         }
+        console.log(`Document with ID ${documentId} processed successfully.`);
 
     } catch (error) {
         console.error(`Error processing document ${documentId}:`, error);
-
         if (documentId) {
             const errorMessage = error.message.includes('SAFETY')
                 ? 'Content blocked by safety features. Try adjusting your document content.'
                 : error.message;
-            await queryWithRetry(`UPDATE document SET status = 'FAILED' WHERE id = ?`, [documentId]);
+            // Final error state update (single query is fine)
+            await db.query(`UPDATE document SET status = 'FAILED' WHERE id = ?`, [documentId]);
         }
     }
 }
-
 function buildUserPrompt(topic, additionalDetails, format_type) {
     if (format_type === 'research_paper') {
         return `
@@ -253,3 +277,4 @@ BEGIN ESSAY:
         `;
     }
 }
+

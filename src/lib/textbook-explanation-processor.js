@@ -128,8 +128,8 @@ export async function textbook_explanation_processor(textbookId) {
         console.error("An error occurred during textbook processing:", error);
         if (textbookId) {
             await queryWithRetry(
-                `UPDATE textbook SET status = 'FAILED', error_message = ? WHERE id = ?`,
-                [error.message, textbookId]
+                `UPDATE textbook SET status = 'FAILED' WHERE id = ?`,
+                [ textbookId]
             );
         }
     }

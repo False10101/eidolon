@@ -26,23 +26,23 @@ export async function GET(req) {
     var userData = await db.query('SELECT * FROM user WHERE id = ?', [decoded.id]);
     userData = userData[0][0]; // Extract the first row from the result
 
-    var activityData = await db.query('SELECT * FROM activity WHERE userId = ?', [decoded.id]);
+    var activityData = await db.query('SELECT * FROM activity WHERE user_id = ?', [decoded.id]);
     activityData = activityData[0]; // Extract the first row from the result
 
-    var totalTokenSent = await db.query('SELECT COALESCE(SUM(token_sent), 0) AS TotalTokenSent FROM activity WHERE userId = ?', [decoded.id]);
+    var totalTokenSent = await db.query('SELECT COALESCE(SUM(token_sent), 0) AS TotalTokenSent FROM activity WHERE user_id = ?', [decoded.id]);
     totalTokenSent = totalTokenSent[0][0].TotalTokenSent || 0; // Extract the value from the result
 
-    var totalTokenReceived = await db.query('SELECT COALESCE(SUM(token_received), 0) AS TotalTokenReceived FROM activity WHERE userId = ?', [decoded.id]); // Extract the value from the result
+    var totalTokenReceived = await db.query('SELECT COALESCE(SUM(token_received), 0) AS TotalTokenReceived FROM activity WHERE user_id = ?', [decoded.id]); // Extract the value from the result
     totalTokenReceived = totalTokenReceived[0][0].TotalTokenReceived || 0;
 
     var totalCost = await db.query(` SELECT ROUND(
         IFNULL(SUM(token_sent * rate_per_sent + token_received * rate_per_received), 0) ,2) AS total_cost
         FROM activity 
-        WHERE userId = ?
+        WHERE user_id = ?
     `, [decoded.id]);
     totalCost = totalCost[0][0].total_cost; // Extract the first row from the result
 
-    var totalAPICalls = await db.query('SELECT COUNT(*) AS total_api_calls FROM activity WHERE userId = ?', [decoded.id]);
+    var totalAPICalls = await db.query('SELECT COUNT(*) AS total_api_calls FROM activity WHERE user_id = ?', [decoded.id]);
     totalAPICalls = totalAPICalls[0][0].total_api_calls || 0; // Extract the value from the result
 
     let fetchedMonthlyTokenUsage = await db.query(`
@@ -50,7 +50,7 @@ export async function GET(req) {
       type,
       SUM(token_sent + token_received) AS totalTokenUsage
     FROM activity
-    WHERE userId = ? AND MONTH(date) = MONTH(CURRENT_DATE())
+    WHERE user_id = ? AND MONTH(date) = MONTH(CURRENT_DATE())
     GROUP BY type
     `, [decoded.id]);
     fetchedMonthlyTokenUsage = fetchedMonthlyTokenUsage[0] || [];
@@ -67,7 +67,7 @@ export async function GET(req) {
 
 
     // --- Process monthlyUsage ---
-    let fetchedMonthlyUsage = await db.query(`SELECT type, COUNT(*) AS totalUsage FROM activity WHERE userId = ? AND MONTH(date) = MONTH(CURRENT_DATE()) GROUP BY type`, [decoded.id]);
+    let fetchedMonthlyUsage = await db.query(`SELECT type, COUNT(*) AS totalUsage FROM activity WHERE user_id = ? AND MONTH(date) = MONTH(CURRENT_DATE()) GROUP BY type`, [decoded.id]);
     fetchedMonthlyUsage = fetchedMonthlyUsage[0] || [];
     fetchedMonthlyUsage = addColorsToUsage(fetchedMonthlyUsage);
 

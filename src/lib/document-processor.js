@@ -1,11 +1,13 @@
-import { queryWithRetry } from "./queryWithQuery";
+import {db} from "@/lib/db";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { GoogleGenAI } from "@google/genai";
 import { r2 } from "@/lib/r2"; // Import R2 client
 import { v4 as uuidv4 } from 'uuid';
+import { queryWithRetry } from "@/lib/queryWithQuery";
 
 export async function processDocumentInBackground(documentId) {
     let document;
+    let connection;
 
     try {
 
@@ -16,7 +18,18 @@ export async function processDocumentInBackground(documentId) {
             throw new Error(`Document with ID ${documentId} not found for processing.`);
         }
 
-        await queryWithRetry(`UPDATE document SET status = 'PROCESSING' WHERE id = ?`, [documentId]);
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute(`UPDATE document SET status = 'PROCESSING' WHERE id = ?`, [documentId]);
+            await connection.execute(`UPDATE activity SET status = 'PROCESSING' WHERE type = 'Document' AND respective_table_id = ?`, [documentId]);
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err; 
+        } finally {
+            if (connection) connection.release();
+        }
 
         const format_type = document.format_type || 'research_paper';
 
@@ -46,6 +59,7 @@ export async function processDocumentInBackground(documentId) {
         }
         console.log("Gemini API call finished.");
 
+
         // Step 5: Save the generated content back to R2
         const outputFileName = `document_${documentId}_${uuidv4()}.txt`;
         const outputFilePath = `document/${outputFileName}`;
@@ -57,8 +71,19 @@ export async function processDocumentInBackground(documentId) {
             ContentType: 'text/plain',
         }));
 
-        await queryWithRetry(`UPDATE document SET status = 'COMPLETED', generatedFilePath = ? WHERE id = ?`, [`/${outputFilePath}`, documentId]);
-        console.log(`Document ${documentId} processed successfully. Output saved to ${outputFilePath}.`);
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute(`UPDATE activity SET token_sent = ?, token_received = ?, status = 'COMPLETED' WHERE type = 'Document' AND respective_table_id = ?`, [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, documentId]);
+            await connection.execute(`UPDATE document SET status = 'COMPLETED', generatedFilePath = ? WHERE id = ?`, [`/${outputFilePath}`, documentId]);
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err; 
+        } finally {
+            if (connection) connection.release();
+        }
+
 
     } catch (error) {
         console.error(`Error processing document ${documentId}:`, error);
@@ -67,7 +92,7 @@ export async function processDocumentInBackground(documentId) {
             const errorMessage = error.message.includes('SAFETY')
                 ? 'Content blocked by safety features. Try adjusting your document content.'
                 : error.message;
-            await queryWithRetry(`UPDATE document SET status = 'FAILED', error_message = ? WHERE id = ?`, [errorMessage, documentId]);
+            await queryWithRetry(`UPDATE document SET status = 'FAILED' WHERE id = ?`, [ documentId]);
         }
     }
 }

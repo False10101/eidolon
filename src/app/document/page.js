@@ -181,8 +181,8 @@ export default function document() {
                         <span className="text-white/[70%] text-xs">Word Count: <span className={`${wordCount > 0 ? 'text-[#00BFFF]' : ''}`}>{wordCount}</span></span>
                         <span className="text-white/[70%] text-xs">Character Count: <span className={`${wordCount > 0 ? 'text-[#00BFFF]' : ''}`}>{charCount}</span></span>
                     </div>
-                    <div onClick={handleCopyInputText} className="flex mt-auto border-t border-white/[25%] justify-evenly pt-3 px-3 space-x-2">
-                        <button className=" cursor-pointer text-sm w-[23%] flex items-center justify-center border-r border-white/[25%] bg-[#00CED1]/[80%] hover:bg-[#00CED1]/[60%] transition-colors rounded-md px-2 py-2">
+                    <div  className="flex mt-auto border-t border-white/[25%] justify-evenly pt-3 px-3 space-x-2">
+                        <button onClick={handleCopyInputText} className=" cursor-pointer text-sm w-[23%] flex items-center justify-center border-r border-white/[25%] bg-[#00CED1]/[80%] hover:bg-[#00CED1]/[60%] transition-colors rounded-md px-2 py-2">
                             <DocumentDuplicateIcon className="w-4 h-4 mr-1" />
                             <span className="text-xs font-semibold text-white/[70%]">Copy Text</span>
                         </button>

@@ -179,8 +179,8 @@ export async function updateTextbookInBackground(textbookId) {
         console.error("Error during textbook regeneration:", error);
         if (textbookId) {
             await queryWithRetry(
-                `UPDATE textbook SET status = 'FAILED', error_message = ? WHERE id = ?`,
-                [error.message, textbookId]
+                `UPDATE textbook SET status = 'FAILED',  WHERE id = ?`,
+                [ textbookId]
             );
         }
     }
