@@ -219,7 +219,7 @@ BEGIN LETTER:
 **FORMAT:** Official Investigative/Informational Report  
 **TONE:** Objective, formal, analytical, impartial
 
-CRITICAL DIRECTIVE: Output a SINGLE CONTINUOUS 60,000-token report on the "${report_subject}". NEVER CHUNK. NEVER STOP.
+CRITICAL DIRECTIVE: Output a SINGLE CONTINUOUS 60,000-token report on the "${topic}". NEVER CHUNK. NEVER STOP.
 
 **RULES OF GENERATION:**
 1.  **FORMATTING:**

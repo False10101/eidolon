@@ -24,12 +24,16 @@ export async function GET(req) {
 
         const [[note]] = await queryWithRetry("SELECT * from note where user_id = ? AND id = ?", [user_id, note_id]);
 
-         if (!note) {
-      return new Response(JSON.stringify({error : 'Note Not Found'}), {status : 400});
+        if (!note) {
+            return new Response(JSON.stringify({ error: 'Note Not Found' }), { status: 400 });
 
-    }
+        }
 
         const readR2File = async (filePath) => {
+            if (!filePath) {
+                return null;
+            }
+
             try {
                 const { Body } = await r2.send(new GetObjectCommand({
                     Bucket: process.env.R2_BUCKET_NAME,
@@ -47,26 +51,21 @@ export async function GET(req) {
             readR2File(note.transcriptFilePath)
         ]);
 
-        // Check if files were found
-        if (noteFileContent === null || transcriptFileContent === null) {
-            return new Response(JSON.stringify({ error: 'File not found in storage' }), { status: 404 });
-        }
+        const responseData = {
+            ...note,  // Spread all note properties
+            files: {
+                noteFile: {
+                    content: noteFileContent,
+                    path: note.noteFilePath
+                },
+                transcriptFile: {
+                    content: transcriptFileContent,
+                    path: note.transcriptFilePath
+                }
+            }
+        };
 
-    const responseData = {
-      ...note,  // Spread all note properties
-      files: {
-        noteFile: {
-          content: noteFileContent,
-          path: note.noteFilePath
-        },
-        transcriptFile: {
-          content: transcriptFileContent,
-          path: note.transcriptFilePath
-        }
-      }
-    };
-
-    return new Response(JSON.stringify({note : responseData}), {status : 200});
+        return new Response(JSON.stringify({ note: responseData }), { status: 200 });
 
     } catch (error) {
         console.log(error);

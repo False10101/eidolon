@@ -16,7 +16,7 @@ export async function GET(req) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
         const documentTokenCount = await db.query(
-          `SELECT SUM(token_sent + token_received) AS tokenCount FROM activity WHERE userId = ? AND type = ?`, [decoded.id, type]);
+          `SELECT SUM(token_sent + token_received) AS tokenCount FROM activity WHERE user_id = ? AND type = ?`, [decoded.id, type]);
 
         const tokenCount = documentTokenCount[0][0].tokenCount || 0; // Extract the value from the result
 

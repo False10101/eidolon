@@ -21,20 +21,24 @@ export async function GET(req) {
 
         const [rows] = await queryWithRetry('SELECT * from textbook where user_id = ? AND id = ?', [user_id, textbook_id]);
         const textbook = rows[0];
-        
+
         if (!textbook) {
-            return new Response(JSON.stringify({ error: 'Textbook Not Found' }), { status: 400 });        
+            return new Response(JSON.stringify({ error: 'Textbook Not Found' }), { status: 400 });
         }
 
         // Helper function to read files from R2
         const readR2File = async (filePath, isBinary = false) => {
+            if (!filePath) {
+                return null;
+            }
+
             try {
                 const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
                 const { Body } = await r2.send(new GetObjectCommand({
                     Bucket: process.env.R2_BUCKET_NAME,
                     Key: cleanPath
                 }));
-                
+
                 if (isBinary) {
                     const buffer = await Body.transformToByteArray();
                     return Buffer.from(buffer).toString('base64');
@@ -52,10 +56,6 @@ export async function GET(req) {
             readR2File(textbook.explanationFilePath, true) // Binary file (base64)
         ]);
 
-        // Check if all files were found
-        if (!textbookTXTContent || !originalFileContent || !explanationFileContent) {
-            return new Response(JSON.stringify({ error: 'Failed to load textbook files' }), { status: 404 });
-        }
 
         const responseData = {
             ...textbook,

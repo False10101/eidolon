@@ -25,6 +25,10 @@ export async function GET(req) {
         }
 
         const readR2File = async (filePath) => {
+            if (!filePath) {
+                return null;
+            }
+
             try {
                 const { Body } = await r2.send(new GetObjectCommand({
                     Bucket: process.env.R2_BUCKET_NAME,
@@ -39,10 +43,6 @@ export async function GET(req) {
 
         const documentFileContent = await readR2File(document.generatedFilePath);
 
-        // Check if the file was found
-        if (documentFileContent === null) {
-            return new Response(JSON.stringify({ error: 'File not found in storage' }), { status: 404 });
-        }
 
         const responseData = {
             ...document,  // Spread all document properties
