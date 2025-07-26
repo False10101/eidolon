@@ -14,8 +14,7 @@ export const db = mysql.createPool({
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
 
-  timezone: '+07:00',
-  dateStrings: true,
+  timezone: 'Z', 
   
   // SSL configuration
   ssl: {

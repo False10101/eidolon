@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
-import { db } from '@/lib/db'; 
+import { db } from '@/lib/db';
 import { processDocumentInBackground } from "@/lib/document-processor";
+import { checkAPI } from '@/lib/apiChecker';
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -17,6 +18,12 @@ export async function POST(req) {
 
         const { user_prompt, format_type, name } = await req.json();
 
+        const hasAPIKey = await checkAPI(user_id, "gemini");
+        if (!hasAPIKey) {
+            return new Response(JSON.stringify({ error: 'API Key needed to generate document.' }), { status: 400 });
+        }
+
+
         if (!user_prompt || !format_type || !name) {
             return new Response(JSON.stringify({ error: 'Sufficient Data Not Provided!' }), { status: 400 });
         }
@@ -24,12 +31,12 @@ export async function POST(req) {
             return new Response(JSON.stringify({ error: 'Invalid Format Type!' }), { status: 400 });
         }
 
-        connection = await db.getConnection(); 
+        connection = await db.getConnection();
         await connection.beginTransaction();
 
         const [docResult] = await connection.execute(
             `INSERT INTO document (name, user_prompt, format_type, created_at, user_id, status) 
-             VALUES (?, ?, ?, NOW(), ?, 'PENDING')`,
+             VALUES (?, ?, ?, UTC_TIMESTAMP(), ?, 'PENDING')`,
             [name, user_prompt, format_type, user_id]
         );
 
@@ -40,7 +47,7 @@ export async function POST(req) {
 
         const [activityResult] = await connection.execute(
             `INSERT INTO activity (type, title, status, date, user_id, token_sent, token_received, rate_per_sent, rate_per_received, respective_table_id) 
-             VALUES ('Document', ?, 'PENDING', NOW(), ?, 0, 0, 0.00000125, 0.00001, ?)`,
+             VALUES ('Document', ?, 'PENDING', UTC_TIMESTAMP(), ?, 0, 0, 0.00000125, 0.00001, ?)`,
             [name, user_id, documentId]
         );
 
@@ -49,10 +56,10 @@ export async function POST(req) {
         }
 
         const activityId = activityResult.insertId;
-        
+
         await connection.commit();
-        
-        processDocumentInBackground(documentId, activityId);
+
+        processDocumentInBackground(documentId, activityId, user_id);
 
         return new Response(JSON.stringify({ documentId: documentId }), { status: 200 });
 

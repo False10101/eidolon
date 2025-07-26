@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { textbook_explanation_processor } from "@/lib/textbook-explanation-processor";
 import { queryWithRetry } from "@/lib/queryWithQuery";
 import { db } from '@/lib/db';
+import { checkAPI } from "@/lib/apiChecker";
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -18,6 +19,12 @@ export async function POST(req) {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
+
+        const hasAPIKey = await checkAPI(user_id, "gemini");
+        if (!hasAPIKey) {
+            return new Response(JSON.stringify({ error: 'API Key needed to generate document.' }), { status: 400 });
+        }
+
 
         const formData = await req.formData();
         const file = formData.get('file');
@@ -38,7 +45,7 @@ export async function POST(req) {
         // Generate unique filenames and R2 paths
         const uniqueTXTFileName = `${uuidv4()}_${fileBaseName}_textFile.txt`;
         const TXTRelativePath = `textbook/text/${uniqueTXTFileName}`;
-        
+
         const uniqueOriginalFileName = `${uuidv4()}_${fileBaseName}.${fileExtension}`;
         const OriginalFileRelativePath = `textbook/original/${uniqueOriginalFileName}`;
 
@@ -50,7 +57,7 @@ export async function POST(req) {
                 Body: rawText,
                 ContentType: 'text/plain'
             })),
-            
+
             r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
                 Key: OriginalFileRelativePath,
@@ -108,8 +115,8 @@ export async function POST(req) {
         const activityId = activityResult.insertId;
 
         await connection.commit();
-        
-        textbook_explanation_processor(textbookId, activityId);
+
+        textbook_explanation_processor(textbookId, activityId, user_id);
 
         return new Response(JSON.stringify({ textbookId: textbookId }), { status: 200 });
 
@@ -121,9 +128,9 @@ export async function POST(req) {
         if (error.name === 'JsonWebTokenError') {
             return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 });
         }
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
             error: 'Internal Server Error',
-            details: error.message 
+            details: error.message
         }), { status: 500 });
     } finally {
         if (connection) {

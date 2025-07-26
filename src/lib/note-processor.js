@@ -9,13 +9,17 @@ import { db } from '@/lib/db';
  * This function runs the long note-generation process in the background.
  * @param {number} noteId - The ID of the note record to process.
  */
-export async function processNoteInBackground(noteId, activityId) {
+export async function processNoteInBackground(noteId, activityId, user_id) {
     let note;
     let connection;
     try {
         // Step 1: Fetch the job details from the database.
         const [rows] = await queryWithRetry('SELECT * FROM note WHERE id = ?', [noteId]);
         note = rows[0];
+
+        const [secondrows] = await queryWithRetry('SELECT gemini_api from user WHERE id = ? ', [user_id]);
+
+        const gemini_api_key = secondrows[0]?.gemini_api;
 
         if (!note) {
             throw new Error(`Note with ID ${noteId} not found for processing.`);
@@ -58,7 +62,7 @@ export async function processNoteInBackground(noteId, activityId) {
         const transcriptText = await transcriptBody.transformToString();
 
         // Step 4: Construct the prompt and call the Gemini API
-        const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+        const genAI = new GoogleGenAI(gemini_api_key);
 
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',

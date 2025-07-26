@@ -5,11 +5,15 @@ import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid'; // Added for the new file path case
 import { queryWithRetry } from "@/lib/queryWithQuery"; // Importing queryWithRetry for database operations
 
-export async function updateDocumentInBackground(documentId, activityId) {
+export async function updateDocumentInBackground(documentId, activityId, user_id) {
     let connection;
     try {
         const [rows] = await db.query('SELECT * FROM document WHERE id = ?', [documentId]);
         const document = rows[0];
+
+        const [secondrows] = await queryWithRetry('SELECT gemini_api from user WHERE id = ? ', [user_id]);
+
+        const gemini_api_key = secondrows[0]?.gemini_api;
 
         if (!document) {
             throw new Error(`Document with ID ${documentId} not found for processing.`);
@@ -36,7 +40,7 @@ export async function updateDocumentInBackground(documentId, activityId) {
         const topic = document.name;
 
         // --- EXTERNAL CALLS (NO TRANSACTION OPEN) ---
-        const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+        const genAI = new GoogleGenAI(gemini_api_key);
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: [{ role: "user", parts: [{ text: buildUserPrompt(topic, additionalDetails, format_type) }] }],

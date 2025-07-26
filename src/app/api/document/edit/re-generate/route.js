@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db'; // Using your corrected import
 import { updateDocumentInBackground } from '@/lib/document-updater';
+import { checkAPI } from '@/lib/apiChecker';
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -17,6 +18,12 @@ export async function POST(req) {
         const user_id = decoded.id;
         const { user_prompt, format_type, name, documentId } = await req.json();
 
+        const hasAPIKey = await checkAPI(user_id, "gemini");
+        if (!hasAPIKey) {
+            return new Response(JSON.stringify({ error: 'API Key needed to generate document.' }), { status: 400 });
+        }
+
+
         if (!documentId || !user_prompt || !format_type || !name) {
             return NextResponse.json({ message: 'All fields including Document ID are required.' }, { status: 400 });
         }
@@ -28,17 +35,17 @@ export async function POST(req) {
         await connection.beginTransaction();
 
         const [docResult] = await connection.execute(
-            `UPDATE document SET name = ?, user_prompt = ?, format_type = ?, created_at = NOW(), status = 'PENDING' WHERE id = ? AND user_id = ?`,
+            `UPDATE document SET name = ?, user_prompt = ?, format_type = ?, created_at = UTC_TIMESTAMP(), status = 'PENDING' WHERE id = ? AND user_id = ?`,
             [name, user_prompt, format_type, documentId, user_id]
         );
-        
+
         if (docResult.affectedRows === 0) {
-             throw new Error('Document not found or user does not have permission.');
+            throw new Error('Document not found or user does not have permission.');
         }
 
         const [activityResult] = await connection.execute(
             `INSERT INTO activity (type, title, status, date, user_id, token_sent, token_received, rate_per_sent, rate_per_received, respective_table_id) 
-             VALUES ('Document', ?, 'PENDING', NOW(), ?, 0, 0, 0.00000125, 0.00001, ?)`,
+             VALUES ('Document', ?, 'PENDING', UTC_TIMESTAMP(), ?, 0, 0, 0.00000125, 0.00001, ?)`,
             [name, user_id, documentId]
         );
 
@@ -50,7 +57,7 @@ export async function POST(req) {
 
         await connection.commit();
 
-        updateDocumentInBackground(documentId, activityId);
+        updateDocumentInBackground(documentId, activityId, user_id);
 
         return NextResponse.json({ documentId: documentId }, { status: 200 });
 
@@ -58,7 +65,7 @@ export async function POST(req) {
         if (connection) {
             await connection.rollback();
         }
-        
+
         // Provide more specific feedback if it's our custom error
         if (error.message.includes('Document not found')) {
             return NextResponse.json({ message: error.message }, { status: 404 });

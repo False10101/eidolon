@@ -4,6 +4,7 @@ import { updateTextbookInBackground } from "@/lib/textbook-updater";
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { checkAPI } from "@/lib/apiChecker";
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -17,6 +18,11 @@ export async function POST(req) {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
+
+        const hasAPIKey = await checkAPI(user_id, "gemini");
+        if (!hasAPIKey) {
+            return new Response(JSON.stringify({ error: 'API Key needed to generate document.' }), { status: 400 });
+        }
 
         const formData = await req.formData();
         const file = formData.get('file');
@@ -45,18 +51,18 @@ export async function POST(req) {
             // Original file (PDF/other binary)
             r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
-                Key: textbook.originalFilePath.startsWith('/') 
-                    ? textbook.originalFilePath.slice(1) 
+                Key: textbook.originalFilePath.startsWith('/')
+                    ? textbook.originalFilePath.slice(1)
                     : textbook.originalFilePath,
                 Body: fileBuffer,
                 ContentType: file.type || 'application/octet-stream'
             })),
-            
+
             // Text transcript
             r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
-                Key: textbook.textbookTXTFilePath.startsWith('/') 
-                    ? textbook.textbookTXTFilePath.slice(1) 
+                Key: textbook.textbookTXTFilePath.startsWith('/')
+                    ? textbook.textbookTXTFilePath.slice(1)
                     : textbook.textbookTXTFilePath,
                 Body: rawText,
                 ContentType: 'text/plain'
@@ -114,7 +120,7 @@ export async function POST(req) {
         await connection.commit();
 
         // Start background processing with both IDs
-        updateTextbookInBackground(textbookId, activityId);
+        updateTextbookInBackground(textbookId, activityId, user_id);
 
         return NextResponse.json({ textbookId: textbookId }, { status: 200 });
 
@@ -124,14 +130,14 @@ export async function POST(req) {
         }
 
         console.error('Error during textbook regeneration:', error);
-        
+
         if (error.message.includes('Textbook not found')) {
             return NextResponse.json({ message: error.message }, { status: 404 });
         }
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             error: 'Failed to regenerate textbook',
-            details: error.message 
+            details: error.message
         }, { status: 500 });
     } finally {
         if (connection) {

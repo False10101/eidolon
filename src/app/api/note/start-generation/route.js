@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { queryWithRetry } from "@/lib/queryWithQuery";
 import { db } from '@/lib/db';
+import { checkAPI } from "@/lib/apiChecker";
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -19,6 +20,11 @@ export async function POST(req) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
 
+        const hasAPIKey = await checkAPI(user_id, "gemini");
+        if (!hasAPIKey) {
+            return new Response(JSON.stringify({ error: 'API Key needed to generate document.' }), { status: 400 });
+        }
+
         const formData = await req.formData();
         const file = formData.get('file');
 
@@ -29,10 +35,10 @@ export async function POST(req) {
         const buffer = Buffer.from(await file.arrayBuffer());
         const name = formData.get('fileName');
         const originalName = file.name;
-        const fileBaseName = originalName.includes('.') 
-            ? originalName.substring(0, originalName.lastIndexOf('.')) 
+        const fileBaseName = originalName.includes('.')
+            ? originalName.substring(0, originalName.lastIndexOf('.'))
             : originalName;
-        
+
         // Generate unique filename and R2 path
         const uniqueTranscriptFileName = `${uuidv4()}_${fileBaseName}_transcript.txt`;
         const transcriptRelativePath = `note/${uniqueTranscriptFileName}`; // Removed leading slash
@@ -77,7 +83,7 @@ export async function POST(req) {
             user_id,
             `/${transcriptRelativePath}` // Add leading slash for DB consistency
         ]);
-        
+
         const noteId = dbResult.insertId;
 
         const [activityResult] = await connection.execute(
@@ -93,8 +99,8 @@ export async function POST(req) {
         const activityId = activityResult.insertId;
 
         await connection.commit();
-        
-        processNoteInBackground(noteId, activityId);
+
+        processNoteInBackground(noteId, activityId, user_id);
 
         return new Response(JSON.stringify({ noteId: noteId }), { status: 200 });
 

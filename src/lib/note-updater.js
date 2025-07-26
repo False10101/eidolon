@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { queryWithRetry } from "@/lib/queryWithQuery";
 import { db } from '@/lib/db';
 
-export async function updateNoteInBackground(noteId, activityId) {
+export async function updateNoteInBackground(noteId, activityId, user_id) {
     let note;
     let connection;
     let oldNotePath = null;
@@ -14,6 +14,10 @@ export async function updateNoteInBackground(noteId, activityId) {
         // Step 1: Fetch note data from database with FOR UPDATE to lock the row
         const [rows] = await queryWithRetry('SELECT * FROM note WHERE id = ? FOR UPDATE', [noteId]);
         note = rows[0];
+
+        const [secondrows] = await queryWithRetry('SELECT gemini_api from user WHERE id = ? ', [user_id]);
+
+        const gemini_api_key = secondrows[0]?.gemini_api;
 
         if (!note) {
             throw new Error(`Note with ID ${noteId} not found for processing.`);
@@ -65,7 +69,7 @@ export async function updateNoteInBackground(noteId, activityId) {
         const transcriptText = await transcriptBody.transformToString();
 
         // Step 4: Generate updated content with Gemini
-        const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+        const genAI = new GoogleGenAI(gemini_api_key);
 
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',

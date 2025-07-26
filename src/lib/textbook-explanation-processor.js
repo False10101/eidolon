@@ -29,13 +29,17 @@ function buildTitlePage(title, course, author, date) {
     `;
 }
 
-export async function textbook_explanation_processor(textbookId, activityId) {
+export async function textbook_explanation_processor(textbookId, activityId, user_id) {
     let textbook;
     let connection;
 
     try {
         const [rows] = await queryWithRetry('SELECT * FROM textbook WHERE id= ?', [textbookId]);
         textbook = rows[0];
+
+        const [secondrows] = await queryWithRetry('SELECT gemini_api from user WHERE id = ? ', [user_id]);
+
+        const gemini_api_key = secondrows[0]?.gemini_api;
 
         if (!textbook) {
             throw new Error(`Textbook with ID ${textbookId} not found for processing.`);
@@ -79,7 +83,7 @@ export async function textbook_explanation_processor(textbookId, activityId) {
         }));
         const rawText = await textBody.transformToString();
 
-        const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+        const genAI = new GoogleGenAI(gemini_api_key);
 
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',

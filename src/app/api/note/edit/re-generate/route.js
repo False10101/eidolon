@@ -6,6 +6,7 @@ import { updateNoteInBackground } from "@/lib/note-updater";
 import { queryWithRetry } from "@/lib/queryWithQuery";
 import { db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
+import { checkAPI } from "@/lib/apiChecker";
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -19,6 +20,12 @@ export async function POST(req) {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
+
+        const hasAPIKey = await checkAPI(user_id, "gemini");
+        if (!hasAPIKey) {
+            return new Response(JSON.stringify({ error: 'API Key needed to generate document.' }), { status: 400 });
+        }
+
 
         const formData = await req.formData();
         const file = formData.get('file');
@@ -35,15 +42,15 @@ export async function POST(req) {
 
         // Get existing note with FOR UPDATE to lock the row
         const [rows] = await connection.execute('SELECT * FROM note WHERE id = ? FOR UPDATE', [noteId]);
-        
-        if (rows.length === 0) { 
+
+        if (rows.length === 0) {
             return NextResponse.json({ message: 'Note not found.' }, { status: 404 });
         }
         const note = rows[0];
 
         // Store old path for cleanup
-        const oldTranscriptPath = note.transcriptFilePath?.startsWith('/') 
-            ? note.transcriptFilePath.substring(1) 
+        const oldTranscriptPath = note.transcriptFilePath?.startsWith('/')
+            ? note.transcriptFilePath.substring(1)
             : note.transcriptFilePath;
 
         // Generate new file path
@@ -141,7 +148,7 @@ export async function POST(req) {
         }
 
         // Start background processing
-        updateNoteInBackground(noteId, activityId);
+        updateNoteInBackground(noteId, activityId, user_id);
 
         return new Response(JSON.stringify({ noteId: noteId }), { status: 200 });
 
@@ -149,7 +156,7 @@ export async function POST(req) {
         if (connection) {
             await connection.rollback();
         }
-        
+
         if (error.message.includes('Note not found')) {
             return NextResponse.json({ message: error.message }, { status: 404 });
         }

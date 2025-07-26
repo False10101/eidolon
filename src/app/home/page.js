@@ -70,12 +70,14 @@ export default function Home() {
     checkAuth();
   }, []);
 
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   useEffect(() => {
     const getUserData = async () => {
       try {
         const res = await fetch(`/api/home/getUserInfo`, {
           method: 'GET',
-          credentials: 'include'
+          credentials: 'include',
         });
         if (res.status === 200) {
           const data = await res.json();
@@ -96,12 +98,6 @@ export default function Home() {
     }
     getUserData();
   }, [])
-
-  const dummyStatusData = [
-    { "api": "Murf.AI", "status": "Connected" },
-    { "api": "Ideogram", "status": "Connected" },
-    { "api": "Gemini 2.5 pro", "status": "Connected" }
-  ];
 
   return (
     <motion.div
@@ -142,7 +138,7 @@ export default function Home() {
                   <div className='flex flex-row w-full items-center'>
                     <div className='flex flex-col items-start'>
                       <div className="text-xs 2xl:text-base text-white/[70%] w-max tracking-wide">Total Token Sent</div>
-                      <div className="text-xl 2xl:text-2xl pt-1 font-extrabold">{userData.totalTokenSent}</div>
+                      <div className="text-xl 2xl:text-2xl pt-1 ml-0.5 font-extrabold">{userData.totalTokenSent}</div>
                     </div>
                     <div className='w-12 h-12 2xl:w-14 2xl:h-14 bg-[#3366FF]/[20%] rounded-full ml-auto flex-shrink-0 flex'>
                       <DocumentTextIcon className='size-7 2xl:size-8 text-[#3366FF] m-auto' />
@@ -161,7 +157,7 @@ export default function Home() {
                   <div className='flex flex-row w-full items-center'>
                     <div className='flex flex-col items-start'>
                       <div className="text-xs 2xl:text-base text-white/[70%] w-max tracking-wide">Total Token Received</div>
-                      <div className="text-xl 2xl:text-2xl pt-1 font-extrabold">{userData.totalTokenReceived}</div>
+                      <div className="text-xl 2xl:text-2xl pt-1 ml-0.5 font-extrabold">{userData.totalTokenReceived}</div>
                     </div>
                     <div className='w-12 h-12 2xl:w-14 2xl:h-14 bg-[#E27FDF]/[20%] rounded-full ml-auto flex-shrink-0 flex'>
                       <PencilSquareIcon className='size-7 2xl:size-8 text-[#9664E5] m-auto' />
@@ -180,7 +176,7 @@ export default function Home() {
                   <div className='flex flex-row w-full items-center'>
                     <div className='flex flex-col items-start'>
                       <div className="text-xs 2xl:text-base text-white/[70%] w-max tracking-wide">Total API Calls</div>
-                      <div className="text-xl 2xl:text-2xl pt-1 font-extrabold">{userData.totalAPICalls}</div>
+                      <div className="text-xl 2xl:text-2xl pt-1 ml-0.5 font-extrabold">{userData.totalAPICalls}</div>
                     </div>
                     <div className='w-12 h-12 2xl:w-14 2xl:h-14 bg-[#6A5ACD]/[20%] rounded-full ml-auto flex-shrink-0 flex'>
                       <BoltIcon className='size-7 2xl:size-8 text-[#6A5ACD] m-auto' />
@@ -199,7 +195,7 @@ export default function Home() {
                   <div className='flex flex-row w-full items-center'>
                     <div className='flex flex-col items-start'>
                       <div className="text-xs 2xl:text-base text-white/[70%] w-max tracking-wide">Total Cost this month</div>
-                      <div className="text-xl 2xl:text-2xl pt-1 font-extrabold">${userData.totalCost}</div>
+                      <div className="text-xl 2xl:text-2xl pt-1 ml-0.5 font-extrabold">${userData.totalCost}</div>
                     </div>
                     <div className='w-12 h-12 2xl:w-14 2xl:h-14 bg-[#5ACBCD]/[20%] rounded-full ml-auto flex-shrink-0 flex'>
                       <CurrencyDollarIcon className='size-7 2xl:size-8 text-[#5AA5CD] m-auto' />
@@ -333,7 +329,22 @@ export default function Home() {
                           {activity.status}
                         </span>
                       </div>
-                      <div className='flex px-7 w-[23.5%] items-center'>{activity.date}</div>
+                      <div className='flex px-7 w-[23.5%] items-center uppercase justify-start'>
+                        <span>
+                          {new Date(activity.date).toLocaleString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <span className=' ml-2'>
+                          {new Date(activity.date).toLocaleString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </span>
+                      </div>
                       <button
                         onClick={() => {
                           const routeMap = {
@@ -380,14 +391,28 @@ export default function Home() {
             {/* FIX: This div now fills the card's height and spaces its content out */}
             <div className='flex flex-col h-full justify-between mx-3 w-full'>
               <h1 className='text-base font-extrabold w-full 2xl:text-xl 2xl:font-semibold'>API Status</h1>
-              {dummyStatusData.map((api, index) => (
-                <div key={index} className="text-xs 2xl:text-sm text-white/[70%] w-full flex justify-between">
-                  <div className="flex-grow">{api.api}</div>
-                  <div className={` ${api.status === "Connected" ? "text-[#4ADE80]" : "text-white/[50%]"}`}>
-                    ● {api.status}
-                  </div>
+
+              <div className="text-xs 2xl:text-sm text-white/[70%] w-full flex justify-between">
+                <div className="flex-grow">Gemini 2.5 Pro</div>
+                <div className={` ${userData.gemini_api ? "text-[#4ADE80]" : "text-white/[50%]"}`}>
+                  ● {userData.gemini_api ? "Connected" : "Failed"}
                 </div>
-              ))}
+              </div>
+
+              <div className="text-xs 2xl:text-sm text-white/[70%] w-full flex justify-between">
+                <div className="flex-grow">Murf.AI</div>
+                <div className={` ${userData.murf_api ? "text-[#4ADE80]" : "text-white/[50%]"}`}>
+                  ● {userData.murf_api ? "Connected" : "Failed"}
+                </div>
+              </div>
+
+              <div className="text-xs 2xl:text-sm text-white/[70%] w-full flex justify-between">
+                <div className="flex-grow">Dall-E</div>
+                <div className={` ${userData.dall_e_api ? "text-[#4ADE80]" : "text-white/[50%]"}`}>
+                  ● {userData.dall_e_api ? "Connected" : "Failed"}
+                </div>
+              </div>
+
             </div>
           </motion.div>
 

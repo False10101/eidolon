@@ -5,14 +5,19 @@ import { r2 } from "@/lib/r2"; // Import R2 client
 import { v4 as uuidv4 } from 'uuid';
 import { queryWithRetry } from "@/lib/queryWithQuery";
 
-export async function processDocumentInBackground(documentId, activityId) {
+export async function processDocumentInBackground(documentId, activityId, user_id) {
     let document;
     let connection;
 
     try {
 
         const [rows] = await queryWithRetry('SELECT * FROM document WHERE id = ?', [documentId]);
+        
         document = rows[0];
+
+        const [secondrows] = await queryWithRetry('SELECT gemini_api from user WHERE id = ? ', [user_id]);
+
+        const gemini_api_key = secondrows[0]?.gemini_api;
 
         if (!document) {
             throw new Error(`Document with ID ${documentId} not found for processing.`);
@@ -37,7 +42,7 @@ export async function processDocumentInBackground(documentId, activityId) {
 
         const topic = document.name;
 
-        const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+        const genAI = new GoogleGenAI(gemini_api_key);
 
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',

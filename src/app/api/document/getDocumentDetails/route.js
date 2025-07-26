@@ -18,7 +18,7 @@ export async function GET(req) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
 
-        const [[document]] = await queryWithRetry("SELECT * from document where user_id = ? AND id = ?", [user_id, document_id]);
+        const [[document]] = await queryWithRetry("SELECT *, CONVERT_TZ(created_at, @@session.time_zone, '+00:00') as created_at_utc from document where user_id = ? AND id = ?", [user_id, document_id]);
 
         if (!document) {
             return new Response(JSON.stringify({ error: 'Document Not Found' }), { status: 400 });
@@ -46,6 +46,7 @@ export async function GET(req) {
 
         const responseData = {
             ...document,  // Spread all document properties
+            created_at: document.created_at_utc || document.created_at,
             files: {
                 documentFile: {
                     content: documentFileContent,
