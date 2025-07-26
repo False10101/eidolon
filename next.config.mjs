@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    async headers() {
+
+  api: {
+    bodyParser: {
+      sizeLimit: '500mb',
+    },
+  },
+
+  async headers() {
     return [
       {
         // This applies to all routes that start with `/api/`

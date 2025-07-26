@@ -33,6 +33,33 @@ export default function RootLayout({ children }) {
     router.push('/auth/login');
   };
 
+  const [pageTitle, setPageTitle] = useState('Eidolon');
+
+  useEffect(() => {
+    const getPageTitle = () => {
+      if (pathname === '/') return 'Eidolon';
+      if (pathname.startsWith('/auth/login')) return 'Login | Eidolon';
+      if (pathname.startsWith('/auth/signup')) return 'Sign Up | Eidolon';
+      if (pathname === '/home') return 'Dashboard | Eidolon';
+      if (pathname === '/document') return 'Document Generator | Eidolon';
+      if (pathname.startsWith('/document/')) return `Document ID: ${pathname.split('/')[2]} | Eidolon`;
+      if (pathname === '/note') return 'Inclass Notetaker | Eidolon';
+      if (pathname.startsWith('/note/')) return `Note ${pathname.split('/')[2]} | Eidolon`;
+      if (pathname === '/textbook-explainer') return 'Textbook Explainer | Eidolon';
+      if (pathname.startsWith('/textbook-explainer/')) return `Textbook ID: #${pathname.split('/')[2]} | Eidolon`;
+      if (pathname === '/tts') return 'Text-to-Speech | Eidolon';
+      if (pathname.startsWith('/tts/')) return `TTS ID: #${pathname.split('/')[2]} | Eidolon`;
+      if (pathname === '/image-gen') return 'Image Generator | Eidolon';
+      if (pathname.startsWith('/image-gen/')) return `Image ID: #${pathname.split('/')[2]} | Eidolon`;
+      if (pathname === '/chatbot') return 'AI Chat | Eidolon';
+      return 'Eidolon';
+    };
+
+    const title = getPageTitle();
+    setPageTitle(title);
+    document.title = title;
+  }, [pathname]);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -191,6 +218,9 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en">
+      <head>
+        <title>{pageTitle}</title>
+      </head>
       {/* 1. The <body> is the master container. It controls the overall page structure. */}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen bg-gradient-to-r from-[#0B0F2E] to-[#081022] text-white flex flex-col`}>
 

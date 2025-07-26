@@ -1,12 +1,20 @@
-
 export function formatTimeAgo(createdAtISO) {
     if (!createdAtISO) {
         return "generated some time ago";
     }
 
+    // Convert input time to local browser time
     const pastDate = new Date(createdAtISO);
     const now = new Date();
-    let differenceInMs = now.getTime() - pastDate.getTime();
+    
+    // Get timezone offset in milliseconds (handles DST automatically)
+    const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+    
+    // Adjust both dates to local time
+    const localPastDate = new Date(pastDate.getTime() - timezoneOffsetMs);
+    const localNow = new Date(now.getTime() - timezoneOffsetMs);
+    
+    let differenceInMs = localNow.getTime() - localPastDate.getTime();
 
     if (differenceInMs < 0) {
         return "generated just now";
