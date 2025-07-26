@@ -1,9 +1,10 @@
-import { r2 } from "@/lib/r2"; // Import R2 client
-import { PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 command
+import { r2 } from "@/lib/r2";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { textbook_explanation_processor } from "@/lib/textbook-explanation-processor";
 import { queryWithRetry } from "@/lib/queryWithQuery";
+import { db } from '@/lib/db';
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -13,6 +14,7 @@ export async function POST(req) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
+    let connection;
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
@@ -25,6 +27,9 @@ export async function POST(req) {
             return new Response(JSON.stringify({ error: 'No File Provided' }), { status: 400 });
         }
 
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
         const fileBuffer = Buffer.from(await file.arrayBuffer());
         const originalName = file.name;
         const fileExtension = originalName.split('.').pop();
@@ -32,14 +37,13 @@ export async function POST(req) {
 
         // Generate unique filenames and R2 paths
         const uniqueTXTFileName = `${uuidv4()}_${fileBaseName}_textFile.txt`;
-        const TXTRelativePath = `textbook/text/${uniqueTXTFileName}`; // No leading slash
+        const TXTRelativePath = `textbook/text/${uniqueTXTFileName}`;
         
         const uniqueOriginalFileName = `${uuidv4()}_${fileBaseName}.${fileExtension}`;
-        const OriginalFileRelativePath = `textbook/original/${uniqueOriginalFileName}`; // No leading slash
+        const OriginalFileRelativePath = `textbook/original/${uniqueOriginalFileName}`;
 
         // Upload files to R2 in parallel
         await Promise.all([
-            // Upload text file
             r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
                 Key: TXTRelativePath,
@@ -47,7 +51,6 @@ export async function POST(req) {
                 ContentType: 'text/plain'
             })),
             
-            // Upload original file
             r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
                 Key: OriginalFileRelativePath,
@@ -78,22 +81,42 @@ export async function POST(req) {
             formatOptionJSON.cross_references || false,
             formatOptionJSON.references || false,
             formatOptionJSON.instructions || false,
-            `/${TXTRelativePath}`, // Add leading slash for DB consistency
+            `/${TXTRelativePath}`,
             new Date(),
             user_id,
             'PENDING',
-            `/${OriginalFileRelativePath}` // Add leading slash for DB consistency
+            `/${OriginalFileRelativePath}`
         ];
 
-        const [dbResult] = await queryWithRetry(insertQuery, values);
+        const [dbResult] = await connection.execute(insertQuery, values);
         const textbookId = dbResult.insertId;
 
-        // Start background processing
-        textbook_explanation_processor(textbookId);
+        if (!textbookId) {
+            throw new Error("Failed to insert textbook record.");
+        }
+
+        const [activityResult] = await connection.execute(
+            `INSERT INTO activity (type, title, status, date, user_id, token_sent, token_received, rate_per_sent, rate_per_received, respective_table_id) 
+             VALUES ('Textbook Explainer', ?, 'PENDING', NOW(), ?, 0, 0, 0.00000125, 0.00001, ?)`,
+            [originalName, user_id, textbookId]
+        );
+
+        if (activityResult.affectedRows === 0) {
+            throw new Error("Failed to insert activity log.");
+        }
+
+        const activityId = activityResult.insertId;
+
+        await connection.commit();
+        
+        textbook_explanation_processor(textbookId, activityId);
 
         return new Response(JSON.stringify({ textbookId: textbookId }), { status: 200 });
 
     } catch (error) {
+        if (connection) {
+            await connection.rollback();
+        }
         console.error("Upload Error:", error);
         if (error.name === 'JsonWebTokenError') {
             return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 });
@@ -102,5 +125,9 @@ export async function POST(req) {
             error: 'Internal Server Error',
             details: error.message 
         }), { status: 500 });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 }

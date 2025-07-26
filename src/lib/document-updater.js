@@ -106,11 +106,29 @@ export async function updateDocumentInBackground(documentId, activityId) {
             const errorMessage = error.message.includes('SAFETY')
                 ? 'Content blocked by safety features. Try adjusting your document content.'
                 : error.message;
-            // Final error state update (single query is fine)
-            await db.query(`UPDATE document SET status = 'FAILED' WHERE id = ?`, [documentId]);
+                
+            connection = await db.getConnection();
+            try {
+                await connection.beginTransaction();
+                await connection.execute(
+                    `UPDATE document SET status = 'FAILED' WHERE id = ?`,
+                    [documentId]
+                );
+                await connection.execute(
+                    `UPDATE activity SET status = 'FAILED' WHERE type = 'Document' AND respective_table_id = ? AND id = ?`,
+                    [documentId, activityId]
+                );
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                console.error('Error updating failed status:', err);
+            } finally {
+                if (connection) connection.release();
+            }
         }
     }
 }
+
 function buildUserPrompt(topic, additionalDetails, format_type) {
     if (format_type === 'research_paper') {
         return `

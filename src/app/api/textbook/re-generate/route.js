@@ -1,43 +1,44 @@
-import { r2 } from "@/lib/r2"; // Import R2 client
-import { PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 command
+import { r2 } from "@/lib/r2";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { updateTextbookInBackground } from "@/lib/textbook-updater";
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-import { queryWithRetry } from "@/lib/queryWithQuery";
+import { db } from '@/lib/db';
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
     const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
 
     if (!token) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    let connection;
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user_id = decoded.id;
 
         const formData = await req.formData();
         const file = formData.get('file');
         const textbookId = formData.get('id');
         const rawText = formData.get('extractedText');
 
-        if (!file) {
-            return new Response(JSON.stringify({ error: 'No File Provided' }), { status: 400 });
+        if (!file || !textbookId) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        const fileBuffer = Buffer.from(await file.arrayBuffer());
-        const originalName = file.name;
+        connection = await db.getConnection();
+        await connection.beginTransaction();
 
-        const [row] = await queryWithRetry('SELECT * FROM textbook where id = ?', [textbookId]);
-
+        // Verify textbook exists and belongs to user
+        const [row] = await connection.execute('SELECT * FROM textbook WHERE id = ? AND user_id = ?', [textbookId, user_id]);
         if (row.length === 0) {
-            return NextResponse.json({ message: 'Textbook not found.' }, { status: 404 });
+            throw new Error('Textbook not found or user does not have permission.');
         }
         const textbook = row[0];
 
-        if (!textbook) {
-            return NextResponse.json({ message: 'Textbook not found or you do not have permission.' }, { status: 404 });
-        }
+        const fileBuffer = Buffer.from(await file.arrayBuffer());
+        const originalName = file.name;
 
         // Upload files to R2 (using existing paths from database)
         await Promise.all([
@@ -65,6 +66,7 @@ export async function POST(req) {
         const formatOptions = formData.get('formatOptions');
         const formatOptionJSON = JSON.parse(formatOptions);
 
+        // Update textbook record
         const updateQuery = `UPDATE textbook SET 
             name = ?, 
             simple_analogies = ?, 
@@ -75,11 +77,11 @@ export async function POST(req) {
             cross_references = ?, 
             \`references\` = ?, 
             instructions = ?, 
-            created_at = ?, 
-            status = ? 
+            created_at = NOW(), 
+            status = 'PENDING'
             WHERE id = ?`;
 
-        const queryParams = [
+        const [dbResult] = await connection.execute(updateQuery, [
             originalName,
             formatOptionJSON.simple_analogies || false,
             formatOptionJSON.key_people || false,
@@ -89,21 +91,51 @@ export async function POST(req) {
             formatOptionJSON.cross_references || false,
             formatOptionJSON.references || false,
             formatOptionJSON.instructions || false,
-            new Date(),
-            'PENDING',
             textbookId
-        ];
+        ]);
 
-        const [dbResult] = await queryWithRetry(updateQuery, queryParams);
-        updateTextbookInBackground(textbookId);
+        if (dbResult.affectedRows === 0) {
+            throw new Error('Failed to update textbook record.');
+        }
 
-        return new Response(JSON.stringify({ textbookId: textbookId }), { status: 200 });
+        // Create new activity record
+        const [activityResult] = await connection.execute(
+            `INSERT INTO activity (type, title, status, date, user_id, token_sent, token_received, rate_per_sent, rate_per_received, respective_table_id) 
+             VALUES ('Textbook Explainer', ?, 'PENDING', NOW(), ?, 0, 0, 0.00000125, 0.00001, ?)`,
+            [originalName, user_id, textbookId]
+        );
+
+        if (activityResult.affectedRows === 0) {
+            throw new Error('Failed to create activity record.');
+        }
+
+        const activityId = activityResult.insertId;
+
+        await connection.commit();
+
+        // Start background processing with both IDs
+        updateTextbookInBackground(textbookId, activityId);
+
+        return NextResponse.json({ textbookId: textbookId }, { status: 200 });
 
     } catch (error) {
-        console.error('Error starting textbook generation:', error);
-        return new Response(JSON.stringify({ 
-            error: 'Failed to start textbook regeneration process.',
+        if (connection) {
+            await connection.rollback();
+        }
+
+        console.error('Error during textbook regeneration:', error);
+        
+        if (error.message.includes('Textbook not found')) {
+            return NextResponse.json({ message: error.message }, { status: 404 });
+        }
+
+        return NextResponse.json({ 
+            error: 'Failed to regenerate textbook',
             details: error.message 
-        }), { status: 500 });
+        }, { status: 500 });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 }

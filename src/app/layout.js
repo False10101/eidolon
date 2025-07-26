@@ -8,6 +8,7 @@ import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, Docu
 import { match } from 'path-to-regexp';
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { motion, AnimatePresence } from 'framer-motion';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,6 +19,29 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// --- ANIMATION VARIANTS ---
+const navVariants = {
+  hidden: { y: -50, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 120, damping: 20 } },
+};
+
+const sidebarVariants = {
+  hidden: { x: -100, opacity: 0 },
+  visible: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 100, damping: 20, staggerChildren: 0.1 } },
+};
+
+const pageVariants = {
+  initial: { opacity: 0, x: 50 },
+  in: { opacity: 1, x: 0 },
+  out: { opacity: 0, x: -50 },
+};
+
+const historyItemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0 },
+};
+
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
@@ -38,6 +62,7 @@ export default function RootLayout({ children }) {
   useEffect(() => {
     const getPageTitle = () => {
       if (pathname === '/') return 'Eidolon';
+      if (pathname.startsWith('/setting')) return 'Settings | Eidolon';
       if (pathname.startsWith('/auth/login')) return 'Login | Eidolon';
       if (pathname.startsWith('/auth/signup')) return 'Sign Up | Eidolon';
       if (pathname === '/home') return 'Dashboard | Eidolon';
@@ -158,32 +183,41 @@ export default function RootLayout({ children }) {
     }
   }, [pathname])
 
-  useEffect(() => {
-    const getTokenCount = async () => {
+useEffect(() => {
+  const getTokenCount = async () => {
+    try {
+      setTokenCount("Unlimited"); // Reset token count before fetching
+      
+      let apiType = '';
       if (pathname.includes('/document')) {
-        try {
-          setTokenCount("Unlimited"); // Reset token count before fetching
-          const response = await fetch(`/api/navbar/getAPITokenCount?type=document`, {
-            method: 'GET',
-            credentials: 'include',
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setTokenCount(data.tokenCount || "Unlimited"); // Set token count from response
-          } else {
-            console.error('Failed to fetch token count:', response.statusText);
-          }
-        } catch (error) {
-          console.error('Error fetching token count:', error);
-        }
+        apiType = 'Document';
+      } else if (pathname.includes('/note')) {
+        apiType = 'Inclass Notes';
+      } else if (pathname.includes('/textbook')) {
+        apiType = 'Textbook Explainer';
       } else {
-        setTokenCount("Unlimited"); // Reset token count for other routes
+        setTokenCount("Unlimited");
+        return; // Skip fetch for other routes
       }
-    }
 
-    getTokenCount();
-  }, [pathname]);
+      const response = await fetch(`/api/navbar/getAPITokenCount?type=${encodeURIComponent(apiType)}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTokenCount(data.tokenCount || "Unlimited");
+      } else {
+        console.error('Failed to fetch token count:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching token count:', error);
+    }
+  };
+
+  getTokenCount();
+}, [pathname]);
 
   const isAuthRoute = pathname.startsWith('/auth');
   const isHomeRoute = pathname.startsWith('/home');
@@ -217,16 +251,19 @@ export default function RootLayout({ children }) {
   var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : pathname.startsWith('/textbook-explainer') ? "Textbook Explainer" : pathname.startsWith('/tts') ? "Text-To-Speech" : pathname.startsWith('/image-gen') ? "Image Generation" : pathname.startsWith('/chatbot') ? "Chatbot" : "";
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <title>{pageTitle}</title>
       </head>
-      {/* 1. The <body> is the master container. It controls the overall page structure. */}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen bg-gradient-to-r from-[#0B0F2E] to-[#081022] text-white flex flex-col`}>
 
-        {/* 2. The <nav> has a fixed height and will NOT shrink. */}
         {!isNotFoundPage && (
-          <nav className="h-16 flex-shrink-0 w-full bg-[#000000]/[20%] text-white flex items-center flex-row px-7 border-b-[1px] border-white/[0.2]">
+          <motion.nav 
+            className="h-16 flex-shrink-0 w-full bg-[#000000]/[20%] text-white flex items-center flex-row px-7 border-b-[1px] border-white/[0.2]"
+            variants={navVariants}
+            initial="hidden"
+            animate="visible"
+          >
             <div className="text-[#00BFFF] font-extrabold text-xl 2xl:text-2xl h-min pr-5 my-auto">Eidolon</div>
             <span className="text-white/[70%] h-min text-xs 2xl:text-sm border-l-[1px] border-white/[25%] px-5 my-auto">{routeDisplayName}</span>
             {!isAuthRoute &&
@@ -235,73 +272,77 @@ export default function RootLayout({ children }) {
                   <BoltIcon className="h-4 w-4 text-[#00BFFF] ml-6 my-auto mr-2 font-extrabold" />
                   <span className="text-white/[70%] text-xs 2xl:text-sm">API Usage : <span className="text-[#00BFFF]">{!isHomeRoute ? tokenCount : "Unlimited"}</span></span>
                 </div>
-                <button onClick={() => { router.push('/setting'); }} className="flex cursor-pointer align-center justify-center">
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/setting'); }} className="flex cursor-pointer align-center justify-center">
                   <Cog6ToothIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto font-extrabold" />
-                </button>
-                <button onClick={handleLogout} className="flex align-center justify-center">
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleLogout} className="flex align-center justify-center">
                   <ArrowRightStartOnRectangleIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto mr-4 font-extrabold" />
-                </button>
+                </motion.button>
               </div>
             }
-          </nav>
+          </motion.nav>
         )}
 
-        {/* 3. This main <div> takes up all remaining VERTICAL space and arranges its children (sidebar, content) in a ROW. */}
         <div className="flex flex-row flex-1 min-h-0">
           {!isAuthRoute && !isHomeRoute && !isNotFoundPage && (
-            // 4. The <aside> has a fixed width, does NOT shrink, and handles its own internal scrolling.
-            <aside className="w-[15vw] flex-shrink-0 bg-[#000000]/[30%] px-4 border-r-[1px] border-white/[0.2] flex flex-col">
-              <div className="flex flex-col py-4 w-full justify-center h-max border-b-[1px] border-white/[25%]">
-                <button onClick={() => { router.push('/home'); }} className={`px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+            <motion.aside 
+              className="w-[15vw] flex-shrink-0 bg-[#000000]/[30%] px-4 border-r-[1px] border-white/[0.2] flex flex-col"
+              variants={sidebarVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div variants={sidebarVariants} className="flex flex-col py-4 w-full justify-center h-max border-b-[1px] border-white/[25%]">
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/home'); }} className={`px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
                   <HomeIcon className="h-6 w-5 flex-shrink-0" />
                   <span className="ml-2 truncate text-sm 2xl:text-base">Home</span>
-                </button>
+                </motion.button>
 
-                <button onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
                   <DocumentTextIcon className="h-6 w-5 flex-shrink-0" />
                   <span className="ml-2 truncate text-sm 2xl:text-base">Document Generator</span>
-                </button>
+                </motion.button>
 
-                <button onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
                   <PencilSquareIcon className="h-6 w-5 flex-shrink-0" />
                   <span className="ml-2 truncate text-sm 2xl:text-base">Inclass Notes</span>
-                </button>
+                </motion.button>
 
-                <button onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
                   <BookOpenIcon className="h-6 w-5 flex-shrink-0" />
                   <span className="ml-2 truncate text-sm 2xl:text-base">Textbook Explainer</span>
-                </button>
+                </motion.button>
 
-                <button onClick={() => { router.push('/tts'); }} className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/tts'); }} className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
                   <SpeakerWaveIcon className="h-6 w-5 flex-shrink-0" />
                   <span className="ml-2 truncate text-sm 2xl:text-base">TTS</span>
-                </button>
+                </motion.button>
 
-                <button onClick={() => { router.push('/image-gen'); }} className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/image-gen'); }} className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
                   <PhotoIcon className="h-6 w-5 flex-shrink-0" />
                   <span className="ml-2 truncate text-sm 2xl:text-base">Image Gen</span>
-                </button>
+                </motion.button>
 
-                <button onClick={() => { router.push('/chatbot'); }} className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/chatbot'); }} className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
                   <ChatBubbleLeftIcon className="h-6 w-5 flex-shrink-0" />
                   <span className="ml-2 truncate text-sm 2xl:text-base">Chatbot</span>
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
               <div className="flex-1 min-h-0 overflow-y-auto mt-1 gap-y-3">
                 {Object.keys(groupedHistory).map(groupName => (
                   groupedHistory[groupName].length > 0 && (
-                    <div key={groupName} className=" space-y-1">
+                    <motion.div key={groupName} className=" space-y-1" variants={sidebarVariants}>
                       <h2 className=" font-semibold px-1 text-[#00BFFF] text-lg pt-3 pb-1">{groupName}</h2>
                       {groupedHistory[groupName].map(history => (
-                        <div
+                        <motion.div
+                          variants={historyItemVariants}
                           onClick={() => { router.push(`/${basePath}/${history.id}`) }}
                           key={history.id}
                           className={`py-2.5 2xl:py-3 px-3 rounded-xl cursor-pointer ${activeId == history.id ? "bg-[#3366FF]/[30%] border-white/[10%] border-[1px]" : "hover:bg-white/10"}`}
                         >
                           <div className="truncate text-sm 2xl:text-base">{history.name}</div>
-                        </div>
+                        </motion.div>
                       ))}
-                    </div>
+                    </motion.div>
                   )
                 ))}
                 {
@@ -309,15 +350,22 @@ export default function RootLayout({ children }) {
                   <div className="text-center mt-[40%] text-white/[50%] font-semibold text-xl italic">No History Found</div>
                 }
               </div>
-            </aside>
+            </motion.aside>
           )}
 
-          {/* 5. The {children} container takes all remaining HORIZONTAL space and handles its own internal scrolling. */}
-          <main className="flex-1 min-w-0 overflow-y-auto">
-            <Analytics />
-            {children}
-            <SpeedInsights />
-          </main>
+            <motion.main 
+              key={pathname}
+              className="flex-1 min-w-0 overflow-y-auto"
+              variants={pageVariants}
+              initial="initial"
+              animate="in"
+              exit="out"
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <Analytics />
+              {children}
+              <SpeedInsights />
+            </motion.main>
         </div>
       </body>
     </html>

@@ -60,7 +60,10 @@ export async function GET(req) {
                 },
                 transcriptFile: {
                     content: transcriptFileContent,
-                    path: note.transcriptFilePath
+                    path: note.transcriptFilePath,
+                    name : note.transcriptFilePath.startsWith('/')
+                        ? cleanFilename(note.transcriptFilePath.slice(6)) 
+                        : cleanFilename(note.transcriptFilePath) 
                 }
             }
         };
@@ -71,4 +74,17 @@ export async function GET(req) {
         console.log(error);
         return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 401 });
     }
+}
+
+function cleanFilename(filename) {
+  // Remove UUID prefix
+  let cleaned = filename.replace(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/i, 
+    ''
+  );
+  
+  // Remove any suffix that starts with underscore and ends with .txt
+  cleaned = cleaned.replace(/_[^_]+\.txt$/i, '');
+  
+  return cleaned;
 }

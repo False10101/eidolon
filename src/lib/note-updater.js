@@ -1,22 +1,46 @@
-import { r2 } from "@/lib/r2"; // Import R2 client
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 commands
+import { r2 } from "@/lib/r2";
+import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { GoogleGenAI } from "@google/genai";
+import { v4 as uuidv4 } from 'uuid';
 import { queryWithRetry } from "@/lib/queryWithQuery";
+import { db } from '@/lib/db';
 
-export async function updateNoteInBackground(noteId) {
+export async function updateNoteInBackground(noteId, activityId) {
     let note;
+    let connection;
+    let oldNotePath = null;
 
     try {
-        // Step 1: Fetch note data from database
-        const [rows] = await queryWithRetry('SELECT * FROM note WHERE id = ?', [noteId]);
+        // Step 1: Fetch note data from database with FOR UPDATE to lock the row
+        const [rows] = await queryWithRetry('SELECT * FROM note WHERE id = ? FOR UPDATE', [noteId]);
         note = rows[0];
 
         if (!note) {
             throw new Error(`Note with ID ${noteId} not found for processing.`);
         }
 
-        // Step 2: Update status to PROCESSING
-        await queryWithRetry(`UPDATE note SET status = 'PROCESSING' WHERE id = ?`, [noteId]);
+        // Store old paths for cleanup
+        oldNotePath = note.noteFilePath?.startsWith('/') 
+            ? note.noteFilePath.slice(1) 
+            : note.noteFilePath;
+
+        // --- TRANSACTION 1: SET 'PROCESSING' ---
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute(`UPDATE note SET status = 'PROCESSING' WHERE id = ?`, [noteId]);
+            await connection.execute(
+                `UPDATE activity SET title = ?, status = 'PROCESSING' 
+                 WHERE type = 'Inclass Notes' AND user_id = ? AND respective_table_id = ? AND id = ?`, 
+                [note.name, note.user_id, noteId, activityId]
+            );
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            if (connection) connection.release();
+        }
 
         const configJSON = {
             detect_heading: Boolean(note.detect_heading),
@@ -63,58 +87,120 @@ export async function updateNoteInBackground(noteId) {
         }
         console.log("Gemini API call finished.");
 
-        // Step 5: Save updated note to R2 (overwriting existing file)
-        const notePath = note.noteFilePath.startsWith('/')
-            ? note.noteFilePath.slice(1)
-            : note.noteFilePath;
+        // Step 5: Generate new note file path
+        const uniqueNotesFileName = `${uuidv4()}_${cleanFilename(note.noteFilePath)}_notes.txt`;
+        const newNotesRelativePath = `note/${uniqueNotesFileName}`;
 
-        if (!notePath) {
-            const uniqueNotesFileName = `${uuidv4()}_${note.name}_notes.txt`;
-            const notesRelativePath = `note/${uniqueNotesFileName}`; // No leading slash for R2
+        // Save updated note to new location
+        await r2.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: newNotesRelativePath,
+            Body: generatedText,
+            ContentType: 'text/plain'
+        }));
 
-            await r2.send(new PutObjectCommand({
-                Bucket: process.env.R2_BUCKET_NAME,
-                Key: notesRelativePath,
-                Body: generatedText,
-                ContentType: 'text/plain'
-            }));
-
-            // Step 6: Update status to COMPLETED
-            await queryWithRetry(
-                `UPDATE note SET status = 'COMPLETED', noteFilePath = ?, created_at = NOW() WHERE id = ?`,
-                [`/${notesRelativePath}` , noteId]
+        // --- TRANSACTION 2: UPDATE WITH NEW PATH ---
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute(
+                `UPDATE note SET 
+                    status = 'COMPLETED', 
+                    noteFilePath = ?,
+                    created_at = NOW() 
+                 WHERE id = ?`,
+                [`/${newNotesRelativePath}`, noteId]
             );
-
-        } else {
-            await r2.send(new PutObjectCommand({
-                Bucket: process.env.R2_BUCKET_NAME,
-                Key: notePath,
-                Body: generatedText,
-                ContentType: 'text/plain'
-            }));
-
-            // Step 6: Update status to COMPLETED
-            await queryWithRetry(
-                `UPDATE note SET status = 'COMPLETED', created_at = NOW() WHERE id = ?`,
-                [noteId]
+            
+            await connection.execute(
+                `UPDATE activity SET 
+                    status = 'COMPLETED', 
+                    token_sent = ?, 
+                    token_received = ? 
+                 WHERE type = 'Inclass Notes' AND respective_table_id = ? AND id = ?`,
+                [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, noteId, activityId]
             );
+            
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            if (connection) connection.release();
+        }
+
+        // Clean up old note file after successful update
+        if (oldNotePath) {
+            try {
+                await r2.send(new DeleteObjectCommand({
+                    Bucket: process.env.R2_BUCKET_NAME,
+                    Key: oldNotePath
+                }));
+                console.log(`Deleted old note file: ${oldNotePath}`);
+            } catch (cleanupError) {
+                console.error('Error deleting old note file:', cleanupError);
+                // Non-critical error - we can continue
+            }
         }
 
         console.log(`Successfully updated note ID: ${noteId}`);
 
     } catch (error) {
         console.error(`Failed to update note ID ${noteId}:`, error);
-        // Step 7: Update status to FAILED if error occurs
+        
+        // Clean up any newly created files if the operation failed
+        if (oldNotePath) {
+            try {
+                const newNotePath = `note/${uuidv4()}_${cleanFilename(note?.noteFilePath || 'note')}_notes.txt`;
+                await r2.send(new DeleteObjectCommand({
+                    Bucket: process.env.R2_BUCKET_NAME,
+                    Key: newNotePath
+                }));
+            } catch (cleanupError) {
+                console.error('Error cleaning up new file after failure:', cleanupError);
+            }
+        }
+
+        // Update status to FAILED
         if (noteId) {
             const errorMessage = error.message.includes('SAFETY')
                 ? 'Content blocked by safety features. Try adjusting your transcript content.'
                 : error.message;
-            await queryWithRetry(
-                `UPDATE note SET status = 'FAILED' WHERE id = ?`,
-                [ noteId]
-            );
+            
+            connection = await db.getConnection();
+            try {
+                await connection.beginTransaction();
+                await connection.execute(
+                    `UPDATE note SET status = 'FAILED' WHERE id = ?`,
+                    [noteId]
+                );
+                await connection.execute(
+                    `UPDATE activity SET status = 'FAILED' 
+                     WHERE type = 'Inclass Notes' AND respective_table_id = ? AND id = ?`,
+                    [noteId, activityId]
+                );
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                console.error('Error updating failed status:', err);
+            } finally {
+                if (connection) connection.release();
+            }
         }
     }
+}
+
+function cleanFilename(filename) {
+    // Remove UUID prefix (format: 8-4-4-4-12 hex digits separated by hyphens)
+    let cleaned = filename.replace(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/i, 
+        ''
+    );
+    
+    // Remove _notes.txt or _transcript.txt suffix
+    cleaned = cleaned.replace(/_notes\.txt$|_transcript\.txt$/i, '');
+    
+    return cleaned;
 }
 
 // (buildUserPrompt function remains exactly the same)

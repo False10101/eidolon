@@ -26,7 +26,7 @@ export async function GET(req) {
     var userData = await db.query('SELECT * FROM user WHERE id = ?', [decoded.id]);
     userData = userData[0][0]; // Extract the first row from the result
 
-    var activityData = await db.query('SELECT * FROM activity WHERE user_id = ?', [decoded.id]);
+    var activityData = await db.query('SELECT * FROM activity WHERE user_id = ? ORDER BY date DESC', [decoded.id]);
     activityData = activityData[0]; // Extract the first row from the result
 
     var totalTokenSent = await db.query('SELECT COALESCE(SUM(token_sent), 0) AS TotalTokenSent FROM activity WHERE user_id = ?', [decoded.id]);
@@ -80,8 +80,78 @@ export async function GET(req) {
       };
     });
 
+
+    const currentDate = new Date();
+    const currentWeekStart = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay()));
+    const lastWeekStart = new Date(currentWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    // 1. Get THIS WEEK's stats
+    const [thisWeekData] = await db.query(`
+    SELECT 
+      SUM(token_sent) AS thisWeekTokenSent,
+      SUM(token_received) AS thisWeekTokenReceived,
+      COUNT(*) AS thisWeekAPICalls,
+      ROUND(SUM(token_sent * rate_per_sent + token_received * rate_per_received), 2) AS thisWeekCost
+    FROM activity 
+    WHERE user_id = ? AND date >= ?
+    `, [decoded.id, currentWeekStart]);
+
+    // 2. Get LAST WEEK's stats
+    const [lastWeekData] = await db.query(`
+    SELECT 
+      SUM(token_sent) AS lastWeekTokenSent,
+      SUM(token_received) AS lastWeekTokenReceived,
+      COUNT(*) AS lastWeekAPICalls,
+      ROUND(SUM(token_sent * rate_per_sent + token_received * rate_per_received), 2) AS lastWeekCost
+    FROM activity 
+    WHERE user_id = ? AND date >= ? AND date < ?
+    `, [decoded.id, lastWeekStart, currentWeekStart]);
+
+    // 3. Calculate percentage changes
+    const calculateChange = (current, previous) => {
+      if (previous === 0) return current === 0 ? 0 : 100; // Handle division by zero
+      return ((current - previous) / previous) * 100;
+    };
+
+    const weeklyComparison = {
+      tokenSent: {
+        current: thisWeekData[0]?.thisWeekTokenSent || 0,
+        previous: lastWeekData[0]?.lastWeekTokenSent || 0,
+        change: calculateChange(
+          thisWeekData[0]?.thisWeekTokenSent || 0,
+          lastWeekData[0]?.lastWeekTokenSent || 0
+        )
+      },
+      tokenReceived: {
+        current: thisWeekData[0]?.thisWeekTokenReceived || 0,
+        previous: lastWeekData[0]?.lastWeekTokenReceived || 0,
+        change: calculateChange(
+          thisWeekData[0]?.thisWeekTokenReceived || 0,
+          lastWeekData[0]?.lastWeekTokenReceived || 0
+        )
+      },
+      apiCalls: {
+        current: thisWeekData[0]?.thisWeekAPICalls || 0,
+        previous: lastWeekData[0]?.lastWeekAPICalls || 0,
+        change: calculateChange(
+          thisWeekData[0]?.thisWeekAPICalls || 0,
+          lastWeekData[0]?.lastWeekAPICalls || 0
+        )
+      },
+      cost: {
+        current: thisWeekData[0]?.thisWeekCost || 0,
+        previous: lastWeekData[0]?.lastWeekCost || 0,
+        change: calculateChange(
+          thisWeekData[0]?.thisWeekCost || 0,
+          lastWeekData[0]?.lastWeekCost || 0
+        )
+      }
+    };
+
     userData = {
       ...userData,
+      weeklyComparison : weeklyComparison,
       activity: activityData ? activityData : null,
       totalTokenSent: formatThousands(totalTokenSent, { separator: ',' }),
       totalTokenReceived: formatThousands(totalTokenReceived, { separator: ',' }),

@@ -50,7 +50,7 @@ export async function POST(req) {
 
         await connection.commit();
 
-        updateDocumentInBackground(documentId, activityResult.insertId);
+        updateDocumentInBackground(documentId, activityId);
 
         return NextResponse.json({ documentId: documentId }, { status: 200 });
 

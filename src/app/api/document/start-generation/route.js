@@ -47,10 +47,12 @@ export async function POST(req) {
         if (activityResult.affectedRows === 0) {
             throw new Error("Failed to insert activity log.");
         }
+
+        const activityId = activityResult.insertId;
         
         await connection.commit();
         
-        processDocumentInBackground(documentId);
+        processDocumentInBackground(documentId, activityId);
 
         return new Response(JSON.stringify({ documentId: documentId }), { status: 200 });
 

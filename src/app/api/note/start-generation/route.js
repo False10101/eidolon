@@ -4,6 +4,7 @@ import { processNoteInBackground } from "@/lib/note-processor";
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { queryWithRetry } from "@/lib/queryWithQuery";
+import { db } from '@/lib/db';
 
 export async function POST(req) {
     const cookies = req.headers.get('cookie');
@@ -13,6 +14,7 @@ export async function POST(req) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
+    let connection;
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
@@ -25,7 +27,8 @@ export async function POST(req) {
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
-        const originalName = formData.get('fileName') || file.name;
+        const name = formData.get('fileName');
+        const originalName = file.name;
         const fileBaseName = originalName.includes('.') 
             ? originalName.substring(0, originalName.lastIndexOf('.')) 
             : originalName;
@@ -48,6 +51,9 @@ export async function POST(req) {
         const instructor = formData.get('instructor') || null;
         const style = formData.get('style');
 
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
         const insertQuery = `
             INSERT INTO note 
             (name, lecture_topic, instructor, detect_heading, highlight_key, identify_todo, 
@@ -56,8 +62,8 @@ export async function POST(req) {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')
         `;
 
-        const [dbResult] = await queryWithRetry(insertQuery, [
-            fileBaseName,
+        const [dbResult] = await connection.execute(insertQuery, [
+            name,
             lecture_topic,
             instructor,
             configJSON.detect_heading,
@@ -73,12 +79,34 @@ export async function POST(req) {
         ]);
         
         const noteId = dbResult.insertId;
-        processNoteInBackground(noteId);
+
+        const [activityResult] = await connection.execute(
+            `INSERT INTO activity (type, title, status, date, user_id, token_sent, token_received, rate_per_sent, rate_per_received, respective_table_id) 
+             VALUES ('Inclass Notes', ?, 'PENDING', NOW(), ?, 0, 0, 0.00000125, 0.00001, ?)`,
+            [name, user_id, noteId]
+        );
+
+        if (activityResult.affectedRows === 0) {
+            throw new Error("Failed to insert activity log.");
+        }
+
+        const activityId = activityResult.insertId;
+
+        await connection.commit();
+        
+        processNoteInBackground(noteId, activityId);
 
         return new Response(JSON.stringify({ noteId: noteId }), { status: 200 });
 
     } catch (error) {
+        if (connection) {
+            await connection.rollback();
+        }
         console.error('Error starting note generation:', error);
         return new Response(JSON.stringify({ error: 'Failed to start note generation process.' }), { status: 500 });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 }

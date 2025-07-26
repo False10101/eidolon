@@ -1,10 +1,11 @@
-import { r2 } from "@/lib/r2"; // Import R2 client
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 commands
+import { r2 } from "@/lib/r2";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import puppeteer from 'puppeteer';
 import { marked } from 'marked';
 import { queryWithRetry } from "@/lib/queryWithQuery";
+import { db } from '@/lib/db';
 
 const PDF_CSS = `
   body { font-family: "Segoe UI", "Helvetica Neue", "Arial", sans-serif; font-size: 15px; line-height: 1.75; color: #111; background-color: white; padding: 3em; max-width: 800px; margin: auto; }
@@ -28,8 +29,9 @@ function buildTitlePage(title, course, author, date) {
     `;
 }
 
-export async function textbook_explanation_processor(textbookId) {
+export async function textbook_explanation_processor(textbookId, activityId) {
     let textbook;
+    let connection;
 
     try {
         const [rows] = await queryWithRetry('SELECT * FROM textbook WHERE id= ?', [textbookId]);
@@ -39,7 +41,21 @@ export async function textbook_explanation_processor(textbookId) {
             throw new Error(`Textbook with ID ${textbookId} not found for processing.`);
         }
 
-        await queryWithRetry(`UPDATE textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId]);
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute(`UPDATE textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId]);
+            await connection.execute(
+                `UPDATE activity SET status = 'PROCESSING' WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`, 
+                [textbookId, activityId]
+            );
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            if (connection) connection.release();
+        }
 
         const formatOptionsJSON = {
             simple_analogies: Boolean(textbook.simple_analogies),
@@ -88,7 +104,7 @@ export async function textbook_explanation_processor(textbookId) {
 
         // Generate PDF
         const pdfFileName = `${uuidv4()}_${textbook.name}_explained.pdf`;
-        const pdfRelativePath = `textbook/explanation/${pdfFileName}`; // No leading slash for R2
+        const pdfRelativePath = `textbook/explanation/${pdfFileName}`;
         const generationDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
         const titlePageHtml = buildTitlePage(textbook.name || "Generated Explanation", textbook.course || "Textbook Analysis", "A.I. Companion", generationDate);
@@ -100,7 +116,6 @@ export async function textbook_explanation_processor(textbookId) {
         await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
         await page.addStyleTag({ content: PDF_CSS });
         
-        // Generate PDF buffer instead of saving to file
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
         await browser.close();
         
@@ -116,21 +131,50 @@ export async function textbook_explanation_processor(textbookId) {
 
         console.log(`✅ PDF uploaded to R2: ${pdfRelativePath}`);
 
-        // Update database with path (with leading slash for consistency)
-        await queryWithRetry(
-            `UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? WHERE id = ?`,
-            [`/${pdfRelativePath}`, textbookId]
-        );
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute(
+                `UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? WHERE id = ?`,
+                [`/${pdfRelativePath}`, textbookId]
+            );
+            await connection.execute(
+                `UPDATE activity SET status = 'COMPLETED', token_sent = ?, token_received = ? 
+                 WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
+                [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, textbookId, activityId]
+            );
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            if (connection) connection.release();
+        }
 
         console.log(`Successfully processed textbook ID: ${textbookId}`);
 
     } catch (error) {
         console.error("An error occurred during textbook processing:", error);
         if (textbookId) {
-            await queryWithRetry(
-                `UPDATE textbook SET status = 'FAILED' WHERE id = ?`,
-                [ textbookId]
-            );
+            connection = await db.getConnection();
+            try {
+                await connection.beginTransaction();
+                await connection.execute(
+                    `UPDATE textbook SET status = 'FAILED' WHERE id = ?`,
+                    [textbookId]
+                );
+                await connection.execute(
+                    `UPDATE activity SET status = 'FAILED' 
+                     WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
+                    [textbookId, activityId]
+                );
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                console.error('Error updating failed status:', err);
+            } finally {
+                if (connection) connection.release();
+            }
         }
     }
 }

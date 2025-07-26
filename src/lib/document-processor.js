@@ -5,7 +5,7 @@ import { r2 } from "@/lib/r2"; // Import R2 client
 import { v4 as uuidv4 } from 'uuid';
 import { queryWithRetry } from "@/lib/queryWithQuery";
 
-export async function processDocumentInBackground(documentId) {
+export async function processDocumentInBackground(documentId, activityId) {
     let document;
     let connection;
 
@@ -22,7 +22,7 @@ export async function processDocumentInBackground(documentId) {
         await connection.beginTransaction();
         try {
             await connection.execute(`UPDATE document SET status = 'PROCESSING' WHERE id = ?`, [documentId]);
-            await connection.execute(`UPDATE activity SET status = 'PROCESSING' WHERE type = 'Document' AND respective_table_id = ?`, [documentId]);
+            await connection.execute(`UPDATE activity SET status = 'PROCESSING' WHERE type = 'Document' AND respective_table_id = ? AND id = ?`, [documentId, activityId]);
             await connection.commit();
         } catch (err) {
             await connection.rollback();
@@ -74,7 +74,7 @@ export async function processDocumentInBackground(documentId) {
         connection = await db.getConnection();
         await connection.beginTransaction();
         try {
-            await connection.execute(`UPDATE activity SET token_sent = ?, token_received = ?, status = 'COMPLETED' WHERE type = 'Document' AND respective_table_id = ?`, [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, documentId]);
+            await connection.execute(`UPDATE activity SET token_sent = ?, token_received = ?, status = 'COMPLETED' WHERE type = 'Document' AND respective_table_id = ? AND id = ?`, [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, documentId, activityId]);
             await connection.execute(`UPDATE document SET status = 'COMPLETED', generatedFilePath = ? WHERE id = ?`, [`/${outputFilePath}`, documentId]);
             await connection.commit();
         } catch (err) {
@@ -92,7 +92,25 @@ export async function processDocumentInBackground(documentId) {
             const errorMessage = error.message.includes('SAFETY')
                 ? 'Content blocked by safety features. Try adjusting your document content.'
                 : error.message;
-            await queryWithRetry(`UPDATE document SET status = 'FAILED' WHERE id = ?`, [ documentId]);
+
+            connection = await db.getConnection();
+            try {
+                await connection.beginTransaction();
+                await connection.execute(
+                    `UPDATE document SET status = 'FAILED' WHERE id = ?`,
+                    [documentId]
+                );
+                await connection.execute(
+                    `UPDATE activity SET status = 'FAILED' WHERE type = 'Document' AND respective_table_id = ? AND id = ?`,
+                    [documentId, activityId]
+                );
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                console.error('Error updating failed status:', err);
+            } finally {
+                if (connection) connection.release();
+            }
         }
     }
 }

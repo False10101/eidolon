@@ -1,10 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
-import { r2 } from '@/lib/r2'; // Import R2 client
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"; // Import S3 commands
+import { r2 } from '@/lib/r2';
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import puppeteer from 'puppeteer';
 import { marked } from 'marked';
 import { v4 as uuidv4 } from 'uuid';
 import { queryWithRetry } from "@/lib/queryWithQuery";
+import { db } from '@/lib/db';
 
 const PDF_CSS = `
   body { font-family: "Segoe UI", "Helvetica Neue", "Arial", sans-serif; font-size: 15px; line-height: 1.75; color: #111; background-color: white; padding: 3em; max-width: 800px; margin: auto; }
@@ -28,8 +29,9 @@ function buildTitlePage(title, course, author, date) {
     `;
 }
 
-export async function updateTextbookInBackground(textbookId) {
+export async function updateTextbookInBackground(textbookId, activityId) {
     let textbook;
+    let connection;
 
     try {
         // Step 1: Fetch textbook data
@@ -40,8 +42,23 @@ export async function updateTextbookInBackground(textbookId) {
             throw new Error(`Textbook with ID ${textbookId} not found for processing.`);
         }
 
-        // Step 2: Update status to PROCESSING
-        await queryWithRetry(`UPDATE textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId]);
+        // --- TRANSACTION 1: SET 'PROCESSING' ---
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute(`UPDATE textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId]);
+            await connection.execute(
+                `UPDATE activity SET title = ?, status = 'PROCESSING' 
+                 WHERE type = 'Textbook Explainer' AND user_id = ? AND respective_table_id = ? AND id = ?`, 
+                [textbook.name, textbook.user_id, textbookId, activityId]
+            );
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            if (connection) connection.release();
+        }
 
         const formatOptionsJSON = {
             simple_analogies: Boolean(textbook.simple_analogies),
@@ -109,7 +126,6 @@ export async function updateTextbookInBackground(textbookId) {
         await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
         await page.addStyleTag({ content: PDF_CSS });
 
-        // Create PDF buffer instead of saving to file
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true
@@ -117,31 +133,14 @@ export async function updateTextbookInBackground(textbookId) {
         await browser.close();
 
         // Step 6: Upload new PDF to R2 (overwrite existing file)
-        const pdfPath = textbook.explanationFilePath.startsWith('/')
+        const pdfPath = textbook.explanationFilePath?.startsWith('/')
             ? textbook.explanationFilePath.slice(1)
             : textbook.explanationFilePath;
 
         if (!pdfPath) {
             const pdfFileName = `${uuidv4()}_${textbook.name}_explained.pdf`;
-            const pdfRelativePath = `textbook/explanation/${pdfFileName}`; // No leading slash for R2
-            const generationDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-            const titlePageHtml = buildTitlePage(textbook.name || "Generated Explanation", textbook.course || "Textbook Analysis", "A.I. Companion", generationDate);
-            const contentHtml = marked(generatedText);
-            const finalHtml = titlePageHtml + contentHtml;
-
-            const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-            const page = await browser.newPage();
-            await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
-            await page.addStyleTag({ content: PDF_CSS });
-
-            // Generate PDF buffer instead of saving to file
-            const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-            await browser.close();
-
-            console.log(`✅ PDF created in memory`);
-
-            // Upload PDF to R2
+            const pdfRelativePath = `textbook/explanation/${pdfFileName}`;
+            
             await r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
                 Key: pdfRelativePath,
@@ -149,11 +148,26 @@ export async function updateTextbookInBackground(textbookId) {
                 ContentType: 'application/pdf'
             }));
 
-            // Step 7: Update database status
-            await queryWithRetry(
-                `UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? , created_at = NOW() WHERE id = ?`,
-                [`/${pdfRelativePath}` , textbookId]
-            );
+            // --- TRANSACTION 2: SET 'COMPLETED' WITH NEW PATH ---
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+            try {
+                await connection.execute(
+                    `UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ?, created_at = NOW() WHERE id = ?`,
+                    [`/${pdfRelativePath}`, textbookId]
+                );
+                await connection.execute(
+                    `UPDATE activity SET status = 'COMPLETED', token_sent = ?, token_received = ? 
+                     WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
+                    [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, textbookId, activityId]
+                );
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                if (connection) connection.release();
+            }
 
         } else {
             await r2.send(new PutObjectCommand({
@@ -163,25 +177,53 @@ export async function updateTextbookInBackground(textbookId) {
                 ContentType: 'application/pdf'
             }));
 
-            // Step 7: Update database status
-            await queryWithRetry(
-                `UPDATE textbook SET status = 'COMPLETED', created_at = NOW() WHERE id = ?`,
-                [textbookId]
-            );
-
+            // --- TRANSACTION 3: SET 'COMPLETED' WITHOUT PATH CHANGE ---
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+            try {
+                await connection.execute(
+                    `UPDATE textbook SET status = 'COMPLETED', created_at = NOW() WHERE id = ?`,
+                    [textbookId]
+                );
+                await connection.execute(
+                    `UPDATE activity SET status = 'COMPLETED', token_sent = ?, token_received = ? 
+                     WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
+                    [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, textbookId, activityId]
+                );
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                throw err;
+            } finally {
+                if (connection) connection.release();
+            }
         }
 
         console.log(`✅ PDF regenerated and uploaded to R2: ${pdfPath}`);
-
         console.log(`Successfully regenerated textbook ID: ${textbookId}`);
 
     } catch (error) {
         console.error("Error during textbook regeneration:", error);
         if (textbookId) {
-            await queryWithRetry(
-                `UPDATE textbook SET status = 'FAILED'  WHERE id = ?`,
-                [ textbookId]
-            );
+            connection = await db.getConnection();
+            try {
+                await connection.beginTransaction();
+                await connection.execute(
+                    `UPDATE textbook SET status = 'FAILED' WHERE id = ?`,
+                    [textbookId]
+                );
+                await connection.execute(
+                    `UPDATE activity SET status = 'FAILED' 
+                     WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
+                    [textbookId, activityId]
+                );
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                console.error('Error updating failed status:', err);
+            } finally {
+                if (connection) connection.release();
+            }
         }
     }
 }

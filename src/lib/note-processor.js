@@ -3,13 +3,15 @@ import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"; // Impo
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import { queryWithRetry } from "@/lib/queryWithQuery";
+import { db } from '@/lib/db';
 
 /**
  * This function runs the long note-generation process in the background.
  * @param {number} noteId - The ID of the note record to process.
  */
-export async function processNoteInBackground(noteId) {
+export async function processNoteInBackground(noteId, activityId) {
     let note;
+    let connection;
     try {
         // Step 1: Fetch the job details from the database.
         const [rows] = await queryWithRetry('SELECT * FROM note WHERE id = ?', [noteId]);
@@ -19,8 +21,19 @@ export async function processNoteInBackground(noteId) {
             throw new Error(`Note with ID ${noteId} not found for processing.`);
         }
 
-        // Step 2: Update the status to 'PROCESSING'.
-        await queryWithRetry(`UPDATE note SET status = 'PROCESSING' WHERE id = ?`, [noteId]);
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            // Step 2: Update the status to 'PROCESSING' in both note and activity tables
+            await connection.execute(`UPDATE note SET status = 'PROCESSING' WHERE id = ?`, [noteId]);
+            await connection.execute(`UPDATE activity SET status = 'PROCESSING' WHERE type = 'Inclass Notes' AND respective_table_id = ? AND id = ? `, [noteId, activityId]);
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err; 
+        } finally {
+            if (connection) connection.release();
+        }
 
         const configJSON = {
             detect_heading: Boolean(note.detect_heading),
@@ -78,25 +91,54 @@ export async function processNoteInBackground(noteId) {
             ContentType: 'text/plain'
         }));
 
-        // Step 6: Update the database record to 'COMPLETED' with the final file path
-        await queryWithRetry(
-            `UPDATE note SET status = 'COMPLETED', noteFilePath = ? WHERE id = ?`,
-            [`/${notesRelativePath}`, noteId] // Add leading slash for DB consistency
-        );
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            // Step 6: Update both note and activity tables with completion status and token counts
+            await connection.execute(
+                `UPDATE activity SET token_sent = ?, token_received = ?, status = 'COMPLETED' WHERE type = 'Inclass Notes' AND respective_table_id = ? AND id = ?`,
+                [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, noteId, activityId]
+            );
+            await connection.execute(
+                `UPDATE note SET status = 'COMPLETED', noteFilePath = ? WHERE id = ?`,
+                [`/${notesRelativePath}`, noteId] // Add leading slash for DB consistency
+            );
+            await connection.commit();
+        } catch (err) {
+            await connection.rollback();
+            throw err; 
+        } finally {
+            if (connection) connection.release();
+        }
 
         console.log(`Successfully processed note ID: ${noteId}`);
 
     } catch (error) {
         console.error(`Failed to process note ID ${noteId}:`, error);
-        // Step 7 (Error Handling): Update the record to 'FAILED'
+        // Step 7 (Error Handling): Update both note and activity records to 'FAILED'
         if (noteId) {
             const errorMessage = error.message.includes('SAFETY') 
                 ? 'Content blocked by safety features. Try adjusting your transcript content.' 
                 : error.message;
-            await queryWithRetry(
-                `UPDATE note SET status = 'FAILED' WHERE id = ?`,
-                [ noteId]
-            );
+            
+            connection = await db.getConnection();
+            try {
+                await connection.beginTransaction();
+                await connection.execute(
+                    `UPDATE note SET status = 'FAILED' WHERE id = ?`,
+                    [noteId]
+                );
+                await connection.execute(
+                    `UPDATE activity SET status = 'FAILED' WHERE type = 'Inclass Notes' AND respective_table_id = ? AND id = ?`,
+                    [noteId, activityId]
+                );
+                await connection.commit();
+            } catch (err) {
+                await connection.rollback();
+                console.error('Error updating failed status:', err);
+            } finally {
+                if (connection) connection.release();
+            }
         }
     }
 }
