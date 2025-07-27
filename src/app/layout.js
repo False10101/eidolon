@@ -1,14 +1,23 @@
 'use client';
 
+import React from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { usePathname, useRouter, useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, createContext, useContext } from 'react';
 import "./globals.css";
-import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/solid";
+import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 import { match } from 'path-to-regexp';
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { motion, AnimatePresence } from 'framer-motion';
+
+const AdminContext = createContext();
+
+export function useAdmin() {
+  const context = useContext(AdminContext);
+  if (!context) throw new Error('useAdmin must be used within RootLayout');
+  return context;
+}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,8 +47,8 @@ const pageVariants = {
 };
 
 const historyItemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 },
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0 },
 };
 
 
@@ -51,6 +60,8 @@ export default function RootLayout({ children }) {
 
   const [tokenCount, setTokenCount] = useState("Unlimited");
   const [groupedHistory, setGroupedHistory] = useState({});
+
+  const [isAdmin, setIsAdmin] = useState(false);  
 
   const handleLogout = async () => {
     await fetch(`/api/auth/logout`, { method: 'POST' });
@@ -183,41 +194,41 @@ export default function RootLayout({ children }) {
     }
   }, [pathname])
 
-useEffect(() => {
-  const getTokenCount = async () => {
-    try {
-      setTokenCount("Unlimited"); // Reset token count before fetching
-      
-      let apiType = '';
-      if (pathname.includes('/document')) {
-        apiType = 'Document';
-      } else if (pathname.includes('/note')) {
-        apiType = 'Inclass Notes';
-      } else if (pathname.includes('/textbook')) {
-        apiType = 'Textbook Explainer';
-      } else {
-        setTokenCount("Unlimited");
-        return; // Skip fetch for other routes
+  useEffect(() => {
+    const getTokenCount = async () => {
+      try {
+        setTokenCount("Unlimited"); // Reset token count before fetching
+
+        let apiType = '';
+        if (pathname.includes('/document')) {
+          apiType = 'Document';
+        } else if (pathname.includes('/note')) {
+          apiType = 'Inclass Notes';
+        } else if (pathname.includes('/textbook')) {
+          apiType = 'Textbook Explainer';
+        } else {
+          setTokenCount("Unlimited");
+          return; // Skip fetch for other routes
+        }
+
+        const response = await fetch(`/api/navbar/getAPITokenCount?type=${encodeURIComponent(apiType)}`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTokenCount(data.tokenCount || "Unlimited");
+        } else {
+          console.error('Failed to fetch token count:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching token count:', error);
       }
+    };
 
-      const response = await fetch(`/api/navbar/getAPITokenCount?type=${encodeURIComponent(apiType)}`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTokenCount(data.tokenCount || "Unlimited");
-      } else {
-        console.error('Failed to fetch token count:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Error fetching token count:', error);
-    }
-  };
-
-  getTokenCount();
-}, [pathname]);
+    getTokenCount();
+  }, [pathname]);
 
   const isAuthRoute = pathname.startsWith('/auth');
   const isHomeRoute = pathname.startsWith('/home');
@@ -250,6 +261,7 @@ useEffect(() => {
 
   var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : pathname.startsWith('/textbook-explainer') ? "Textbook Explainer" : pathname.startsWith('/tts') ? "Text-To-Speech" : pathname.startsWith('/image-gen') ? "Image Generation" : pathname.startsWith('/chatbot') ? "Chatbot" : "";
 
+  console.log(isAdmin);
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -258,13 +270,13 @@ useEffect(() => {
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen bg-gradient-to-r from-[#0B0F2E] to-[#081022] text-white flex flex-col`}>
 
         {!isNotFoundPage && (
-          <motion.nav 
+          <motion.nav
             className="h-16 flex-shrink-0 w-full bg-[#000000]/[20%] text-white flex items-center flex-row px-7 border-b-[1px] border-white/[0.2]"
             variants={navVariants}
             initial="hidden"
             animate="visible"
           >
-            <div className="text-[#00BFFF] font-extrabold text-xl 2xl:text-2xl h-min pr-5 my-auto">Eidolon</div>
+            <div onClick={() => { router.push('/home'); }} className="text-[#00BFFF] font-extrabold text-xl 2xl:text-2xl h-min pr-5 my-auto">Eidolon</div>
             <span className="text-white/[70%] h-min text-xs 2xl:text-sm border-l-[1px] border-white/[25%] px-5 my-auto">{routeDisplayName}</span>
             {!isAuthRoute &&
               <div className="flex flex-row ml-auto my-auto">
@@ -272,6 +284,9 @@ useEffect(() => {
                   <BoltIcon className="h-4 w-4 text-[#00BFFF] ml-6 my-auto mr-2 font-extrabold" />
                   <span className="text-white/[70%] text-xs 2xl:text-sm">API Usage : <span className="text-[#00BFFF]">{!isHomeRoute ? tokenCount : "Unlimited"}</span></span>
                 </div>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/admin-panel'); }} className={`${isAdmin ? "flex": "hidden"} cursor-pointer align-center justify-center`}>
+                  <LockClosedIcon className="h-5 w-5 text-[#00BFFF] ml-6 my-auto font-extrabold" />
+                </motion.button>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/setting'); }} className="flex cursor-pointer align-center justify-center">
                   <Cog6ToothIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto font-extrabold" />
                 </motion.button>
@@ -285,7 +300,7 @@ useEffect(() => {
 
         <div className="flex flex-row flex-1 min-h-0">
           {!isAuthRoute && !isHomeRoute && !isNotFoundPage && (
-            <motion.aside 
+            <motion.aside
               className="w-[15vw] flex-shrink-0 bg-[#000000]/[30%] px-4 border-r-[1px] border-white/[0.2] flex flex-col"
               variants={sidebarVariants}
               initial="hidden"
@@ -353,19 +368,21 @@ useEffect(() => {
             </motion.aside>
           )}
 
-            <motion.main 
-              key={pathname}
-              className="flex-1 min-w-0 overflow-y-auto"
-              variants={pageVariants}
-              initial="initial"
-              animate="in"
-              exit="out"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
-              <Analytics />
+          <motion.main
+            key={pathname}
+            className="flex-1 min-w-0 overflow-y-auto"
+            variants={pageVariants}
+            initial="initial"
+            animate="in"
+            exit="out"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <Analytics />
+            <AdminContext.Provider value={{ isAdmin, setIsAdmin }}>
               {children}
-              <SpeedInsights />
-            </motion.main>
+            </AdminContext.Provider>
+            <SpeedInsights />
+          </motion.main>
         </div>
       </body>
     </html>

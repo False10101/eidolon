@@ -2,11 +2,12 @@ import { serialize } from 'cookie';
 import { db } from '@/lib/db';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { queryWithRetry } from '@/lib/queryWithQuery';
 
 export async function POST(req) {
   const { username, password } = await req.json();
 
-  const queryResult = await db.query('SELECT * FROM user WHERE username = ?', [username]);
+  const queryResult = await queryWithRetry('SELECT * FROM user WHERE username = ?', [username]);
   const response = queryResult[0]; // Extract the first row from the result
 
   if(response.length === 0) {
@@ -31,6 +32,12 @@ export async function POST(req) {
     path: '/',
     maxAge: 60 * 60 * 24 * 4 // 4 days
   });
+
+  const [dbResult] = await queryWithRetry(`UPDATE user SET last_login = NOW() WHERE id = ?`, [response[0].id]);
+
+  if(dbResult.length === 0){
+    return new Response(JSON.stringify({message : "Error logging in. Please try again."}, {status : 400}));
+  }
 
   return new Response(null, {
     status: 200,

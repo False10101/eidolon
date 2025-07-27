@@ -3,7 +3,8 @@
 import { DocumentTextIcon, PencilSquareIcon, BoltIcon, CurrencyDollarIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon, EyeIcon } from '@heroicons/react/24/outline';
 import ProgressBar from '@ramonak/react-progress-bar';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { useAdmin } from '../layout';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Animation Variants ---
@@ -45,13 +46,41 @@ const buttonTapEffect = {
   scale: 0.95
 };
 
+
+function formatLastLogin(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  
+  // Date comparison (ignore time)
+  const isToday = date.toDateString() === now.toDateString();
+  const isYesterday = new Date(now.setDate(now.getDate() - 1)).toDateString() === date.toDateString();
+  
+  return (
+    <>
+      <span className="mr-1">
+        {isToday ? 'Today' : 
+         isYesterday ? 'Yesterday' : 
+         date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })},
+      </span>
+      <span>
+        {date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })}
+      </span>
+    </>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [userData, setUserData] = useState({});
   const [activityList, setActivityList] = useState([]);
   const [monthlyUsageData, setMonthlyUsageData] = useState([]);
   const [monthlyTokenUsageData, setMonthlyTokenUsageData] = useState([]);
-  const [weeklyComparison, setWeeklyComparison] = useState({});
+
+  const { setIsAdmin } = useAdmin();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -70,7 +99,6 @@ export default function Home() {
     checkAuth();
   }, []);
 
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   useEffect(() => {
     const getUserData = async () => {
@@ -87,7 +115,11 @@ export default function Home() {
           setActivityList(data.userData.activity || []);
           setMonthlyUsageData(data.userData.monthlyUsage || []);
           setMonthlyTokenUsageData(data.userData.monthlyTokenUsage || []);
-          setWeeklyComparison(data.userData.weeklyComparison || {});
+          if(data.userData.type === 'admin'){
+            setIsAdmin(true);
+          } else{
+            setIsAdmin(false);
+          }
 
         } else {
           console.error('Failed to fetch user data');
@@ -115,9 +147,8 @@ export default function Home() {
         <motion.div className="welcome-section h-[25%] flex flex-col" variants={itemVariants}>
           {/* This inner div is now the flex container for the title and the card list */}
           <div className="pt-6 flex flex-col h-full">
-
-            {/* The title takes its natural height and will not shrink */}
-            <motion.div
+            <div className='w-full h-min flex'>
+              <motion.div
               className="text-3xl font-extrabold pl-3 text-white h-min text-glow pb-1 flex-shrink-0"
               style={{ textShadow: '0 0 6px #BECFFF, 0 0 12px #BECFFF' }}
               initial={{ opacity: 0, y: -20 }}
@@ -126,6 +157,12 @@ export default function Home() {
             >
               Welcome Back, {userData.username}
             </motion.div>
+            <div className='w-max h-min flex items-center justify-center mt-1 ml-auto font-semibold text-white/80 mr-3'>
+              Last login : <span className='ml-1'>{formatLastLogin(userData.last_login)}</span>
+            </div>
+            </div>
+            {/* The title takes its natural height and will not shrink */}
+            
 
             {/* The stat-list now takes up all remaining vertical space (flex-1) and aligns its items */}
             <motion.div
@@ -292,7 +329,7 @@ export default function Home() {
                   {activityList.map((activity, index) => (
                     <motion.div
                       key={activity.id || index}
-                      className={`flex w-full ${index === activityList.length - 1 ? "" : "border-b-[1px]"} border-white/[10%] h-min py-3 text-white/[80%] hover:bg-[#2d355e]/[60%]`}
+                      className={`flex w-full ${index === activityList.length - 1 && activityList.length > 6 ? "" : "border-b-[1px]"} border-white/[10%] h-min py-3 text-white/[80%] hover:bg-[#2d355e]/[60%]`}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
@@ -394,21 +431,21 @@ export default function Home() {
 
               <div className="text-xs 2xl:text-sm text-white/[70%] w-full flex justify-between">
                 <div className="flex-grow">Gemini 2.5 Pro</div>
-                <div className={` ${userData.gemini_api ? "text-[#4ADE80]" : "text-white/[50%]"}`}>
+                <div className={` ${userData.gemini_api ? "text-[#4ADE80]" : "text-red-500/90"}`}>
                   ● {userData.gemini_api ? "Connected" : "Failed"}
                 </div>
               </div>
 
               <div className="text-xs 2xl:text-sm text-white/[70%] w-full flex justify-between">
                 <div className="flex-grow">Murf.AI</div>
-                <div className={` ${userData.murf_api ? "text-[#4ADE80]" : "text-white/[50%]"}`}>
+                <div className={` ${userData.murf_api ? "text-[#4ADE80]" : "text-red-500/90"}`}>
                   ● {userData.murf_api ? "Connected" : "Failed"}
                 </div>
               </div>
 
               <div className="text-xs 2xl:text-sm text-white/[70%] w-full flex justify-between">
                 <div className="flex-grow">Dall-E</div>
-                <div className={` ${userData.dall_e_api ? "text-[#4ADE80]" : "text-white/[50%]"}`}>
+                <div className={` ${userData.dall_e_api ? "text-[#4ADE80]" : "text-red-500/90"}`}>
                   ● {userData.dall_e_api ? "Connected" : "Failed"}
                 </div>
               </div>
