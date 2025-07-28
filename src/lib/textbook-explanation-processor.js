@@ -83,7 +83,10 @@ export async function textbook_explanation_processor(textbookId, activityId, use
         }));
         const rawText = await textBody.transformToString();
 
-        const genAI = new GoogleGenAI(gemini_api_key);
+        const genAI = new GoogleGenAI({
+            apiKey: gemini_api_key,
+            authClient: null  
+        });
 
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',

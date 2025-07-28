@@ -40,7 +40,11 @@ export async function updateDocumentInBackground(documentId, activityId, user_id
         const topic = document.name;
 
         // --- EXTERNAL CALLS (NO TRANSACTION OPEN) ---
-        const genAI = new GoogleGenAI(gemini_api_key);
+        const genAI = new GoogleGenAI({
+            apiKey: gemini_api_key,
+            authClient: null  
+        });
+        
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: [{ role: "user", parts: [{ text: buildUserPrompt(topic, additionalDetails, format_type) }] }],

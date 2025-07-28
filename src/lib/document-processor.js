@@ -42,7 +42,10 @@ export async function processDocumentInBackground(documentId, activityId, user_i
 
         const topic = document.name;
 
-        const genAI = new GoogleGenAI(gemini_api_key);
+        const genAI = new GoogleGenAI({
+            apiKey: gemini_api_key,
+            authClient: null  
+        });
 
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',

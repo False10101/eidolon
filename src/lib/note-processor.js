@@ -62,7 +62,10 @@ export async function processNoteInBackground(noteId, activityId, user_id) {
         const transcriptText = await transcriptBody.transformToString();
 
         // Step 4: Construct the prompt and call the Gemini API
-        const genAI = new GoogleGenAI(gemini_api_key);
+        const genAI = new GoogleGenAI({
+            apiKey: gemini_api_key,
+            authClient: null  
+        });
 
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',

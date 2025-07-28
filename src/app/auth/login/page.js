@@ -27,7 +27,6 @@ const itemVariants = {
     },
 };
 
-
 export default function Login() {
     const [form, setForm] = useState({ username: '', password: '' });
     const [error, setError] = useState(null);
@@ -40,10 +39,14 @@ export default function Login() {
                     method: 'GET',
                     credentials: 'include'
                 });
-                if (res.status === 200) {
-                    const data = await res.json();
-                    if (data.username && data.userId) {
-                        router.push('/home');
+                if (res.ok) {
+                    try {
+                        const data = await res.json();
+                        if (data.username && data.userId) {
+                            router.push('/home');
+                        }
+                    } catch (err) {
+                        console.error('Failed to parse JSON:', err);
                     }
                 }
             } catch (err) {
@@ -58,16 +61,22 @@ export default function Login() {
         try {
             const res = await fetch(`/api/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify(form),
             });
 
-            const data = await res.json();
             if (res.ok) {
                 router.push('/home');
             } else {
-                setError(data.message || 'An unexpected error occurred.');
+                try {
+                    const errorData = await res.json();
+                    setError(errorData.message || 'An error occurred');
+                } catch (err) {
+                    setError('Invalid server response');
+                }
             }
         } catch (err) {
             setError('A network error occurred. Please try again.');

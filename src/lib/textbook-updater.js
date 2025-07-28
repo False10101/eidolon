@@ -87,7 +87,10 @@ export async function updateTextbookInBackground(textbookId, activityId, user_id
         const rawText = await textBody.transformToString();
 
         // Step 4: Generate new content with Gemini
-        const genAI = new GoogleGenAI(gemini_api_key);
+       const genAI = new GoogleGenAI({
+            apiKey: gemini_api_key,
+            authClient: null  
+        });
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: [{ role: "user", parts: [{ text: buildUserPrompt(rawText, formatOptionsJSON) }] }],
