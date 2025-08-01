@@ -422,7 +422,7 @@ export default function Document() {
                 <div className="w-full h-full bg-[#000831] flex flex-col pb-3">
                     <div className="h-[8%] border-b w-full border-white/[25%] bg-black/20 flex items-center"><h1 className="text-xl text-[#00BFFF] font-semibold w-max p-3">Generated Document</h1><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSaveText} className="text-xs bg-gray-800 py-1.5 2xl:py-2 px-3 rounded-md ml-auto text-[#00BFFF] mr-3 hover:bg-gray-700">Save Text</motion.button></div>
                     <div className="flex flex-col flex-grow justify-center items-center text-center h-[84%]" data-color-mode="dark">
-                        <MDEditor value={documentText} onChange={setDocumentText} height="100%" className="!bg-transparent w-full" preview="live" />
+                        <MDEditor value={documentText} onChange={setDocumentText} height="100%" className=" w-full" preview="live" />
                     </div>
                     <div className="h-[7%] items-center border-t border-white/[25%] flex pt-3 space-x-2 px-3 ">
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsDeleteModalOpen(true)} className="flex w-[25%] bg-red-500/70 py-2 text-white rounded-md hover:bg-red-700 transition-colors items-center justify-center"><TrashIcon className="w-4 h-4 mr-2 flex" /><span className="text-sm flex mr-1">Delete</span></motion.button>
