@@ -29,3 +29,7 @@ export const db = mysql.createPool({
   queueLimit: 0,
   charset: 'utf8mb4'
 });
+
+setInterval(() => {
+    db.query('SELECT 1').catch(() => {});
+}, 30000);

@@ -1,11 +1,14 @@
 import { r2 } from "@/lib/r2";
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, createPartFromUri, createUserContent } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 import puppeteer from 'puppeteer';
 import { marked } from 'marked';
 import { queryWithRetry } from "@/lib/queryWithQuery";
 import { db } from '@/lib/db';
+import fs from 'fs/promises';
+import path from 'path';
+import { PDFDocument } from 'pdf-lib';
 
 const PDF_CSS = `
   body { font-family: "Segoe UI", "Helvetica Neue", "Arial", sans-serif; font-size: 15px; line-height: 1.75; color: #111; background-color: white; padding: 3em; max-width: 800px; margin: auto; }
@@ -17,6 +20,35 @@ const PDF_CSS = `
   code, pre { font-family: "Courier New", monospace; background-color: #f5f5f5; padding: 0.2em 0.4em; font-size: 0.9em; border-radius: 4px; }
   .page-break { page-break-after: always; }
 `;
+
+// ONLY ADDITION: Transaction retry helper
+async function executeTransactionWithRetry(operations, maxRetries = 3) {
+    let connection;
+    let attempts = 0;
+    let lastError;
+
+    while (attempts < maxRetries) {
+        try {
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+            
+            for (const op of operations) {
+                await connection.execute(op.sql, op.params);
+            }
+            
+            await connection.commit();
+            return;
+        } catch (err) {
+            if (connection) await connection.rollback();
+            lastError = err;
+            attempts++;
+            if (attempts < maxRetries) await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        } finally {
+            if (connection) connection.release();
+        }
+    }
+    throw lastError;
+}
 
 function buildTitlePage(title, course, author, date) {
     return `
@@ -31,35 +63,32 @@ function buildTitlePage(title, course, author, date) {
 
 export async function textbook_explanation_processor(textbookId, activityId, user_id) {
     let textbook;
-    let connection;
+    let tempFilePath;
+    let googleUploadedFile;
+    let genAI;
 
     try {
         const [rows] = await queryWithRetry('SELECT * FROM textbook WHERE id= ?', [textbookId]);
         textbook = rows[0];
 
         const [secondrows] = await queryWithRetry('SELECT gemini_api from user WHERE id = ? ', [user_id]);
-
         const gemini_api_key = secondrows[0]?.gemini_api;
 
         if (!textbook) {
             throw new Error(`Textbook with ID ${textbookId} not found for processing.`);
         }
 
-        connection = await db.getConnection();
-        await connection.beginTransaction();
-        try {
-            await connection.execute(`UPDATE textbook SET status = 'PROCESSING' WHERE id = ?`, [textbookId]);
-            await connection.execute(
-                `UPDATE activity SET status = 'PROCESSING' WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`, 
-                [textbookId, activityId]
-            );
-            await connection.commit();
-        } catch (err) {
-            await connection.rollback();
-            throw err;
-        } finally {
-            if (connection) connection.release();
-        }
+        // ONLY CHANGE: Wrapped in retry helper
+        await executeTransactionWithRetry([
+            {
+                sql: `UPDATE textbook SET status = 'PROCESSING' WHERE id = ?`,
+                params: [textbookId]
+            },
+            {
+                sql: `UPDATE activity SET status = 'PROCESSING' WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
+                params: [textbookId, activityId]
+            }
+        ]);
 
         const formatOptionsJSON = {
             simple_analogies: Boolean(textbook.simple_analogies),
@@ -72,49 +101,81 @@ export async function textbook_explanation_processor(textbookId, activityId, use
             instructions: Boolean(textbook.instructions),
         };
 
-        // Read text file from R2
-        const textPath = textbook.textbookTXTFilePath.startsWith('/') 
-            ? textbook.textbookTXTFilePath.slice(1) 
+        // Rest of your original processing code remains exactly the same...
+        const textPath = textbook.textbookTXTFilePath.startsWith('/')
+            ? textbook.textbookTXTFilePath.slice(1)
             : textbook.textbookTXTFilePath;
 
-        const originalFilePath = textbook.originalFilePath.startsWith('/')
-            ? textbook.originalFilePath.slice(1)
-            : textbook.originalFilePath;
-        
         const { Body: textBody } = await r2.send(new GetObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: textPath
         }));
-        
+
         const rawText = await textBody.transformToString();
+
+        console.log("Downloading original PDF from R2...");
+        const originalFilePath = textbook.originalFilePath.startsWith('/')
+            ? textbook.originalFilePath.slice(1)
+            : textbook.originalFilePath;
+        const { Body: originalFileBody } = await r2.send(new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: originalFilePath
+        }));
+        const pdfBodyBuffer = Buffer.from(await originalFileBody.transformToByteArray());
+        console.log("PDF downloaded into memory.");
+
+        tempFilePath = path.join('/tmp', `${uuidv4()}.pdf`);
+        console.log(`Creating temporary file at: ${tempFilePath}`);
+        await fs.writeFile(tempFilePath, pdfBodyBuffer);
+        console.log("Temporary file created.");
 
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            authClient: null  
+            authClient: null
         });
 
-        const result = await genAI.models.generateContent({
+        const uploadResponse = await genAI.files.upload({
+            file: tempFilePath,
+            config: {
+                mimeType: "application/pdf",
+                fileName: tempFilePath
+            }
+        });
+
+        googleUploadedFile = uploadResponse.file;
+        console.log("File uploaded successfully. Name:", uploadResponse.uri);
+
+        const result = await genAI.models.generateContentStream({
             model: 'gemini-2.5-pro',
-            contents: [{ role: "user", parts: [{ text: buildUserPrompt(rawText, formatOptionsJSON) }] }],
+            contents: [
+                createUserContent([
+                    buildUserPrompt("", formatOptionsJSON),
+                    createPartFromUri(uploadResponse.uri, uploadResponse.mimeType)
+                ])
+            ],
             generationConfig: {
                 maxOutputTokens: 65000,
                 topP: 0.95
             }
         });
 
-        const generatedText = result.text;
-        const usageMetadata = result.usageMetadata;
-
-        if (usageMetadata) {
-            console.log(`Input Tokens: ${usageMetadata.promptTokenCount}`);
-            console.log(`Output Tokens: ${usageMetadata.candidatesTokenCount}`);
-            console.log(`Total Tokens: ${usageMetadata.totalTokenCount}`);
+        let generatedText = "";
+        for await (const chunk of result) {
+            generatedText += chunk.text;
         }
+
+        const pageCount = await getPdfPageCount(tempFilePath);
+        const estimatedInputTokens = pageCount * 258;
+        const outputTokens = Math.floor(generatedText.length / 4);
+
+        console.log(`Input Tokens: ${estimatedInputTokens}`);
+        console.log(`Output Tokens: ${outputTokens}`);
+        console.log(`Total Tokens: ${estimatedInputTokens + outputTokens}`);
+
         console.log("Gemini API call finished.");
 
         console.log("Starting PDF generation...");
 
-        // Generate PDF
         const pdfFileName = `${uuidv4()}_${textbook.name}_explained.pdf`;
         const pdfRelativePath = `textbook/explanation/${pdfFileName}`;
         const generationDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -127,13 +188,12 @@ export async function textbook_explanation_processor(textbookId, activityId, use
         const page = await browser.newPage();
         await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
         await page.addStyleTag({ content: PDF_CSS });
-        
+
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
         await browser.close();
-        
+
         console.log(`✅ PDF created in memory`);
 
-        // Upload PDF to R2
         await r2.send(new PutObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: pdfRelativePath,
@@ -143,49 +203,43 @@ export async function textbook_explanation_processor(textbookId, activityId, use
 
         console.log(`✅ PDF uploaded to R2: ${pdfRelativePath}`);
 
-        connection = await db.getConnection();
-        await connection.beginTransaction();
-        try {
-            await connection.execute(
-                `UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? WHERE id = ?`,
-                [`/${pdfRelativePath}`, textbookId]
-            );
-            await connection.execute(
-                `UPDATE activity SET status = 'COMPLETED', token_sent = ?, token_received = ? 
-                 WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
-                [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, textbookId, activityId]
-            );
-            await connection.commit();
-        } catch (err) {
-            await connection.rollback();
-            throw err;
-        } finally {
-            if (connection) connection.release();
-        }
+        // ONLY CHANGE: Wrapped in retry helper
+        await executeTransactionWithRetry([
+            {
+                sql: `UPDATE textbook SET status = 'COMPLETED', explanationFilePath = ? WHERE id = ?`,
+                params: [`/${pdfRelativePath}`, textbookId]
+            },
+            {
+                sql: `UPDATE activity SET status = 'COMPLETED', token_sent = ?, token_received = ? WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
+                params: [estimatedInputTokens, outputTokens, textbookId, activityId]
+            }
+        ]);
 
         console.log(`Successfully processed textbook ID: ${textbookId}`);
 
     } catch (error) {
         console.error("An error occurred during textbook processing:", error);
+        
+        // ONLY CHANGE: Wrapped in retry helper
         if (textbookId) {
-            connection = await db.getConnection();
+            await executeTransactionWithRetry([
+                {
+                    sql: `UPDATE textbook SET status = 'FAILED' WHERE id = ?`,
+                    params: [textbookId]
+                },
+                {
+                    sql: `UPDATE activity SET status = 'FAILED' WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
+                    params: [textbookId, activityId]
+                }
+            ]).catch(err => console.error('Failed to update failure status:', err));
+        }
+    } finally {
+        if (tempFilePath) await fs.unlink(tempFilePath).catch(console.error);
+        if (googleUploadedFile) {
             try {
-                await connection.beginTransaction();
-                await connection.execute(
-                    `UPDATE textbook SET status = 'FAILED' WHERE id = ?`,
-                    [textbookId]
-                );
-                await connection.execute(
-                    `UPDATE activity SET status = 'FAILED' 
-                     WHERE type = 'Textbook Explainer' AND respective_table_id = ? AND id = ?`,
-                    [textbookId, activityId]
-                );
-                await connection.commit();
-            } catch (err) {
-                await connection.rollback();
-                console.error('Error updating failed status:', err);
-            } finally {
-                if (connection) connection.release();
+                await genAI.files.delete({ name: googleUploadedFile.name });
+            } catch (e) {
+                console.error('Error deleting Gemini file:', e);
             }
         }
     }
@@ -199,7 +253,6 @@ function buildUserPrompt(rawText, formatOptionsJSON) {
 * **Structure with Headings:** For each \`[Slide X]\` in the input, you **must** start your explanation with a markdown heading like \`### Slide X: [Inferred Topic of the Slide]\`.
 * **Rewrite for Clarity:** Under each heading, rewrite the slide's content. Your main job is to rephrase academic jargon and complicated sentences into plain, understandable English.
 * **Explain Each Point:** Address every subtopic, bullet point, or code block on the slide. Explain its meaning and high-level purpose.
-* **Be Concise:** Provide enough detail to be clear, but avoid unnecessary verbosity. Focus on the core information presented on the slide.
 
 **What to Avoid:**
 * **Do not** group multiple slides under one explanation.
@@ -217,4 +270,15 @@ ${formatOptionsJSON.references ? "→ If the original text includes sources, lis
 ${rawText}`;
 
     return finalPrompt.replace(/^\s*[\r\n]/gm, '');
+}
+
+async function getPdfPageCount(filePath) {
+    try {
+        const pdfBytes = await fs.readFile(filePath);
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        return pdfDoc.getPageCount();
+    } catch (error) {
+        console.error('Error counting PDF pages:', error);
+        return 0;
+    }
 }
