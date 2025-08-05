@@ -85,42 +85,22 @@ export async function textbook_explanation_processor(textbookId, activityId, use
             Bucket: process.env.R2_BUCKET_NAME,
             Key: textPath
         }));
-
-        const { Body: originalFileBody } = await r2.send(new GetObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: originalFilePath
-        }))
+        
         const rawText = await textBody.transformToString();
-
-        const pdfBody = await originalFileBody.transformToString('base64');
 
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
             authClient: null  
         });
 
-        console.log("Start generation")
-
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',
-            contents: [{ 
-                    role: "user",
-                    parts: [
-                        {text: buildUserPrompt(formatOptionsJSON) },
-                        {inlineData : {
-                            mimeType: 'application/pdf',
-                            data: pdfBody
-                        }}
-                    ]
-                    
-                }],
+            contents: [{ role: "user", parts: [{ text: buildUserPrompt(rawText, formatOptionsJSON) }] }],
             generationConfig: {
                 maxOutputTokens: 65000,
                 topP: 0.95
             }
         });
-
-        console.log("End generation")
 
         const generatedText = result.text;
         const usageMetadata = result.usageMetadata;
@@ -211,7 +191,7 @@ export async function textbook_explanation_processor(textbookId, activityId, use
     }
 }
 
-function buildUserPrompt( formatOptionsJSON) {
+function buildUserPrompt(rawText, formatOptionsJSON) {
     const basePrompt = `You are an expert technical writer and editor. Your task is to rewrite dense and complex textbook content into a clear, concise, and sequentially structured explanation.
 
 **Your Core Mission:**
@@ -234,7 +214,7 @@ ${formatOptionsJSON.practice_questions ? "→ At the very end of your entire res
 ${formatOptionsJSON.references ? "→ If the original text includes sources, list them in a '### References' section at the end." : ""}
 
 ---
-`;
+${rawText}`;
 
     return finalPrompt.replace(/^\s*[\r\n]/gm, '');
 }
