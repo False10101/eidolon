@@ -15,7 +15,10 @@ export async function POST(req) {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user_id = decoded.id;
-        const { mdText, noteId } = await req.json();
+        const formData = await req.formData()
+        const mdText = formData.get('mdText');
+        const noteId = formData.get('noteId');
+
 
         if (!mdText) {
             return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
