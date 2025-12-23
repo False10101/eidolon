@@ -5,7 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, createContext, useContext } from 'react';
 import "./globals.css";
-import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon, LockClosedIcon } from "@heroicons/react/24/solid";
+import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon, LockClosedIcon, LanguageIcon, MusicalNoteIcon } from "@heroicons/react/24/solid";
 import { match } from 'path-to-regexp';
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
@@ -61,7 +61,7 @@ export default function RootLayout({ children }) {
   const [tokenCount, setTokenCount] = useState("Unlimited");
   const [groupedHistory, setGroupedHistory] = useState({});
 
-  const [isAdmin, setIsAdmin] = useState(false);  
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const handleLogout = async () => {
     await fetch(`/api/auth/logout`, { method: 'POST' });
@@ -244,9 +244,8 @@ export default function RootLayout({ children }) {
     match('/note/:noteId'),
     match('/textbook-explainer'),
     match('/textbook-explainer/:textbookId'),
-    match('/tts'),
-    match('/image-gen'),
-    match('/chatbot'),
+    match('/audioConverter'),
+    match('/transcriptor'),
   ];
 
   function isKnownRoute(pathname) {
@@ -284,7 +283,7 @@ export default function RootLayout({ children }) {
                   <BoltIcon className="h-4 w-4 text-[#00BFFF] ml-6 my-auto mr-2 font-extrabold" />
                   <span className="text-white/[70%] text-xs 2xl:text-sm">API Usage : <span className="text-[#00BFFF]">{!isHomeRoute ? tokenCount : "Unlimited"}</span></span>
                 </div>
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/admin-panel'); }} className={`${isAdmin ? "flex": "hidden"} cursor-pointer align-center justify-center`}>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/admin-panel'); }} className={`${isAdmin ? "flex" : "hidden"} cursor-pointer align-center justify-center`}>
                   <LockClosedIcon className="h-5 w-5 text-[#00BFFF] ml-6 my-auto font-extrabold" />
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/setting'); }} className="flex cursor-pointer align-center justify-center">
@@ -306,10 +305,22 @@ export default function RootLayout({ children }) {
               initial="hidden"
               animate="visible"
             >
+
               <motion.div variants={sidebarVariants} className="flex flex-col py-4 w-full justify-center h-max border-b-[1px] border-white/[25%]">
+
                 <motion.button variants={historyItemVariants} onClick={() => { router.push('/home'); }} className={`px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
                   <HomeIcon className="h-6 w-5 flex-shrink-0" />
                   <span className="ml-2 truncate text-sm 2xl:text-base">Home</span>
+                </motion.button>
+
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/audioConverter'); }} className={`${pathname.startsWith("/audioConverter") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <MusicalNoteIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">Audio Converter</span>
+                </motion.button>
+
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/transcriptor'); }} className={`${pathname.startsWith("/transcriptor") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
+                  <LanguageIcon className="h-6 w-5 flex-shrink-0" />
+                  <span className="ml-2 truncate text-sm 2xl:text-base">Audio Transcriptor</span>
                 </motion.button>
 
                 <motion.button variants={historyItemVariants} onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
@@ -327,20 +338,6 @@ export default function RootLayout({ children }) {
                   <span className="ml-2 truncate text-sm 2xl:text-base">Textbook Explainer</span>
                 </motion.button>
 
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/tts'); }} className={`${pathname.startsWith("/tts") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <SpeakerWaveIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">TTS</span>
-                </motion.button>
-
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/image-gen'); }} className={`${pathname.startsWith("/image") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <PhotoIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">Image Gen</span>
-                </motion.button>
-
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/chatbot'); }} className={`${pathname.startsWith("/chat") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <ChatBubbleLeftIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">Chatbot</span>
-                </motion.button>
               </motion.div>
               <div className="flex-1 min-h-0 overflow-y-auto mt-1 gap-y-3">
                 {Object.keys(groupedHistory).map(groupName => (

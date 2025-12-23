@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useContext } from 'react';
 import { useAdmin } from '../layout';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LanguageIcon, MusicalNoteIcon } from '@heroicons/react/24/solid';
 
 // --- Animation Variants ---
 const containerVariants = {
@@ -255,7 +256,7 @@ export default function Home() {
 
             {/* ADDED "items-start" to align all buttons to the top of the grid */}
             <motion.div
-              className='navigation-list grid grid-cols-6 items-start px-6 mx-3 mt-3 2xl:mt-4 border-[1px] border-[#395CAE]/[55%] rounded-xl h-max bg-[#000000]/[10%] py-4 content-center'
+              className='navigation-list grid grid-cols-5 items-start px-6 mx-3 mt-3 2xl:mt-4 border-[1px] border-[#395CAE]/[55%] rounded-xl h-max bg-[#000000]/[10%] py-4 content-center'
               variants={containerVariants}
             >
 
@@ -281,26 +282,19 @@ export default function Home() {
                 <div className='font-bold text-sm 2xl:text-lg truncate 2xl:font-semibold mx-auto text-center mt-2 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Textbook Explainer</div>
                 <div className='text-xs 2xl:text-sm text-white/[50%] text-wrap w-[90%] mx-auto text-center'>Simplify content from textbook</div>
               </motion.button>
-              <motion.button variants={itemVariants} whileHover={buttonHoverEffect} whileTap={buttonTapEffect} onClick={() => { router.push('/tts'); }} className=' group grid items-center justify-center p-1 2xl:p-2'>
+              <motion.button variants={itemVariants} whileHover={buttonHoverEffect} whileTap={buttonTapEffect} onClick={() => { router.push('/audioConverter'); }} className=' group grid items-center justify-center p-1 2xl:p-2'>
                 <div className='w-14 h-14 2xl:w-16 2xl:h-16 bg-[#3E49BD]/[30%] rounded-full mx-auto flex justify-center items-center filter group-hover:bg-[#4A60DE] group-hover:shadow-[0_0px_10px_rgba(162,218,255,1)]'>
-                  <SpeakerWaveIcon className='size-7 text-[#4A60DE] m-auto group-hover:text-black' />
+                  <MusicalNoteIcon className='size-7 text-[#4A60DE] m-auto group-hover:text-black' />
                 </div>
-                <div className='font-bold text-sm 2xl:text-lg truncate 2xl:font-semibold mx-auto text-center mt-2 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>TTS with Subtitles</div>
-                <div className='text-xs 2xl:text-sm text-white/[50%] text-wrap w-[90%] mx-auto text-center'>Convert text to audio</div>
+                <div className='font-bold text-sm 2xl:text-lg truncate 2xl:font-semibold mx-auto text-center mt-2 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Audio Conversion</div>
+                <div className='text-xs 2xl:text-sm text-white/[50%] text-wrap w-[90%] mx-auto text-center'>Convert video to mp3</div>
               </motion.button>
-              <motion.button variants={itemVariants} whileHover={buttonHoverEffect} whileTap={buttonTapEffect} onClick={() => { router.push('/image-gen'); }} className='group grid items-center justify-center p-1 2xl:p-2'>
+              <motion.button variants={itemVariants} whileHover={buttonHoverEffect} whileTap={buttonTapEffect} onClick={() => { router.push('/transcriptor'); }} className='group grid items-center justify-center p-1 2xl:p-2'>
                 <div className='w-14 h-14 2xl:w-16 2xl:h-16 bg-[#1E76A9]/[30%] rounded-full mx-auto flex justify-center items-center filter group-hover:bg-[#8AD3CC] group-hover:shadow-[0_0px_10px_rgba(162,218,255,1)]'>
-                  <PhotoIcon className='size-7 text-[#8AD3CC]/[65%] m-auto group-hover:text-black' />
+                  <LanguageIcon className='size-7 text-[#8AD3CC]/[65%] m-auto group-hover:text-black' />
                 </div>
-                <div className='font-bold text-sm 2xl:text-lg truncate 2xl:font-semibold text-center mx-auto mt-2 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Image Generator</div>
-                <div className='text-xs 2xl:text-sm text-white/[50%] text-wrap w-[90%] mx-auto text-center'>Generate images from prompts</div>
-              </motion.button>
-              <motion.button variants={itemVariants} whileHover={buttonHoverEffect} whileTap={buttonTapEffect} onClick={() => { router.push('/chatbot'); }} className='group grid items-center justify-center p-1 2xl:p-2'>
-                <div className='w-14 h-14 2xl:w-16 2xl:h-16 bg-[#2C4C7F]/[30%] rounded-full mx-auto flex justify-center items-center filter group-hover:bg-[#7796C7] group-hover:shadow-[0_0px_10px_rgba(162,218,255,1)]'>
-                  <ChatBubbleLeftIcon className='size-7 text-[#7796C7] m-auto group-hover:text-black' />
-                </div>
-                <div className='font-bold text-sm 2xl:text-lg truncate 2xl:font-semibold text-center mx-auto mt-2 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>AI Chatbot</div>
-                <div className='text-xs 2xl:text-sm text-white/[50%] text-wrap w-[90%] mx-auto text-center'>Ask anything to AI</div>
+                <div className='font-bold text-sm 2xl:text-lg truncate 2xl:font-semibold text-center mx-auto mt-2 group-hover:text-shadow-[0_0px_10px_rgba(162,218,255,1)]'>Audio Transcriptor</div>
+                <div className='text-xs 2xl:text-sm text-white/[50%] text-wrap w-[90%] mx-auto text-center'>Speech to Text Transcriptor</div>
               </motion.button>
             </motion.div>
           </div>

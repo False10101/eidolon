@@ -19,7 +19,7 @@ const nextConfig = {
           },
           {
             key: "Access-Control-Allow-Origin",
-            value: "https://eidolon.minpainghein.com", // IMPORTANT: Your frontend domain
+            value: "http:/localhost:3000", // IMPORTANT: Your frontend domain
           },
           {
             key: "Access-Control-Allow-Methods",
