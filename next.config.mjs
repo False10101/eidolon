@@ -19,7 +19,7 @@ const nextConfig = {
           },
           {
             key: "Access-Control-Allow-Origin",
-            value: "http:/localhost:3000", // IMPORTANT: Your frontend domain
+            value: "http://localhost:3000", // IMPORTANT: Your frontend domain
           },
           {
             key: "Access-Control-Allow-Methods",
