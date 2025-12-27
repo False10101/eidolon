@@ -266,90 +266,93 @@ export default function RootLayout({ children }) {
       <head>
         <title>{pageTitle}</title>
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen bg-gradient-to-r from-[#0B0F2E] to-[#081022] text-white flex flex-col`}>
+      <body 
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen bg-black text-slate-200 flex flex-col`}
+        style={{ backgroundImage: 'radial-gradient(circle at top right, #1e293b 0%, #020617 40%, #000000 100%)' }}
+      >
 
         {!isNotFoundPage && (
           <motion.nav
-            className="h-16 flex-shrink-0 w-full bg-[#000000]/[20%] text-white flex items-center flex-row px-7 border-b-[1px] border-white/[0.2]"
+            className="h-16 flex-shrink-0 w-full bg-[#020617]/80 backdrop-blur-md text-slate-200 flex items-center flex-row px-7 border-b border-cyan-900/30 shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-50"
             variants={navVariants}
             initial="hidden"
             animate="visible"
           >
-            <div onClick={() => { router.push('/home'); }} className="text-[#00BFFF] font-extrabold text-xl 2xl:text-2xl h-min pr-5 my-auto">Eidolon</div>
-            <span className="text-white/[70%] h-min text-xs 2xl:text-sm border-l-[1px] border-white/[25%] px-5 my-auto">{routeDisplayName}</span>
+            <div onClick={() => { router.push('/home'); }} className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 font-extrabold text-xl 2xl:text-2xl h-min pr-5 my-auto cursor-pointer drop-shadow-[0_0_5px_rgba(34,211,238,0.5)] transition-all hover:scale-105">Eidolon</div>
+            <span className="text-slate-500 h-min text-xs 2xl:text-sm border-l border-slate-700 px-5 my-auto font-mono tracking-wider uppercase">{routeDisplayName}</span>
             {!isAuthRoute &&
               <div className="flex flex-row ml-auto my-auto">
-                <div className="flex items-center justify-center mr-4">
-                  <BoltIcon className="h-4 w-4 text-[#00BFFF] ml-6 my-auto mr-2 font-extrabold" />
-                  <span className="text-white/[70%] text-xs 2xl:text-sm">API Usage : <span className="text-[#00BFFF]">{!isHomeRoute ? tokenCount : "Unlimited"}</span></span>
+                <div className="flex items-center justify-center mr-4 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-700/50">
+                  <BoltIcon className="h-4 w-4 text-cyan-400 mr-2 animate-pulse" />
+                  <span className="text-slate-400 text-xs 2xl:text-sm font-mono">API Usage : <span className="text-cyan-400 font-bold ml-1">{!isHomeRoute ? tokenCount : "Unlimited"}</span></span>
                 </div>
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/admin-panel'); }} className={`${isAdmin ? "flex" : "hidden"} cursor-pointer align-center justify-center`}>
-                  <LockClosedIcon className="h-5 w-5 text-[#00BFFF] ml-6 my-auto font-extrabold" />
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/admin-panel'); }} className={`${isAdmin ? "flex" : "hidden"} cursor-pointer align-center justify-center p-2 rounded-full hover:bg-slate-800 transition-colors`}>
+                  <LockClosedIcon className="h-5 w-5 text-indigo-400" />
                 </motion.button>
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/setting'); }} className="flex cursor-pointer align-center justify-center">
-                  <Cog6ToothIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto font-extrabold" />
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { router.push('/setting'); }} className="flex cursor-pointer align-center justify-center p-2 rounded-full hover:bg-slate-800 transition-colors">
+                  <Cog6ToothIcon className="h-6 w-6 text-slate-400 hover:text-cyan-400 transition-colors" />
                 </motion.button>
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleLogout} className="flex align-center justify-center">
-                  <ArrowRightStartOnRectangleIcon className="h-6 w-6 text-[#00BFFF] ml-6 my-auto mr-4 font-extrabold" />
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleLogout} className="flex align-center justify-center p-2 rounded-full hover:bg-slate-800 transition-colors ml-2">
+                  <ArrowRightStartOnRectangleIcon className="h-6 w-6 text-rose-500/80 hover:text-rose-400 transition-colors" />
                 </motion.button>
               </div>
             }
           </motion.nav>
         )}
 
-        <div className="flex flex-row flex-1 min-h-0">
+        <div className="flex flex-row flex-1 min-h-0 relative">
           {!isAuthRoute && !isHomeRoute && !isNotFoundPage && (
             <motion.aside
-              className="w-[15vw] flex-shrink-0 bg-[#000000]/[30%] px-4 border-r-[1px] border-white/[0.2] flex flex-col"
+              className="w-[15vw] flex-shrink-0 bg-[#0b101c]/80 backdrop-blur-md px-4 border-r border-cyan-900/30 flex flex-col z-40"
               variants={sidebarVariants}
               initial="hidden"
               animate="visible"
             >
 
-              <motion.div variants={sidebarVariants} className="flex flex-col py-4 w-full justify-center h-max border-b-[1px] border-white/[25%]">
+              <motion.div variants={sidebarVariants} className="flex flex-col py-4 w-full justify-center h-max border-b border-cyan-900/30 space-y-1">
 
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/home'); }} className={`px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <HomeIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">Home</span>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/home'); }} className={`px-2 w-full py-2.5 flex items-center overflow-hidden rounded-xl transition-all duration-200 group hover:bg-cyan-900/20 hover:border hover:border-cyan-500/30`}>
+                  <HomeIcon className="h-5 w-5 flex-shrink-0 text-slate-400 group-hover:text-cyan-400 transition-colors" />
+                  <span className="ml-3 truncate text-sm 2xl:text-base text-slate-300 group-hover:text-cyan-100 font-medium">Home</span>
                 </motion.button>
 
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/audioConverter'); }} className={`${pathname.startsWith("/audioConverter") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <MusicalNoteIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">Audio Converter</span>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/audioConverter'); }} className={`${pathname.startsWith("/audioConverter") ? "bg-cyan-900/30 text-cyan-400 rounded-xl border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]" : "text-slate-300 hover:bg-cyan-900/20 hover:text-cyan-200 hover:border hover:border-cyan-500/30"} px-2 w-full py-2.5 flex items-center overflow-hidden rounded-xl transition-all duration-200 group border border-transparent`}>
+                  <MusicalNoteIcon className={`h-5 w-5 flex-shrink-0 ${pathname.startsWith("/audioConverter") ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-400"}`} />
+                  <span className="ml-3 truncate text-sm 2xl:text-base font-medium">Audio Converter</span>
                 </motion.button>
 
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/transcriptor'); }} className={`${pathname.startsWith("/transcriptor") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <LanguageIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">Audio Transcriptor</span>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/transcriptor'); }} className={`${pathname.startsWith("/transcriptor") ? "bg-cyan-900/30 text-cyan-400 rounded-xl border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]" : "text-slate-300 hover:bg-cyan-900/20 hover:text-cyan-200 hover:border hover:border-cyan-500/30"} px-2 w-full py-2.5 flex items-center overflow-hidden rounded-xl transition-all duration-200 group border border-transparent`}>
+                  <LanguageIcon className={`h-5 w-5 flex-shrink-0 ${pathname.startsWith("/transcriptor") ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-400"}`} />
+                  <span className="ml-3 truncate text-sm 2xl:text-base font-medium">Audio Transcriptor</span>
                 </motion.button>
 
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <DocumentTextIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">Document Generator</span>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/document'); }} className={`${pathname.startsWith("/document") ? "bg-cyan-900/30 text-cyan-400 rounded-xl border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]" : "text-slate-300 hover:bg-cyan-900/20 hover:text-cyan-200 hover:border hover:border-cyan-500/30"} px-2 w-full py-2.5 flex items-center overflow-hidden rounded-xl transition-all duration-200 group border border-transparent`}>
+                  <DocumentTextIcon className={`h-5 w-5 flex-shrink-0 ${pathname.startsWith("/document") ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-400"}`} />
+                  <span className="ml-3 truncate text-sm 2xl:text-base font-medium">Document Generator</span>
                 </motion.button>
 
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <PencilSquareIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">Inclass Notes</span>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/note'); }} className={`${pathname.startsWith("/note") ? "bg-cyan-900/30 text-cyan-400 rounded-xl border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]" : "text-slate-300 hover:bg-cyan-900/20 hover:text-cyan-200 hover:border hover:border-cyan-500/30"} px-2 w-full py-2.5 flex items-center overflow-hidden rounded-xl transition-all duration-200 group border border-transparent`}>
+                  <PencilSquareIcon className={`h-5 w-5 flex-shrink-0 ${pathname.startsWith("/note") ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-400"}`} />
+                  <span className="ml-3 truncate text-sm 2xl:text-base font-medium">Inclass Notes</span>
                 </motion.button>
 
-                <motion.button variants={historyItemVariants} onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-[#3366FF]/[30%]! text-[#00BFFF] rounded-xl border-[1px] border-[#3366FF]/[40%]! " : ""}px-2 hover:cursor-pointer hover:border-white/[50%] hover:bg-gray-400/[15%] hover:rounded-xl w-full py-2.5 flex items-center overflow-hidden`}>
-                  <BookOpenIcon className="h-6 w-5 flex-shrink-0" />
-                  <span className="ml-2 truncate text-sm 2xl:text-base">Textbook Explainer</span>
+                <motion.button variants={historyItemVariants} onClick={() => { router.push('/textbook-explainer'); }} className={`${pathname.startsWith("/textbook-explainer") ? "bg-cyan-900/30 text-cyan-400 rounded-xl border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]" : "text-slate-300 hover:bg-cyan-900/20 hover:text-cyan-200 hover:border hover:border-cyan-500/30"} px-2 w-full py-2.5 flex items-center overflow-hidden rounded-xl transition-all duration-200 group border border-transparent`}>
+                  <BookOpenIcon className={`h-5 w-5 flex-shrink-0 ${pathname.startsWith("/textbook-explainer") ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-400"}`} />
+                  <span className="ml-3 truncate text-sm 2xl:text-base font-medium">Textbook Explainer</span>
                 </motion.button>
 
               </motion.div>
-              <div className="flex-1 min-h-0 overflow-y-auto mt-1 gap-y-3">
+              <div className="flex-1 min-h-0 overflow-y-auto mt-1 gap-y-3 custom-scrollbar">
                 {Object.keys(groupedHistory).map(groupName => (
                   groupedHistory[groupName].length > 0 && (
                     <motion.div key={groupName} className=" space-y-1" variants={sidebarVariants}>
-                      <h2 className=" font-semibold px-1 text-[#00BFFF] text-lg pt-3 pb-1">{groupName}</h2>
+                      <h2 className="font-semibold px-2 text-cyan-500 text-xs uppercase tracking-widest pt-4 pb-1 font-mono">{groupName}</h2>
                       {groupedHistory[groupName].map(history => (
                         <motion.div
                           variants={historyItemVariants}
                           onClick={() => { router.push(`/${basePath}/${history.id}`) }}
                           key={history.id}
-                          className={`py-2.5 2xl:py-3 px-3 rounded-xl cursor-pointer ${activeId == history.id ? "bg-[#3366FF]/[30%] border-white/[10%] border-[1px]" : "hover:bg-white/10"}`}
+                          className={`py-2.5 2xl:py-3 px-3 rounded-xl cursor-pointer transition-colors duration-200 ${activeId == history.id ? "bg-cyan-900/30 border-cyan-500/30 border text-cyan-200" : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"}`}
                         >
                           <div className="truncate text-sm 2xl:text-base">{history.name}</div>
                         </motion.div>
@@ -359,7 +362,7 @@ export default function RootLayout({ children }) {
                 ))}
                 {
                   Object.keys(groupedHistory).length === 0 &&
-                  <div className="text-center mt-[40%] text-white/[50%] font-semibold text-xl italic">No History Found</div>
+                  <div className="text-center mt-[40%] text-slate-600 font-semibold text-lg italic">No History Found</div>
                 }
               </div>
             </motion.aside>
