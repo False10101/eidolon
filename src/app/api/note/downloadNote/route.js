@@ -410,24 +410,12 @@ export async function POST(req) {
         const finalHtml = tocHtml + contentHtml;
 
         // 5. PUPPETEER
-        let browser;
-        if (process.platform === 'darwin' || process.platform === 'win32') {
-            browser = await puppeteer.launch({
-                args: [],
-                executablePath: process.platform === 'darwin' 
-                    ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' 
-                    : 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-                headless: true
-            });
-        } else {
-            browser = await puppeteer.launch({
-                args: chromium.args,
-                defaultViewport: chromium.defaultViewport,
-                executablePath: await chromium.executablePath(),
-                headless: chromium.headless,
-                ignoreHTTPSErrors: true,
-            });
-        }
+        const browser = await puppeteer.launch({
+            headless: 'new',
+            // These args are CRITICAL for Ubuntu/VPS to avoid crashing
+            args: ['--no-sandbox', '--disable-setuid-sandbox'], 
+        });
+
 
         const page = await browser.newPage();
         await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
