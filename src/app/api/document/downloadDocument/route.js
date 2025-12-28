@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core'; 
-import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer';
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
