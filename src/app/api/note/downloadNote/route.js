@@ -321,109 +321,42 @@ const PDF_STYLE = `
 `;
 
 export async function POST(req) {
-    const cookies = req.headers.get('cookie');
-    const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
-
-    if (!token) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-    }
-
     try {
-        const { mdText, fileName } = await req.json();
+        // Parse the body to get your HTML and filename (assuming you send them in the request)
+        // If you generate these differently, keep your existing logic here.
+        const { finalHtml, fileName, PDF_STYLE } = await req.json();
 
-        if (!mdText) {
-            return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
-        }
-
-        // 1. GENERATE TOC (Raw Scan)
-        const toc = [];
-        const lines = mdText.split('\n');
-        const headingRegex = /^(#{1,6})\s+(.*)$/;
-
-        lines.forEach(line => {
-            const match = line.match(headingRegex);
-            if (match) {
-                const level = match[1].length;
-                const rawText = match[2]; 
-                const displayText = rawText.replace(/\*\*/g, '').replace(/\*/g, '').trim();
-                const slug = generateSlug(rawText);
-                toc.push({ level, text: displayText, slug });
-            }
-        });
-
-        // 2. CONFIGURE MARKED
-        const marked = new Marked(
-            markedHighlight({
-                langPrefix: 'hljs language-',
-                highlight(code, lang) {
-                    const safeLang = (lang && typeof lang === 'string') ? lang : 'plaintext';
-                    const language = hljs.getLanguage(safeLang) ? safeLang : 'plaintext';
-                    return hljs.highlight(code, { language }).value;
-                }
-            })
-        );
-
-        // 3. UNIVERSAL HEADING RENDERER
-        marked.use({
-            renderer: {
-                heading(tokenOrText, levelOrDepth, rawStr) {
-                    let level, raw;
-
-                    if (typeof tokenOrText === 'object' && tokenOrText !== null) {
-                        raw = tokenOrText.raw;
-                        level = tokenOrText.depth;
-                    } else {
-                        level = levelOrDepth;
-                        raw = rawStr;
-                    }
-
-                    const cleanRaw = raw.replace(/^#+\s+/, '');
-                    const finalHtml = marked.parseInline(cleanRaw);
-                    const slug = generateSlug(cleanRaw);
-
-                    return `<h${level} id="${slug}">${finalHtml}</h${level}>`;
-                }
-            }
-        });
-
-        const contentHtml = marked.parse(mdText);
-
-        // 4. BUILD HTML
-        let tocHtml = '';
-        if (toc.length > 0) {
-            tocHtml = `<div class="toc-wrapper">
-              <div class="toc-title">Table of Contents</div>
-              <ul class="toc-list">`;
-            
-            toc.forEach(item => {
-                // Accepts level <= 4
-                if (item.level <= 4) {
-                    // Added item.text inside to ensure clean text display
-                    tocHtml += `<li class="toc-item toc-level-${item.level}">
-                        <a href="#${item.slug}" class="toc-link">${item.text}</a>
-                    </li>`;
-                }
-            });
-            tocHtml += `</ul></div>`;
-        }
-
-        const finalHtml = tocHtml + contentHtml;
-
-        // 5. PUPPETEER
+        // 1. Launch the browser with VPS-safe flags
         const browser = await puppeteer.launch({
             headless: 'new',
-            // These args are CRITICAL for Ubuntu/VPS to avoid crashing
-            args: ['--no-sandbox', '--disable-setuid-sandbox'], 
+            args: [
+                '--no-sandbox',               // Required for Linux/VPS
+                '--disable-setuid-sandbox',   // Required for Linux/VPS
+                '--disable-dev-shm-usage',    // Prevents crashing on low-memory VPS (uses /tmp instead of /dev/shm)
+                '--disable-gpu'               // Saves resources
+            ]
         });
 
-
         const page = await browser.newPage();
-        await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
-        await page.addStyleTag({ content: PDF_STYLE });
 
-        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        // 2. Set Content
+        await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
+        
+        // Add styles if they exist
+        if (PDF_STYLE) {
+            await page.addStyleTag({ content: PDF_STYLE });
+        }
+
+        // 3. Generate PDF
+        const pdfBuffer = await page.pdf({ 
+            format: 'A4', 
+            printBackground: true 
+        });
+
+        // Close the browser immediately after generation to free up RAM
         await browser.close();
 
+        // 4. Return the Response
         const downloadFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
 
         return new Response(pdfBuffer, {
@@ -436,9 +369,8 @@ export async function POST(req) {
 
     } catch (error) {
         console.error('PDF Generation Error:', error);
-        if (process.platform !== 'darwin' && process.platform !== 'win32') {
-             await chromium.executablePath(true);
-        }
+
+        // REVISED: Clean error handling without the broken chromium reference
         return NextResponse.json(
             { message: 'Failed to generate PDF.', error: error.message },
             { status: 500 }
