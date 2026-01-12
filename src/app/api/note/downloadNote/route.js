@@ -3,9 +3,10 @@ import puppeteer from 'puppeteer';
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
+import fs from 'fs'; // Added to check if browser exists
 
 // ---------------------------------------------------------
-//  1. CSS STYLES (EXACTLY AS REQUESTED)
+//  1. CSS STYLES
 // ---------------------------------------------------------
 const PDF_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -188,18 +189,6 @@ const PDF_STYLE = `
   }
   blockquote p { margin: 0; font-style: italic; color: var(--c-ink); font-weight: 500; }
 
-  table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 3em 0; font-size: 0.9em; page-break-inside: avoid; }
-  th { text-align: left; padding: 16px; color: var(--c-subtle); font-family: var(--font-heading); font-weight: 600; text-transform: uppercase; font-size: 11px; border-bottom: 1px solid #cbd5e1; }
-  td { padding: 16px; border-bottom: 1px solid #f1f5f9; color: var(--c-ink); background: #fff; }
-  tr:last-child td { border-bottom: none; }
-  ul { list-style: none; padding-left: 0; }
-  li { position: relative; padding-left: 24px; margin-bottom: 10px; color: var(--c-subtle); }
-  li::before { content: "→"; position: absolute; left: 0; color: var(--c-primary); font-weight: bold; }
-  strong { color: var(--c-ink); font-weight: 600; }
-  a { color: var(--c-primary); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
-  img { display: block; max-width: 100%; margin: 3em auto; border-radius: var(--radius-sm); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 1px solid #f1f5f9; }
-  hr { border: 0; height: 1px; background: linear-gradient(to right, transparent, #cbd5e1, transparent); margin: 4em 0; }
-
   .toc-wrapper { 
     page-break-after: always; 
     margin-bottom: 4rem; 
@@ -225,7 +214,6 @@ const PDF_STYLE = `
   .toc-item::before { content: "→"; position: absolute; left: 0; top: 0; color: var(--c-primary); font-weight: bold; font-family: var(--font-body); }
   .toc-level-1 { margin-top: 1.2em; font-weight: 700; font-size: 1.1em; color: var(--c-ink); margin-left: 0; }
   .toc-level-2 { margin-left: 1.5rem; font-size: 1em; }
-  .toc-level-3 { margin-left: 3rem; font-size: 0.9em; color: #64748b; }
   .toc-link { text-decoration: none; color: inherit; transition: color 0.2s; display: block; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; }
   .toc-link:hover { color: var(--c-primary); border-bottom-color: var(--c-primary); }
   
@@ -242,18 +230,59 @@ const PDF_STYLE = `
 function generateSlug(text) {
     if (!text) return '';
     return text.toString().toLowerCase().trim()
-        .replace(/<[^>]*>/g, '')  // strip tags
-        .replace(/[*_~`]/g, '')   // strip md syntax
-        .replace(/[^\w\s-]/g, '') // remove weird chars
-        .replace(/[\s_-]+/g, '-') // collapse dashes
-        .replace(/^-+|-+$/g, ''); // trim dashes
+        .replace(/<[^>]*>/g, '')  
+        .replace(/[*_~`]/g, '')   
+        .replace(/[^\w\s-]/g, '') 
+        .replace(/[\s_-]+/g, '-') 
+        .replace(/^-+|-+$/g, ''); 
 }
 
 // ---------------------------------------------------------
-//  3. MAIN API HANDLER
+//  3. SMART BROWSER LAUNCHER
+// ---------------------------------------------------------
+async function launchBrowser() {
+    // Basic flags for VPS stability
+    const args = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-extensions'
+    ];
+
+    const launchConfig = {
+        headless: 'new',
+        args: args
+    };
+
+    // Only look for custom paths on Linux
+    if (process.platform === 'linux') {
+        const possiblePaths = [
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/google-chrome'
+        ];
+
+        // Find the first path that actually exists
+        const foundPath = possiblePaths.find(path => fs.existsSync(path));
+
+        if (foundPath) {
+            console.log(`[PDF] Using system browser at: ${foundPath}`);
+            launchConfig.executablePath = foundPath;
+        } else {
+            console.log('[PDF] No system browser found. Attempting to use bundled Puppeteer...');
+            // We do NOT set executablePath, so it falls back to node_modules
+        }
+    }
+
+    return await puppeteer.launch(launchConfig);
+}
+
+// ---------------------------------------------------------
+//  4. MAIN API HANDLER
 // ---------------------------------------------------------
 export async function POST(req) {
-    // A. COOKIE AUTH
     const cookies = req.headers.get('cookie');
     const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
 
@@ -271,8 +300,7 @@ export async function POST(req) {
             return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
         }
 
-        // B. GENERATE TOC MANUALLY (Regex Scan)
-        // This is safer than relying on Marked for the data structure
+        // --- MARKDOWN & TOC ---
         const toc = [];
         const lines = mdText.split('\n');
         const headingRegex = /^(#{1,6})\s+(.*)$/;
@@ -282,14 +310,12 @@ export async function POST(req) {
             if (match) {
                 const level = match[1].length;
                 const rawText = match[2];
-                // Remove bold/italic markers for display
                 const displayText = rawText.replace(/\*\*/g, '').replace(/\*/g, '').trim();
                 const slug = generateSlug(rawText);
                 toc.push({ level, text: displayText, slug });
             }
         });
 
-        // C. SETUP MARKED (With Syntax Highlighting)
         const marked = new Marked(
             markedHighlight({
                 langPrefix: 'hljs language-',
@@ -300,12 +326,10 @@ export async function POST(req) {
             })
         );
 
-        // D. OVERRIDE RENDERER FOR IDs (Critical Fix)
-        // This fixes the "Object object" error by handling token parsing explicitly
         marked.use({
             renderer: {
                 heading({ tokens, depth, raw }) {
-                    const text = this.parser.parseInline(tokens); // Parse internal bold/italic
+                    const text = this.parser.parseInline(tokens);
                     const cleanRaw = raw.replace(/^#+\s+/, ''); 
                     const slug = generateSlug(cleanRaw);
                     return `<h${depth} id="${slug}">${text}</h${depth}>`;
@@ -315,7 +339,6 @@ export async function POST(req) {
 
         const contentHtml = await marked.parse(mdText);
 
-        // E. BUILD FINAL HTML WITH TOC
         let tocHtml = '';
         if (toc.length > 0) {
             tocHtml = `
@@ -323,7 +346,6 @@ export async function POST(req) {
                 <div class="toc-title">Table of Contents</div>
                 <ul class="toc-list">
                     ${toc.map(item => {
-                        // Only show levels 1-3 to keep it clean
                         if (item.level > 3) return ''; 
                         return `
                         <li class="toc-item toc-level-${item.level}">
@@ -337,34 +359,14 @@ export async function POST(req) {
         const fullHtml = `
             <!DOCTYPE html>
             <html>
-            <head>
-                <style>${PDF_STYLE}</style>
-            </head>
-            <body>
-                ${tocHtml}
-                ${contentHtml}
-            </body>
+            <head><style>${PDF_STYLE}</style></head>
+            <body>${tocHtml}${contentHtml}</body>
             </html>
         `;
 
-        // F. PUPPETEER LAUNCH LOGIC (VPS Fix)
-        if (process.platform === 'linux') {
-            browser = await puppeteer.launch({
-                executablePath: '/usr/bin/chromium-browser', // Standard VPS path
-                headless: 'new',
-                args: [
-                    '--no-sandbox', 
-                    '--disable-setuid-sandbox', 
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu'
-                ]
-            });
-        } else {
-            // Local Development (Mac/Windows)
-            browser = await puppeteer.launch({
-                headless: 'new'
-            });
-        }
+        // --- LAUNCH BROWSER ---
+        // This function now handles the logic safely
+        browser = await launchBrowser();
 
         const page = await browser.newPage();
         await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
@@ -377,9 +379,7 @@ export async function POST(req) {
 
         await browser.close();
 
-        // G. RETURN PDF
         const cleanName = (fileName || 'document').replace(/[^a-zA-Z0-9-_]/g, '');
-        
         return new NextResponse(pdfBuffer, {
             status: 200,
             headers: {
