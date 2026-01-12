@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+// We import standard 'puppeteer' but will use 'puppeteer-core' logic for VPS
+import puppeteer from 'puppeteer'; 
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
@@ -21,7 +22,7 @@ function generateSlug(text) {
 }
 
 // ---------------------------------------------------------
-//  CSS (Updated for Indented Arrows & Distinct Subheaders)
+//  CSS
 // ---------------------------------------------------------
 const PDF_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -222,9 +223,7 @@ const PDF_STYLE = `
   img { display: block; max-width: 100%; margin: 3em auto; border-radius: var(--radius-sm); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 1px solid #f1f5f9; }
   hr { border: 0; height: 1px; background: linear-gradient(to right, transparent, #cbd5e1, transparent); margin: 4em 0; }
 
-  /* ---------------------------------------------------------
-     TOC STYLES (UPDATED: Arrows Indent & Distinct Level 4)
-     --------------------------------------------------------- */
+  /* TOC STYLES */
   .toc-wrapper { 
     page-break-after: always; 
     margin-bottom: 4rem; 
@@ -245,70 +244,16 @@ const PDF_STYLE = `
     padding-bottom: 10px; 
     display: inline-block; 
   }
-  
   .toc-list { list-style: none; padding: 0; }
-  
-  /* Shared TOC Item Styles */
-  .toc-item { 
-    margin-bottom: 0.5rem; 
-    position: relative;
-    /* 'padding-left' creates space for the arrow inside the box */
-    padding-left: 20px; 
-  }
-
-  /* The Arrow */
-  .toc-item::before {
-    content: "→";
-    position: absolute;
-    left: 0;
-    top: 0;
-    color: var(--c-primary);
-    font-weight: bold;
-    font-family: var(--font-body);
-  }
-
-  /* INDENTATION LEVELS 
-     We use MARGIN-LEFT to move the entire box (arrow included) to the right.
-  */
-  .toc-level-1 { 
-    margin-top: 1.2em; 
-    font-weight: 700; 
-    font-size: 1.1em; 
-    color: var(--c-ink); 
-    margin-left: 0; /* Level 1 stays far left */
-  }
-  
-  .toc-level-2 { 
-    margin-left: 1.5rem; /* Indent */
-    font-size: 1em;
-  }
-  
-  .toc-level-3 { 
-    margin-left: 3rem; /* Double Indent */
-    font-size: 0.9em; 
-    color: #64748b; 
-  }
-
-  /* DISTINCT LEVEL 4 */
-  .toc-level-4 { 
-    margin-left: 5rem; /* Deep Indent */
-    font-size: 0.8em;  /* Much smaller text */
-    color: #94a3b8;    /* Lighter color */
-    font-style: italic;
-    margin-bottom: 0.3rem; /* Tighter spacing */
-  }
-  
-  /* Links */
-  .toc-link { 
-    text-decoration: none; 
-    color: inherit; /* Inherit color from the level class */
-    transition: color 0.2s; 
-    display: block; 
-    border-bottom: 1px dashed #e2e8f0;
-    padding-bottom: 2px;
-  }
+  .toc-item { margin-bottom: 0.5rem; position: relative; padding-left: 20px; }
+  .toc-item::before { content: "→"; position: absolute; left: 0; top: 0; color: var(--c-primary); font-weight: bold; font-family: var(--font-body); }
+  .toc-level-1 { margin-top: 1.2em; font-weight: 700; font-size: 1.1em; color: var(--c-ink); margin-left: 0; }
+  .toc-level-2 { margin-left: 1.5rem; font-size: 1em; }
+  .toc-level-3 { margin-left: 3rem; font-size: 0.9em; color: #64748b; }
+  .toc-level-4 { margin-left: 5rem; font-size: 0.8em; color: #94a3b8; font-style: italic; margin-bottom: 0.3rem; }
+  .toc-link { text-decoration: none; color: inherit; transition: color 0.2s; display: block; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; }
   .toc-link:hover { color: var(--c-primary); border-bottom-color: var(--c-primary); }
-
+  
   /* HIGHLIGHT.JS */
   .hljs-keyword, .hljs-operator, .hljs-selector-tag { color: #a626a4; font-weight: 500; }
   .hljs-built_in, .hljs-literal, .hljs-number { color: #986801; }
@@ -321,42 +266,122 @@ const PDF_STYLE = `
 `;
 
 export async function POST(req) {
+    const cookies = req.headers.get('cookie');
+    const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
+
+    if (!token) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+
     try {
-        // Parse the body to get your HTML and filename (assuming you send them in the request)
-        // If you generate these differently, keep your existing logic here.
-        const { finalHtml, fileName, PDF_STYLE } = await req.json();
+        const { mdText, fileName } = await req.json();
 
-        // 1. Launch the browser with VPS-safe flags
-        const browser = await puppeteer.launch({
-            headless: 'new',
-            args: [
-                '--no-sandbox',               // Required for Linux/VPS
-                '--disable-setuid-sandbox',   // Required for Linux/VPS
-                '--disable-dev-shm-usage',    // Prevents crashing on low-memory VPS (uses /tmp instead of /dev/shm)
-                '--disable-gpu'               // Saves resources
-            ]
-        });
-
-        const page = await browser.newPage();
-
-        // 2. Set Content
-        await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
-        
-        // Add styles if they exist
-        if (PDF_STYLE) {
-            await page.addStyleTag({ content: PDF_STYLE });
+        if (!mdText) {
+            return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
         }
 
-        // 3. Generate PDF
-        const pdfBuffer = await page.pdf({ 
-            format: 'A4', 
-            printBackground: true 
+        // 1. GENERATE TOC (Raw Scan)
+        const toc = [];
+        const lines = mdText.split('\n');
+        const headingRegex = /^(#{1,6})\s+(.*)$/;
+
+        lines.forEach(line => {
+            const match = line.match(headingRegex);
+            if (match) {
+                const level = match[1].length;
+                const rawText = match[2]; 
+                const displayText = rawText.replace(/\*\*/g, '').replace(/\*/g, '').trim();
+                const slug = generateSlug(rawText);
+                toc.push({ level, text: displayText, slug });
+            }
         });
 
-        // Close the browser immediately after generation to free up RAM
+        // 2. CONFIGURE MARKED
+        const marked = new Marked(
+            markedHighlight({
+                langPrefix: 'hljs language-',
+                highlight(code, lang) {
+                    const safeLang = (lang && typeof lang === 'string') ? lang : 'plaintext';
+                    const language = hljs.getLanguage(safeLang) ? safeLang : 'plaintext';
+                    return hljs.highlight(code, { language }).value;
+                }
+            })
+        );
+
+        // 3. UNIVERSAL HEADING RENDERER
+        marked.use({
+            renderer: {
+                heading(tokenOrText, levelOrDepth, rawStr) {
+                    let level, raw;
+
+                    if (typeof tokenOrText === 'object' && tokenOrText !== null) {
+                        raw = tokenOrText.raw;
+                        level = tokenOrText.depth;
+                    } else {
+                        level = levelOrDepth;
+                        raw = rawStr;
+                    }
+
+                    const cleanRaw = raw.replace(/^#+\s+/, '');
+                    const finalHtml = marked.parseInline(cleanRaw);
+                    const slug = generateSlug(cleanRaw);
+
+                    return `<h${level} id="${slug}">${finalHtml}</h${level}>`;
+                }
+            }
+        });
+
+        const contentHtml = marked.parse(mdText);
+
+        // 4. BUILD HTML
+        let tocHtml = '';
+        if (toc.length > 0) {
+            tocHtml = `<div class="toc-wrapper">
+              <div class="toc-title">Table of Contents</div>
+              <ul class="toc-list">`;
+            
+            toc.forEach(item => {
+                if (item.level <= 4) {
+                    tocHtml += `<li class="toc-item toc-level-${item.level}">
+                        <a href="#${item.slug}" class="toc-link">${item.text}</a>
+                    </li>`;
+                }
+            });
+            tocHtml += `</ul></div>`;
+        }
+
+        const finalHtml = tocHtml + contentHtml;
+
+        // 5. PUPPETEER CONFIGURATION (THE FIX)
+        let browser;
+        
+        // Check if we are on Mac/Windows (Development) OR Linux (VPS)
+        if (process.platform === 'win32' || process.platform === 'darwin') {
+             // LOCAL DEV: Use standard launch (downloads its own browser)
+             browser = await puppeteer.launch({
+                headless: 'new'
+             });
+        } else {
+             // VPS / LINUX: Use the system-installed Chromium
+             browser = await puppeteer.launch({
+                executablePath: '/usr/bin/chromium-browser', 
+                headless: 'new',
+                args: [
+                    '--no-sandbox', 
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu'
+                ]
+             });
+        }
+
+        const page = await browser.newPage();
+        await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
+        await page.addStyleTag({ content: PDF_STYLE });
+
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
         await browser.close();
 
-        // 4. Return the Response
         const downloadFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
 
         return new Response(pdfBuffer, {
@@ -369,8 +394,7 @@ export async function POST(req) {
 
     } catch (error) {
         console.error('PDF Generation Error:', error);
-
-        // REVISED: Clean error handling without the broken chromium reference
+        
         return NextResponse.json(
             { message: 'Failed to generate PDF.', error: error.message },
             { status: 500 }
