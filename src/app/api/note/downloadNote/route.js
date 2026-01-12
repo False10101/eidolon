@@ -1,28 +1,11 @@
 import { NextResponse } from 'next/server';
-// We import standard 'puppeteer' but will use 'puppeteer-core' logic for VPS
-import puppeteer from 'puppeteer'; 
+import puppeteer from 'puppeteer';
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 
 // ---------------------------------------------------------
-//  HELPER: SHARED SLUG GENERATOR
-// ---------------------------------------------------------
-function generateSlug(text) {
-  if (!text) return '';
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/<[^>]*>/g, '')  
-    .replace(/[*_~`]/g, '')   
-    .replace(/[^\w\s-]/g, '') 
-    .replace(/[\s_-]+/g, '-') 
-    .replace(/^-+|-+$/g, ''); 
-}
-
-// ---------------------------------------------------------
-//  CSS
+//  1. CSS STYLES (EXACTLY AS REQUESTED)
 // ---------------------------------------------------------
 const PDF_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -34,15 +17,12 @@ const PDF_STYLE = `
     --c-accent: #8b5cf6;        
     --c-surface: #ffffff;       
     --c-surface-alt: #f8fafc;   
-
     --bg-code-block: #f8fafc;   
     --bg-code-header: #f1f5f9;  
     --border-code: #e2e8f0;     
-    
     --font-heading: 'Space Grotesk', sans-serif;
     --font-body: 'Inter', sans-serif;
     --font-code: 'JetBrains Mono', monospace;
-    
     --radius-md: 12px;
   }
 
@@ -59,7 +39,6 @@ const PDF_STYLE = `
     print-color-adjust: exact;
   }
 
-  /* HEADERS */
   h1, h2, h3, h4 {
     font-family: var(--font-heading);
     color: var(--c-ink);
@@ -119,7 +98,6 @@ const PDF_STYLE = `
     margin-top: 2em;
   }
 
-  /* CODE BLOCKS */
   pre {
     background: var(--bg-code-block);
     color: #334155;
@@ -185,7 +163,6 @@ const PDF_STYLE = `
     letter-spacing: normal;
   }
 
-  /* OTHER ELEMENTS */
   blockquote {
     position: relative;
     margin: 2.5em 0;
@@ -223,7 +200,6 @@ const PDF_STYLE = `
   img { display: block; max-width: 100%; margin: 3em auto; border-radius: var(--radius-sm); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: 1px solid #f1f5f9; }
   hr { border: 0; height: 1px; background: linear-gradient(to right, transparent, #cbd5e1, transparent); margin: 4em 0; }
 
-  /* TOC STYLES */
   .toc-wrapper { 
     page-break-after: always; 
     margin-bottom: 4rem; 
@@ -250,37 +226,53 @@ const PDF_STYLE = `
   .toc-level-1 { margin-top: 1.2em; font-weight: 700; font-size: 1.1em; color: var(--c-ink); margin-left: 0; }
   .toc-level-2 { margin-left: 1.5rem; font-size: 1em; }
   .toc-level-3 { margin-left: 3rem; font-size: 0.9em; color: #64748b; }
-  .toc-level-4 { margin-left: 5rem; font-size: 0.8em; color: #94a3b8; font-style: italic; margin-bottom: 0.3rem; }
   .toc-link { text-decoration: none; color: inherit; transition: color 0.2s; display: block; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; }
   .toc-link:hover { color: var(--c-primary); border-bottom-color: var(--c-primary); }
   
-  /* HIGHLIGHT.JS */
   .hljs-keyword, .hljs-operator, .hljs-selector-tag { color: #a626a4; font-weight: 500; }
   .hljs-built_in, .hljs-literal, .hljs-number { color: #986801; }
   .hljs-string, .hljs-attr { color: #50a14f; }
   .hljs-title, .hljs-function { color: #4078f2; }
-  .hljs-title.class_ { color: #c18401; }
   .hljs-comment, .hljs-quote { color: #a0a1a7; font-style: italic; }
-  .hljs-variable, .hljs-template-variable, .hljs-tag, .hljs-name { color: #383a42; }
-  .hljs-tag, .hljs-name, .hljs-attribute { color: #e45649; }
 `;
 
+// ---------------------------------------------------------
+//  2. UTILS
+// ---------------------------------------------------------
+function generateSlug(text) {
+    if (!text) return '';
+    return text.toString().toLowerCase().trim()
+        .replace(/<[^>]*>/g, '')  // strip tags
+        .replace(/[*_~`]/g, '')   // strip md syntax
+        .replace(/[^\w\s-]/g, '') // remove weird chars
+        .replace(/[\s_-]+/g, '-') // collapse dashes
+        .replace(/^-+|-+$/g, ''); // trim dashes
+}
+
+// ---------------------------------------------------------
+//  3. MAIN API HANDLER
+// ---------------------------------------------------------
 export async function POST(req) {
+    // A. COOKIE AUTH
     const cookies = req.headers.get('cookie');
     const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
 
     if (!token) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    let browser = null;
+
     try {
-        const { mdText, fileName } = await req.json();
+        const body = await req.json();
+        const { mdText, fileName } = body;
 
         if (!mdText) {
             return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
         }
 
-        // 1. GENERATE TOC (Raw Scan)
+        // B. GENERATE TOC MANUALLY (Regex Scan)
+        // This is safer than relying on Marked for the data structure
         const toc = [];
         const lines = mdText.split('\n');
         const headingRegex = /^(#{1,6})\s+(.*)$/;
@@ -289,114 +281,119 @@ export async function POST(req) {
             const match = line.match(headingRegex);
             if (match) {
                 const level = match[1].length;
-                const rawText = match[2]; 
+                const rawText = match[2];
+                // Remove bold/italic markers for display
                 const displayText = rawText.replace(/\*\*/g, '').replace(/\*/g, '').trim();
                 const slug = generateSlug(rawText);
                 toc.push({ level, text: displayText, slug });
             }
         });
 
-        // 2. CONFIGURE MARKED
+        // C. SETUP MARKED (With Syntax Highlighting)
         const marked = new Marked(
             markedHighlight({
                 langPrefix: 'hljs language-',
                 highlight(code, lang) {
-                    const safeLang = (lang && typeof lang === 'string') ? lang : 'plaintext';
-                    const language = hljs.getLanguage(safeLang) ? safeLang : 'plaintext';
+                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
                     return hljs.highlight(code, { language }).value;
                 }
             })
         );
 
-        // 3. UNIVERSAL HEADING RENDERER
+        // D. OVERRIDE RENDERER FOR IDs (Critical Fix)
+        // This fixes the "Object object" error by handling token parsing explicitly
         marked.use({
             renderer: {
-                heading(tokenOrText, levelOrDepth, rawStr) {
-                    let level, raw;
-
-                    if (typeof tokenOrText === 'object' && tokenOrText !== null) {
-                        raw = tokenOrText.raw;
-                        level = tokenOrText.depth;
-                    } else {
-                        level = levelOrDepth;
-                        raw = rawStr;
-                    }
-
-                    const cleanRaw = raw.replace(/^#+\s+/, '');
-                    const finalHtml = marked.parseInline(cleanRaw);
+                heading({ tokens, depth, raw }) {
+                    const text = this.parser.parseInline(tokens); // Parse internal bold/italic
+                    const cleanRaw = raw.replace(/^#+\s+/, ''); 
                     const slug = generateSlug(cleanRaw);
-
-                    return `<h${level} id="${slug}">${finalHtml}</h${level}>`;
+                    return `<h${depth} id="${slug}">${text}</h${depth}>`;
                 }
             }
         });
 
-        const contentHtml = marked.parse(mdText);
+        const contentHtml = await marked.parse(mdText);
 
-        // 4. BUILD HTML
+        // E. BUILD FINAL HTML WITH TOC
         let tocHtml = '';
         if (toc.length > 0) {
-            tocHtml = `<div class="toc-wrapper">
-              <div class="toc-title">Table of Contents</div>
-              <ul class="toc-list">`;
-            
-            toc.forEach(item => {
-                if (item.level <= 4) {
-                    tocHtml += `<li class="toc-item toc-level-${item.level}">
-                        <a href="#${item.slug}" class="toc-link">${item.text}</a>
-                    </li>`;
-                }
-            });
-            tocHtml += `</ul></div>`;
+            tocHtml = `
+            <div class="toc-wrapper">
+                <div class="toc-title">Table of Contents</div>
+                <ul class="toc-list">
+                    ${toc.map(item => {
+                        // Only show levels 1-3 to keep it clean
+                        if (item.level > 3) return ''; 
+                        return `
+                        <li class="toc-item toc-level-${item.level}">
+                            <a href="#${item.slug}" class="toc-link">${item.text}</a>
+                        </li>`;
+                    }).join('')}
+                </ul>
+            </div>`;
         }
 
-        const finalHtml = tocHtml + contentHtml;
+        const fullHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>${PDF_STYLE}</style>
+            </head>
+            <body>
+                ${tocHtml}
+                ${contentHtml}
+            </body>
+            </html>
+        `;
 
-        // 5. PUPPETEER CONFIGURATION (THE FIX)
-        let browser;
-        
-        // Check if we are on Mac/Windows (Development) OR Linux (VPS)
-        if (process.platform === 'win32' || process.platform === 'darwin') {
-             // LOCAL DEV: Use standard launch (downloads its own browser)
-             browser = await puppeteer.launch({
-                headless: 'new'
-             });
-        } else {
-             // VPS / LINUX: Use the system-installed Chromium
-             browser = await puppeteer.launch({
-                executablePath: '/usr/bin/chromium-browser', 
+        // F. PUPPETEER LAUNCH LOGIC (VPS Fix)
+        if (process.platform === 'linux') {
+            browser = await puppeteer.launch({
+                executablePath: '/usr/bin/chromium-browser', // Standard VPS path
                 headless: 'new',
                 args: [
                     '--no-sandbox', 
-                    '--disable-setuid-sandbox',
+                    '--disable-setuid-sandbox', 
                     '--disable-dev-shm-usage',
                     '--disable-gpu'
                 ]
-             });
+            });
+        } else {
+            // Local Development (Mac/Windows)
+            browser = await puppeteer.launch({
+                headless: 'new'
+            });
         }
 
         const page = await browser.newPage();
-        await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
-        await page.addStyleTag({ content: PDF_STYLE });
+        await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
 
-        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        const pdfBuffer = await page.pdf({ 
+            format: 'A4', 
+            printBackground: true,
+            margin: { top: '0', bottom: '0', left: '0', right: '0' }
+        });
+
         await browser.close();
 
-        const downloadFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-
-        return new Response(pdfBuffer, {
+        // G. RETURN PDF
+        const cleanName = (fileName || 'document').replace(/[^a-zA-Z0-9-_]/g, '');
+        
+        return new NextResponse(pdfBuffer, {
             status: 200,
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="${downloadFileName}"`,
+                'Content-Disposition': `attachment; filename="${cleanName}.pdf"`,
             },
         });
 
     } catch (error) {
         console.error('PDF Generation Error:', error);
+        if (browser) await browser.close();
         
         return NextResponse.json(
-            { message: 'Failed to generate PDF.', error: error.message },
+            { message: 'Internal Server Error', error: error.toString() },
             { status: 500 }
         );
     }
