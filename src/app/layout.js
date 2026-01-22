@@ -5,7 +5,24 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, createContext, useContext } from 'react';
 import "./globals.css";
-import { ArrowRightStartOnRectangleIcon, Cog6ToothIcon, BoltIcon, HomeIcon, DocumentTextIcon, PencilSquareIcon, BookOpenIcon, SpeakerWaveIcon, PhotoIcon, ChatBubbleLeftIcon, LockClosedIcon, LanguageIcon, MusicalNoteIcon } from "@heroicons/react/24/solid";
+import { 
+  ArrowRightStartOnRectangleIcon, 
+  Cog6ToothIcon, 
+  BoltIcon, 
+  HomeIcon, 
+  DocumentTextIcon, 
+  PencilSquareIcon, 
+  BookOpenIcon, 
+  SpeakerWaveIcon, 
+  PhotoIcon, 
+  ChatBubbleLeftIcon, 
+  LockClosedIcon, 
+  LanguageIcon, 
+  MusicalNoteIcon,
+  ComputerDesktopIcon,
+  DevicePhoneMobileIcon,
+  ExclamationTriangleIcon
+} from "@heroicons/react/24/solid";
 import { match } from 'path-to-regexp';
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
@@ -51,24 +68,99 @@ const historyItemVariants = {
   visible: { opacity: 1, x: 0 },
 };
 
+// --- MOBILE BLOCK SCREEN COMPONENT ---
+const MobileBlockScreen = () => (
+  <html lang="en">
+    <body className="bg-black text-rose-500 h-screen w-screen flex flex-col items-center justify-center overflow-hidden font-mono p-6 text-center"
+          style={{ backgroundImage: 'radial-gradient(circle at center, #2e0202 0%, #000000 100%)' }}>
+      
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #ff000005 3px)' }}></div>
+      
+      <motion.div 
+        initial={{ scale: 0.8, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        className="border border-rose-600/50 bg-[#1a0505]/80 backdrop-blur-xl p-8 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.2)] max-w-lg z-10"
+      >
+        <ExclamationTriangleIcon className="w-20 h-20 text-rose-500 mx-auto mb-6 animate-pulse" />
+        
+        <h1 className="text-3xl font-extrabold mb-2 tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]">
+          ACCESS DENIED
+        </h1>
+        
+        <p className="text-rose-200/70 mb-8 text-sm uppercase tracking-wide border-b border-rose-900/50 pb-6">
+          System Protocol Violation: Unsupported Hardware
+        </p>
+
+        <div className="flex justify-center items-center space-x-8 mb-8 opacity-80">
+          <div className="flex flex-col items-center">
+            <DevicePhoneMobileIcon className="w-12 h-12 text-rose-500/40" />
+            <span className="text-xs text-rose-500/40 mt-2 line-through">MOBILE</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-2 border-rose-500 rounded-lg flex items-center justify-center text-rose-500">?</div>
+            <span className="text-xs text-rose-500 mt-2">TABLET</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <ComputerDesktopIcon className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+            <span className="text-xs text-emerald-400 mt-2 font-bold">DESKTOP</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-rose-400/60">
+          This terminal requires a high-resolution desktop interface.<br/>
+          Please switch to a desktop or laptop device to proceed.
+        </p>
+      </motion.div>
+    </body>
+  </html>
+);
+
 
 export default function RootLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
 
-
   const [tokenCount, setTokenCount] = useState("Unlimited");
   const [groupedHistory, setGroupedHistory] = useState({});
-
   const [isAdmin, setIsAdmin] = useState(false);
+  const [pageTitle, setPageTitle] = useState('Eidolon');
+  
+  // --- MOBILE CHECK STATE ---
+  const [isMobile, setIsMobile] = useState(false);
+  const [isLoadingDevice, setIsLoadingDevice] = useState(true);
+
+  // --- MOBILE CHECK EFFECT ---
+  useEffect(() => {
+    const checkDevice = () => {
+      // Check width: Less than 1024px usually covers phones and portrait tablets.
+      // Most iPads in landscape are 1024px or larger, so strictly < 1024 might block portrait iPads 
+      // but allow landscape Pro models. If you want to block ALL tablets, 1024 is a safe bet.
+      const width = window.innerWidth;
+      const mobileAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // Strict Check: If it's physically small OR identifies as a mobile OS
+      if (width < 1024 || mobileAgent) {
+        setIsMobile(true);
+      } else {
+        setIsMobile(false);
+      }
+      setIsLoadingDevice(false);
+    };
+
+    // Run on mount
+    checkDevice();
+
+    // Run on resize
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
 
   const handleLogout = async () => {
     await fetch(`/api/auth/logout`, { method: 'POST' });
     router.push('/auth/login');
   };
-
-  const [pageTitle, setPageTitle] = useState('Eidolon');
 
   useEffect(() => {
     const getPageTitle = () => {
@@ -127,18 +219,15 @@ export default function RootLayout({ children }) {
           const data = await response.json();
 
           if (Array.isArray(data.response)) {
-
-            // Process the data and set the new grouped state
             const groupedData = groupHistoryByDate(data.response);
             setGroupedHistory(groupedData);
           } else {
-            setGroupedHistory({}); // Reset or handle cases where no data is returned
+            setGroupedHistory({}); 
           }
         } catch (error) {
           console.error(error);
         }
       }
-
       getHistory();
     }
     else if (pathname.includes('/textbook')) {
@@ -152,18 +241,15 @@ export default function RootLayout({ children }) {
           const data = await response.json();
 
           if (Array.isArray(data.response)) {
-
-            // Process the data and set the new grouped state
             const groupedData = groupHistoryByDate(data.response);
             setGroupedHistory(groupedData);
           } else {
-            setGroupedHistory({}); // Reset or handle cases where no data is returned
+            setGroupedHistory({}); 
           }
         } catch (error) {
           console.error(error);
         }
       }
-
       getHistory();
     }
 
@@ -178,18 +264,15 @@ export default function RootLayout({ children }) {
           const data = await response.json();
 
           if (Array.isArray(data.response)) {
-
-            // Process the data and set the new grouped state
             const groupedData = groupHistoryByDate(data.response);
             setGroupedHistory(groupedData);
           } else {
-            setGroupedHistory({}); // Reset or handle cases where no data is returned
+            setGroupedHistory({}); 
           }
         } catch (error) {
           console.error(error);
         }
       }
-
       getHistory();
     }
   }, [pathname])
@@ -197,7 +280,7 @@ export default function RootLayout({ children }) {
   useEffect(() => {
     const getTokenCount = async () => {
       try {
-        setTokenCount("Unlimited"); // Reset token count before fetching
+        setTokenCount("Unlimited"); 
 
         let apiType = '';
         if (pathname.includes('/document')) {
@@ -208,7 +291,7 @@ export default function RootLayout({ children }) {
           apiType = 'Textbook Explainer';
         } else {
           setTokenCount("Unlimited");
-          return; // Skip fetch for other routes
+          return; 
         }
 
         const response = await fetch(`/api/navbar/getAPITokenCount?type=${encodeURIComponent(apiType)}`, {
@@ -229,6 +312,12 @@ export default function RootLayout({ children }) {
 
     getTokenCount();
   }, [pathname]);
+
+  // --- EARLY RETURN FOR MOBILE ---
+  // If loading, show nothing (or a black screen) to prevent flash
+  // If mobile, show the Block Screen
+  if (isLoadingDevice) return <html className="bg-black"><body></body></html>;
+  if (isMobile) return <MobileBlockScreen />;
 
   const isAuthRoute = pathname.startsWith('/auth');
   const isHomeRoute = pathname.startsWith('/home');
@@ -260,7 +349,6 @@ export default function RootLayout({ children }) {
 
   var routeDisplayName = isHomeRoute ? "Ai Suite" : pathname.startsWith('/document') ? "Document Generator" : pathname.startsWith('/auth') ? "Authentication" : pathname.startsWith('/note') ? "Note Taker" : pathname.startsWith('/textbook-explainer') ? "Textbook Explainer" : pathname.startsWith('/tts') ? "Text-To-Speech" : pathname.startsWith('/image-gen') ? "Image Generation" : pathname.startsWith('/chatbot') ? "Chatbot" : "";
 
-  console.log(isAdmin);
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
