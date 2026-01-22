@@ -40,26 +40,31 @@ ChartJS.register(
     Filler
 );
 
+// --- THEME CONSTANTS ---
 const avatarColors = [
-    '#2563EB', // A strong blue
-    '#4338CA', // Indigo
-    '#6D28D9', // A vibrant violet
-    '#1E3A8A', // A deep, dark blue
-    '#5B21B6', // A rich purple
-    '#3B82F6', // A brighter, sky-like blue
+    '#2563EB', // Blue
+    '#0891B2', // Cyan
+    '#7C3AED', // Violet
+    '#0284C7', // Sky
+    '#4F46E5', // Indigo
+    '#0D9488', // Teal
 ];
 
 const colorMap = {
-    'Document': '#3366FF',
-    'Inclass Notes': '#5A83B8',
-    'Textbook Explainer': '#6A5ACD',
-    'TTS with Subtitles': '#4A60DE',
-    'Image Generation': '#8AD3CC',
-    'Chat with AI': '#7796C7',
+    'Document': '#60A5FA', // Blue-400
+    'Inclass Notes': '#22D3EE', // Cyan-400
+    'Textbook Explainer': '#A78BFA', // Violet-400
+    'TTS with Subtitles': '#818CF8', // Indigo-400
+    'Image Generation': '#2DD4BF', // Teal-400
+    'Chat with AI': '#38BDF8', // Sky-400
 };
 
-
-
+const cardHoverEffect = {
+    y: -5,
+    boxShadow: '0 0px 25px rgba(6, 182, 212, 0.25), inset 0 0 10px rgba(6, 182, 212, 0.1)',
+    borderColor: 'rgba(6, 182, 212, 0.5)',
+    transition: { type: 'spring', stiffness: 300 }
+};
 
 // --- ANIMATION VARIANTS ---
 const containerVariants = {
@@ -97,9 +102,8 @@ const CreateUserModal = ({ isOpen, onClose, onCreateUser }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(''); // Clear previous errors
+        setError('');
 
-        // --- Validation ---
         if (!newUser.username || !newUser.password || !newUser.confirmPassword) {
             setError('Please fill out all fields.');
             return;
@@ -120,23 +124,20 @@ const CreateUserModal = ({ isOpen, onClose, onCreateUser }) => {
                 body: JSON.stringify({
                     username: newUser.username,
                     password: newUser.password,
-                    type: newUser.type.toLowerCase(), // Send 'user' or 'admin'
+                    type: newUser.type.toLowerCase(),
                 }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                // Handle errors from the API (e.g., username taken)
                 throw new Error(data.message || 'Failed to create account.');
             }
 
-            // Call parent's handler to update the UI, if provided
             if (onCreateUser) {
-                onCreateUser(data.newUser); // Assuming API returns the created user
+                onCreateUser(data.newUser);
             }
 
-            // Reset form and close modal on success
             setNewUser({ username: '', password: '', confirmPassword: '', type: 'User' });
             onClose();
 
@@ -154,74 +155,74 @@ const CreateUserModal = ({ isOpen, onClose, onCreateUser }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50 p-4"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50 p-4"
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-[#141B3C] border border-white/[15%] rounded-2xl p-6 shadow-xl w-full max-w-md"
+                        className="bg-[#0b1221] border border-cyan-500/30 rounded-2xl p-6 shadow-[0_0_40px_rgba(6,182,212,0.2)] w-full max-w-md"
                     >
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-semibold text-[#00BFFF] flex items-center">
+                        <div className="flex justify-between items-center mb-6 border-b border-slate-800/60 pb-4">
+                            <h3 className="text-xl font-bold text-cyan-400 flex items-center drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">
                                 <UserPlusIcon className="w-6 h-6 mr-3" />
-                                Create New User
+                                New Protocol User
                             </h3>
-                            <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10">
-                                <XMarkIcon className="w-6 h-6 text-white/70" />
+                            <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-800 transition-colors">
+                                <XMarkIcon className="w-6 h-6 text-slate-400 hover:text-white" />
                             </button>
                         </div>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label htmlFor="username" className="block text-sm font-medium text-white/80 mb-2">Username</label>
+                                <label htmlFor="username" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">Username</label>
                                 <input
                                     type="text"
                                     id="username"
                                     name="username"
                                     value={newUser.username}
                                     onChange={handleChange}
-                                    className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                    className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none"
                                     placeholder="e.g., jdoe"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-white/80 mb-2">Password</label>
+                                <label htmlFor="password" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">Password</label>
                                 <input
                                     type="password"
                                     id="password"
                                     name="password"
                                     value={newUser.password}
                                     onChange={handleChange}
-                                    className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                    className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none"
                                     placeholder="••••••••"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-white/80 mb-2">Confirm Password</label>
+                                <label htmlFor="confirmPassword" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">Confirm Password</label>
                                 <input
                                     type="password"
                                     id="confirmPassword"
                                     name="confirmPassword"
                                     value={newUser.confirmPassword}
                                     onChange={handleChange}
-                                    className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                    className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none"
                                     placeholder="••••••••"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="type" className="block text-sm font-medium text-white/80 mb-2">Type</label>
+                                <label htmlFor="type" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">Clearance Level</label>
                                 <div className="relative">
                                     <select
                                         id="type"
                                         name="type"
                                         value={newUser.type}
                                         onChange={handleChange}
-                                        className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 pl-3 pr-8 text-sm appearance-none"
+                                        className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all outline-none appearance-none"
                                     >
                                         <option>User</option>
                                         <option>Admin</option>
                                     </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white/70">
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
                                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                         </svg>
@@ -229,7 +230,7 @@ const CreateUserModal = ({ isOpen, onClose, onCreateUser }) => {
                                 </div>
                             </div>
 
-                            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                            {error && <p className="text-rose-400 text-sm text-center font-mono">{error}</p>}
 
                             <div className="flex justify-end pt-4">
                                 <motion.button
@@ -237,9 +238,9 @@ const CreateUserModal = ({ isOpen, onClose, onCreateUser }) => {
                                     disabled={isSubmitting}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="bg-[#00BFFF] hover:bg-[#0099CC] transition-colors text-white font-bold py-2 px-6 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-colors text-white font-bold py-2.5 px-6 rounded-lg text-sm tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {isSubmitting ? 'Creating...' : 'Create Account'}
+                                    {isSubmitting ? 'Initializing...' : 'Create Account'}
                                 </motion.button>
                             </div>
                         </form>
@@ -250,8 +251,6 @@ const CreateUserModal = ({ isOpen, onClose, onCreateUser }) => {
     );
 };
 
-
-
 // --- COMPONENTS ---
 
 const UsageChart = ({ data }) => {
@@ -261,8 +260,10 @@ const UsageChart = ({ data }) => {
             {
                 label: 'Tokens Used',
                 data: data.map(d => d.token_received),
-                borderColor: '#00BFFF',
-                backgroundColor: 'rgba(0, 191, 255, 0.2)',
+                borderColor: '#22d3ee', // Cyan-400
+                backgroundColor: 'rgba(34, 211, 238, 0.2)',
+                pointBackgroundColor: '#22d3ee',
+                pointBorderColor: '#000',
                 tension: 0.4,
                 fill: true,
             },
@@ -278,11 +279,11 @@ const UsageChart = ({ data }) => {
         },
         scales: {
             y: {
-                ticks: { color: 'rgba(255,255,255,0.5)' },
-                grid: { color: 'rgba(255,255,255,0.1)' },
+                ticks: { color: 'rgba(148, 163, 184, 0.6)', font: { size: 10, family: 'monospace' } },
+                grid: { color: 'rgba(51, 65, 85, 0.3)' },
             },
             x: {
-                ticks: { color: 'rgba(255,255,255,0.5)' },
+                ticks: { color: 'rgba(148, 163, 184, 0.6)', font: { size: 10, family: 'monospace' } },
                 grid: { display: false },
             },
         },
@@ -332,21 +333,24 @@ const UserDetailView = ({ user, onBack }) => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-            className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-[#000120] to-[#18214E] p-4 sm:p-6 lg:p-8 flex flex-col"
+            className="absolute top-0 left-0 w-full h-full bg-black text-slate-200 p-4 sm:p-6 lg:p-8 flex flex-col font-sans"
+            style={{ backgroundImage: 'radial-gradient(circle at top right, #1e293b 0%, #020617 40%, #000000 100%)' }}
         >
-            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col h-full">
+            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col h-full w-full max-w-7xl mx-auto">
                 {/* --- HEADER --- */}
-                <motion.div variants={itemVariants} className="flex items-center mb-8 flex-shrink-0">
+                <motion.div variants={itemVariants} className="flex items-center mb-8 flex-shrink-0 pt-2">
                     <motion.button
                         onClick={onBack}
                         aria-label="Go back to user list"
-                        className="p-2 mr-4 rounded-full bg-white/[8%] hover:bg-white/[15%] transition-colors duration-200"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                        className="p-2 mr-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 hover:bg-slate-700/50 transition-colors duration-200 group"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                     >
-                        <ArrowLeftIcon className="w-6 h-6 text-[#00BFFF]" />
+                        <ArrowLeftIcon className="w-6 h-6 text-slate-400 group-hover:text-cyan-400 transition-colors" />
                     </motion.button>
-                    <h1 className="text-3xl font-bold text-[#00BFFF]">User Details</h1>
+                    <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600" style={{ filter: 'drop-shadow(0 0 8px rgba(34, 211, 238, 0.4))' }}>
+                        User Diagnostics
+                    </h1>
                 </motion.div>
 
                 {/* --- CONTENT AREA --- */}
@@ -354,55 +358,78 @@ const UserDetailView = ({ user, onBack }) => {
                     {/* Left Column */}
                     <div className="xl:col-span-2 flex flex-col gap-8 min-h-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-shrink-0">
-                            <motion.section variants={itemVariants} className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-6 shadow-xl flex items-center space-x-6">
+                            <motion.section 
+                                variants={itemVariants} 
+                                className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-xl p-6 shadow-xl flex items-center space-x-6 relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
                                 <div
-                                    className="w-18 h-18 rounded-full flex items-center justify-center"
+                                    className="w-18 h-18 rounded-lg border border-slate-600/50 flex items-center justify-center shadow-lg"
                                     style={{
-                                        backgroundColor: avatarColors[userData.id % avatarColors.length],
+                                        backgroundColor: avatarColors[userData.id % avatarColors.length] + '40', // Add transparency
+                                        borderColor: avatarColors[userData.id % avatarColors.length]
                                     }}
                                 >
-                                    <span className="text-white text-3xl font-bold">
+                                    <span className="text-3xl font-bold" style={{ color: avatarColors[userData.id % avatarColors.length] }}>
                                         {userData.username?.charAt(0).toUpperCase() || 'U'}
                                     </span>
-                                </div>                                <div>
-                                    <h2 className="text-2xl font-bold text-white">{userData.username}</h2>
-                                    <p className="text-white/70">ID : #{userData.id}</p>
-                                    <span className="inline-block mt-2 px-3 py-1 text-xs font-semibold text-[#00BFFF] bg-[#00BFFF]/10 rounded-full">{new Date(userData.created_at).toLocaleString()}</span>
+                                </div>
+                                <div className='z-10'>
+                                    <h2 className="text-2xl font-bold text-white tracking-wide">{userData.username}</h2>
+                                    <p className="text-slate-400 font-mono text-xs mt-1">ID: <span className="text-cyan-400">#{userData.id}</span></p>
+                                    <span className="inline-block mt-3 px-3 py-1 text-[10px] font-bold tracking-widest text-cyan-300 border border-cyan-500/30 bg-cyan-950/30 rounded uppercase shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+                                        Joined: {new Date(userData.created_at).toLocaleDateString()}
+                                    </span>
                                 </div>
                             </motion.section>
+
                             <motion.section variants={itemVariants}>
-                                <div className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-6 shadow-xl h-full flex flex-col justify-center">
-                                    <h3 className="text-xl font-semibold mb-4 flex items-center"><ServerIcon className="w-6 h-6 mr-3 text-[#00BFFF]" />Storage Space</h3>
-                                    <div className="flex justify-between items-baseline mb-2">
-                                        <span className="text-white/80">Used Space</span>
-                                        <span className="text-2xl font-bold text-[#00BFFF]">{userData.storage_usage} GB</span>
+                                <div className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-xl p-6 shadow-xl h-full flex flex-col justify-center relative overflow-hidden">
+                                     <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                                    <h3 className="text-lg font-bold mb-4 flex items-center text-slate-200">
+                                        <ServerIcon className="w-5 h-5 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
+                                        Storage Allocation
+                                    </h3>
+                                    <div className="flex justify-between items-baseline mb-2 font-mono">
+                                        <span className="text-slate-400 text-xs uppercase tracking-widest">Used Space</span>
+                                        <span className="text-xl font-bold text-cyan-400">{userData.storage_usage} GB</span>
                                     </div>
-                                    <div className="w-full bg-black/30 rounded-full h-2.5">
+                                    <div className="w-full bg-slate-800/50 rounded-full h-1.5 overflow-hidden">
                                         <motion.div
-                                            className="bg-[#00BFFF] h-2.5 rounded-full"
+                                            className="bg-cyan-400 h-1.5 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.6)]"
                                             initial={{ width: 0 }}
-                                            animate={{ width: `100%` }}
+                                            animate={{ width: `100%` }} // Logic would go here for %
                                             transition={{ duration: 1, ease: "easeOut" }}
                                         ></motion.div>
                                     </div>
-                                    <p className="text-right text-sm text-white/60 mt-2">{user.storageTotal} GB Total</p>
+                                    <p className="text-right text-xs font-mono text-slate-500 mt-2">{user.storageTotal || 10} GB Total Capacity</p>
                                 </div>
                             </motion.section>
                         </div>
 
                         <motion.div variants={itemVariants} className="flex flex-col flex-grow min-h-0">
                             <section className='flex flex-col h-full'>
-                                <h3 className="text-xl font-semibold mb-4 flex items-center flex-shrink-0"><ClockIcon className="w-6 h-6 mr-3 text-[#00BFFF]" />Personal Activity Log</h3>
-                                <div className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-4 shadow-xl space-y-4 flex-grow overflow-y-auto">
+                                <h3 className="text-lg font-bold mb-4 flex items-center flex-shrink-0 text-slate-200">
+                                    <ClockIcon className="w-5 h-5 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
+                                    Personal Activity Log
+                                </h3>
+                                <div className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-xl p-1 shadow-xl space-y-1 flex-grow overflow-y-auto custom-scrollbar">
                                     {activityList.length > 0 ? activityList.map((log, index) => (
-                                        <motion.div key={index} variants={itemVariants} className="bg-black/20 p-4 rounded-lg flex justify-between items-start">
-                                            <div>
-                                                <p className="font-semibold" style={{ color: colorMap[log.type] || '#CCCCCC' }}>{log.type}</p>
-                                                <p className="text-sm text-white/60">{log.title}</p>
+                                        <motion.div 
+                                            key={index} 
+                                            variants={itemVariants} 
+                                            className="hover:bg-cyan-900/10 p-3 rounded-lg flex justify-between items-center border-b border-slate-800/30 last:border-0 transition-colors"
+                                        >
+                                            <div className='flex items-center'>
+                                                <div className="w-2 h-2 rounded-full mr-3 shadow-[0_0_5px_currentColor]" style={{ color: colorMap[log.type] || '#CCCCCC', backgroundColor: colorMap[log.type] || '#CCCCCC' }}></div>
+                                                <div>
+                                                    <p className="font-bold text-sm tracking-wide" style={{ color: colorMap[log.type] || '#CCCCCC' }}>{log.type}</p>
+                                                    <p className="text-xs text-slate-400">{log.title}</p>
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-white/50 flex-shrink-0 ml-4">{new Date(log.date).toLocaleString()}</p>
+                                            <p className="text-xs font-mono text-slate-500 flex-shrink-0 ml-4">{new Date(log.date).toLocaleString()}</p>
                                         </motion.div>
-                                    )) : <p className="text-center text-white/50 py-4">No activity recorded for this user.</p>}
+                                    )) : <p className="text-center text-slate-500 py-10 font-mono text-sm">No activity data found in archives.</p>}
                                 </div>
                             </section>
                         </motion.div>
@@ -411,27 +438,31 @@ const UserDetailView = ({ user, onBack }) => {
                     {/* Right Column */}
                     <motion.div variants={itemVariants} className="flex flex-col min-h-0">
                         <section className="flex flex-col h-full">
-                            <h3 className="text-xl font-semibold mb-4 flex items-center flex-shrink-0"><ChartBarIcon className="w-6 h-6 mr-3 text-[#00BFFF]" />Usage Statistics</h3>
-                            <div className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-6 shadow-xl flex flex-col flex-grow min-h-0">
-                                <div className="space-y-10 flex-grow">
-                                    <div className="bg-black/20 p-4 rounded-lg text-center">
-                                        <p className="text-xs text-white/60">Total API Calls</p>
-                                        <p className="text-3xl font-bold text-white"> {totalCalls.toLocaleString() || 0}</p>
+                            <h3 className="text-lg font-bold mb-4 flex items-center flex-shrink-0 text-slate-200">
+                                <ChartBarIcon className="w-5 h-5 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
+                                Usage Statistics
+                            </h3>
+                            <div className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-xl p-6 shadow-xl flex flex-col flex-grow min-h-0 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                                <div className="space-y-8 flex-grow z-10">
+                                    <div className="bg-[#0f172a]/60 border border-slate-700/50 p-6 rounded-xl text-center">
+                                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-mono mb-2">Total API Calls</p>
+                                        <p className="text-4xl font-bold text-white drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]"> {totalCalls.toLocaleString() || 0}</p>
                                     </div>
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         {
                                             usageData.map((type, index) => (
-                                                <div key={index} className="text-sm">
-                                                    <div className="flex justify-between text-white/80">
-                                                        <span>{type.type}</span>
-                                                        <span>{type.callCount || 0} calls / {type.tokenCount || 0} tokens</span>
+                                                <div key={index} className="text-sm border-b border-slate-800/50 pb-2 last:border-0">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-slate-300 font-medium">{type.type}</span>
+                                                        <span className="font-mono text-xs text-cyan-200/70">{type.callCount || 0} calls / {type.tokenCount || 0} tok</span>
                                                     </div>
                                                 </div>
                                             ))
                                         }
                                     </div>
-                                    <div className="h-48">
-                                        {dailyData.length > 0 ? <UsageChart data={dailyData} /> : <p className="text-center text-white/50 pt-16">No usage data available.</p>}
+                                    <div className="h-48 pt-4 border-t border-slate-800/50">
+                                        {dailyData.length > 0 ? <UsageChart data={dailyData} /> : <p className="text-center text-slate-500 pt-16 font-mono text-xs">Awaiting Usage Data...</p>}
                                     </div>
                                 </div>
                             </div>
@@ -461,7 +492,6 @@ const AdminDashboard = () => {
 
 
     const handleCreateUser = (newlyCreatedUser) => {
-
         setUserList(prevUserList => [...prevUserList, newlyCreatedUser]);
     };
 
@@ -470,12 +500,8 @@ const AdminDashboard = () => {
             try {
                 const [activityListResponse, userListResponse] = await Promise.all([
                     fetch('/api/admin/getActivity').then(res => res.json()),
-
                     fetch('/api/admin/getUserList').then(res => res.json())
                 ]);
-
-                console.log('Activity data:', activityListResponse);
-                console.log('User data:', userListResponse);
 
                 setActivityList(activityListResponse.activityList);
                 setUserList(userListResponse.userList);
@@ -489,7 +515,10 @@ const AdminDashboard = () => {
     }, []);
 
     return (
-        <div className="relative w-full h-screen bg-gradient-to-r from-[#000120] to-[#18214E] text-white flex flex-col overflow-hidden">
+        <div 
+            className="relative w-full h-screen bg-black text-slate-200 flex flex-col overflow-hidden font-sans"
+            style={{ backgroundImage: 'radial-gradient(circle at top right, #1e293b 0%, #020617 40%, #000000 100%)' }}
+        >
             <CreateUserModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onCreateUser={handleCreateUser} />
             <AnimatePresence>
                 {selectedUser ? (
@@ -500,61 +529,68 @@ const AdminDashboard = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="p-4 sm:p-6 lg:p-8 flex flex-col flex-grow h-full"
+                        className="p-4 sm:p-6 lg:p-8 flex flex-col flex-grow h-full max-w-7xl mx-auto w-full"
                     >
                         <motion.div variants={containerVariants} initial="hidden" animate="visible" className='flex flex-col h-full'>
-                            <motion.div variants={itemVariants} className="flex items-center mb-8 flex-shrink-0">
+                            <motion.div variants={itemVariants} className="flex items-center mb-8 flex-shrink-0 pt-2">
                                 <motion.button
                                     onClick={() => window.history.back()}
                                     aria-label="Go back to previous page"
-                                    className="p-2 mr-4 rounded-full bg-white/[8%] hover:bg-white/[15%] transition-colors duration-200"
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
+                                    className="p-2 mr-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 hover:bg-slate-700/50 transition-colors duration-200 group"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
                                 >
-                                    <ArrowLeftIcon className="w-6 h-6 text-[#00BFFF]" />
+                                    <ArrowLeftIcon className="w-6 h-6 text-slate-400 group-hover:text-cyan-400 transition-colors" />
                                 </motion.button>
-                                <h1 className="text-3xl font-bold text-[#00BFFF]">Admin Panel</h1>
+                                <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600" style={{ filter: 'drop-shadow(0 0 8px rgba(34, 211, 238, 0.4))' }}>
+                                    System Administration
+                                </h1>
                             </motion.div>
+
                             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 flex-grow overflow-hidden">
                                 {/* Left Column: Users List */}
                                 <motion.div variants={itemVariants} className="xl:col-span-1 flex flex-col min-h-0">
                                     <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                                        <h2 className="text-xl font-semibold flex items-center"><UsersIcon className="w-6 h-6 mr-3 text-[#00BFFF]" /> All Users</h2>
+                                        <h2 className="text-xl font-bold flex items-center text-slate-200">
+                                            <UsersIcon className="w-5 h-5 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" /> 
+                                            Registered Users
+                                        </h2>
                                         <motion.button
                                             onClick={() => setIsCreateModalOpen(true)}
-                                            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                            className="flex items-center bg-[#00BFFF]/80 hover:bg-[#00BFFF] transition-colors text-white font-bold py-2 px-4 rounded-md text-sm"
+                                            whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)' }} 
+                                            whileTap={{ scale: 0.95 }}
+                                            className="flex items-center bg-cyan-600 hover:bg-cyan-500 transition-all text-white font-bold py-2 px-4 rounded-lg text-xs tracking-wide shadow-lg border border-cyan-400/20"
                                         >
                                             <UserPlusIcon className="w-4 h-4 mr-2" />
-                                            Create User
+                                            ADD USER
                                         </motion.button>
                                     </div>
-                                    <div className="space-y-4 flex-grow overflow-y-auto pr-2">
+                                    <div className="space-y-3 flex-grow overflow-y-auto pr-2 custom-scrollbar">
                                         {userList.map(user => (
                                             <motion.div
                                                 key={user.id}
                                                 variants={itemVariants}
-                                                whileHover={{ y: -5, boxShadow: '0 8px 30px rgba(0, 191, 255, 0.1)' }}
+                                                whileHover={cardHoverEffect}
                                                 onClick={() => handleSelectUser(user.id)}
-                                                className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-4 shadow-xl flex items-center justify-between cursor-pointer transition-all duration-300"
+                                                className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-xl p-4 shadow-lg flex items-center justify-between cursor-pointer group"
                                             >
                                                 <div className="flex items-center space-x-4">
                                                     <div
-                                                        className="w-12 h-12 rounded-full flex items-center justify-center"
+                                                        className="w-10 h-10 rounded-lg flex items-center justify-center border border-white/10 shadow-inner"
                                                         style={{
-                                                            backgroundColor: avatarColors[user.id % avatarColors.length],
+                                                            backgroundColor: avatarColors[user.id % avatarColors.length] + '30', // Transparent bg
                                                         }}
                                                     >
-                                                        <span className="text-white text-xl font-bold">
+                                                        <span className="text-lg font-bold" style={{ color: avatarColors[user.id % avatarColors.length] }}>
                                                             {user.username?.charAt(0).toUpperCase() || 'U'}
                                                         </span>
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-white">{user.username}</p>
-                                                        <p className="text-sm text-white/60">User ID: #{user.id}</p>
+                                                        <p className="font-bold text-slate-200 group-hover:text-cyan-400 transition-colors">{user.username}</p>
+                                                        <p className="text-xs text-slate-500 font-mono">UID: #{user.id}</p>
                                                     </div>
                                                 </div>
-                                                <ChevronRightIcon className="w-6 h-6 text-white/30" />
+                                                <ChevronRightIcon className="w-5 h-5 text-slate-600 group-hover:text-cyan-400 transition-colors" />
                                             </motion.div>
                                         ))}
                                     </div>
@@ -562,28 +598,35 @@ const AdminDashboard = () => {
 
                                 {/* Right Column: Global Activity */}
                                 <motion.div variants={itemVariants} className="xl:col-span-2 flex flex-col min-h-0">
-                                    <h2 className="text-xl font-semibold mb-4 flex items-center flex-shrink-0"><ClockIcon className="w-6 h-6 mr-3 text-[#00BFFF]" /> Global Activity Feed</h2>
-                                    <div className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-4 shadow-xl space-y-4 flex-grow overflow-y-auto">
+                                    <h2 className="text-xl font-bold mb-4 flex items-center flex-shrink-0 text-slate-200">
+                                        <ClockIcon className="w-5 h-5 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" /> 
+                                        Global System Feed
+                                    </h2>
+                                    <div className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-2 shadow-xl space-y-2 flex-grow overflow-y-auto custom-scrollbar">
                                         <AnimatePresence>
                                             {activityList.map((log, index) => (
                                                 <motion.div
                                                     key={index}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: index * 0.05 }}
-                                                    className="bg-black/20 p-4 rounded-lg"
+                                                    className="bg-[#0f172a]/40 hover:bg-[#0f172a]/80 border border-slate-800/50 p-4 rounded-xl transition-all"
                                                 >
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <p className="font-semibold text-white">
-                                                                <span className="text-[#00BFFF] mr-1">{log.username}</span> performed
-                                                                <span className='ml-2' style={{ color: colorMap[log.type] || '#CCCCCC' }}>
-                                                                    {log.type}
-                                                                </span>
-                                                            </p>
-                                                            <p className="text-sm text-white/60 mt-1">{log.title}</p>
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="flex items-center">
+                                                            <div className="h-2 w-2 rounded-full mr-3 animate-pulse" style={{ backgroundColor: colorMap[log.type] || '#CCCCCC', boxShadow: `0 0 8px ${colorMap[log.type] || '#CCCCCC'}` }}></div>
+                                                            <div>
+                                                                <p className="font-medium text-slate-300 text-sm">
+                                                                    <span className="text-cyan-400 font-bold mr-1">{log.username}</span> 
+                                                                    initiated protocol:
+                                                                    <span className='ml-1 font-bold' style={{ color: colorMap[log.type] || '#CCCCCC' }}>
+                                                                        {log.type}
+                                                                    </span>
+                                                                </p>
+                                                                <p className="text-xs text-slate-500 mt-0.5">{log.title}</p>
+                                                            </div>
                                                         </div>
-                                                        <p className="text-sm text-white/50 flex-shrink-0 ml-4">{new Date(log.date).toLocaleString()}</p>
+                                                        <p className="text-xs font-mono text-slate-600 flex-shrink-0 ml-4">{new Date(log.date).toLocaleString()}</p>
                                                     </div>
                                                 </motion.div>
                                             ))}

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-// Animation variants for the container and its items
+// Animation variants (kept same logic, tweaked timing to match Home feel)
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -23,6 +23,7 @@ const itemVariants = {
         transition: {
             type: 'spring',
             stiffness: 100,
+            damping: 14,
         },
     },
 };
@@ -85,50 +86,73 @@ export default function Login() {
     };
 
     return (
-        <div className="flex flex-col w-full h-full rounded-none" style={{ backgroundImage: "url('/authbg.png')", backgroundSize: "cover" }}>
+        // THEME UPDATE: Deep space radial gradient background
+        <div 
+            className="flex flex-col w-full h-full font-sans text-slate-200 overflow-hidden" 
+            style={{ backgroundImage: 'radial-gradient(circle at top right, #1e293b 0%, #020617 40%, #000000 100%)' }}
+        >
+           {/* Decorative Glow (matches Home card aesthetics) */}
+           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+
            <motion.div
-                className="flex flex-col h-max my-auto mx-[15.5%] w-full space-y-6"
+                className="flex flex-col h-max my-auto mx-[15.5%] w-full space-y-6 relative z-10"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
             >
+                {/* THEME UPDATE: Neon Text with Gradient */}
                 <motion.h1
                     variants={itemVariants}
-                    className="text-5xl font-semibold text-shadow-[#4efcf7] text-shadow-[0_0px_31px_rgb(78_252_247_/_1)] mb-10"
+                    className="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-8 pb-2"
+                    style={{ filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.4))' }}
                 >
                     Sign In
                 </motion.h1>
+
+                {/* THEME UPDATE: Glassmorphic Inputs */}
                 <motion.input
                     variants={itemVariants}
                     placeholder="Username..."
                     value={form.username}
                     onChange={(e) => setForm({ ...form, username: e.target.value })}
-                    className="w-[40%] p-3 border-[1px] border-[#0E5E97] bg-[#333E57]/[22%] text-lg text-[#959694] rounded-md hover:bg-[#243357] transition-colors"
+                    className="w-[40%] p-4 border border-slate-700/50 bg-[#0b101c]/80 backdrop-blur-md text-lg text-slate-200 rounded-xl 
+                               placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 
+                               transition-all duration-300 shadow-[0_0_20px_rgba(0,0,0,0.2)]"
                 />
+
                 <motion.input
                     variants={itemVariants}
                     type="password"
                     placeholder="Password..."
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className="w-[40%] p-3 border-[1px] border-[#0E5E97] bg-[#333E57]/[22%] text-lg text-[#959694] rounded-md hover:bg-[#243357] transition-colors"
+                    className="w-[40%] p-4 border border-slate-700/50 bg-[#0b101c]/80 backdrop-blur-md text-lg text-slate-200 rounded-xl 
+                               placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 
+                               transition-all duration-300 shadow-[0_0_20px_rgba(0,0,0,0.2)]"
                 />
+
                 {error &&
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-red-500 text-md -mt-4"
+                        className="text-rose-400 text-md -mt-4 font-mono flex items-center drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]"
                     >
-                        {error}
+                        <span className="mr-2">⚠</span> {error}
                     </motion.div>
                 }
-                <motion.div variants={itemVariants} className="flex flex-row w-[40%] mb-12">
+
+                <motion.div variants={itemVariants} className="flex flex-row w-[40%] mb-12 pt-4">
+                    {/* THEME UPDATE: Cyan Glow Button */}
                     <motion.button
                         onClick={handleLogin}
-                        className="flex px-8 py-3 rounded-md bg-[#00BFFF] w-max px-20 text-lg font-semibold text-white"
-                        whileHover={{ scale: 1.05, backgroundColor: '#A3E8FF', color: '#0B1143' }}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
+                        className="flex justify-center items-center py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 w-full text-lg font-bold text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] border border-cyan-400/20"
+                        whileHover={{ 
+                            scale: 1.02, 
+                            boxShadow: '0 0 25px rgba(6, 182, 212, 0.6)',
+                            borderColor: 'rgba(6, 182, 212, 0.8)'
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                     >
                         Log In
                     </motion.button>

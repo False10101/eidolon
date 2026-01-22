@@ -37,6 +37,14 @@ ChartJS.register(
     Legend
 );
 
+// --- Theme Constants (Matches Home Page) ---
+const cardHoverEffect = {
+    y: -5,
+    boxShadow: '0 0px 25px rgba(6, 182, 212, 0.25), inset 0 0 10px rgba(6, 182, 212, 0.1)',
+    borderColor: 'rgba(6, 182, 212, 0.5)',
+    transition: { type: 'spring', stiffness: 300 }
+};
+
 const SuccessModal = ({ message, isOpen, onClose }) => {
     return (
         <AnimatePresence>
@@ -45,36 +53,23 @@ const SuccessModal = ({ message, isOpen, onClose }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50"
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-[#141B3C] border border-[#00BFFF]/30 rounded-xl p-6 max-w-md mx-4 shadow-xl"
+                        className="bg-[#0b1221] border border-cyan-500/30 rounded-xl p-6 max-w-md mx-4 shadow-[0_0_30px_rgba(6,182,212,0.15)]"
                     >
                         <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-[#00BFFF]/10 rounded-full flex items-center justify-center mb-4">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-8 w-8 text-[#00BFFF]"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M5 13l4 4L19 7"
-                                    />
-                                </svg>
+                            <div className="w-16 h-16 bg-cyan-950/50 border border-cyan-500/20 rounded-full flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                                <CheckCircleIcon className="h-8 w-8 text-cyan-400" />
                             </div>
-                            <h3 className="text-xl font-semibold text-[#00BFFF] mb-2">Success</h3>
-                            <p className="text-white/80 mb-6">{message}</p>
+                            <h3 className="text-xl font-bold text-cyan-400 mb-2 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">Success</h3>
+                            <p className="text-slate-300 mb-6">{message}</p>
                             <button
                                 onClick={onClose}
-                                className="px-6 py-2 bg-[#00BFFF] hover:bg-[#0099CC] rounded-lg text-white font-medium transition-colors"
+                                className="px-6 py-2 bg-cyan-600/20 border border-cyan-500/50 hover:bg-cyan-600/40 text-cyan-200 rounded-lg transition-all shadow-[0_0_10px_rgba(6,182,212,0.1)]"
                             >
                                 Close
                             </button>
@@ -94,36 +89,23 @@ const ErrorModal = ({ message, isOpen, onClose }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50"
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-[#141B3C] border border-red-500/30 rounded-xl p-6 max-w-md mx-4 shadow-xl"
+                        className="bg-[#0b1221] border border-rose-500/30 rounded-xl p-6 max-w-md mx-4 shadow-[0_0_30px_rgba(244,63,94,0.15)]"
                     >
                         <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-8 w-8 text-red-500"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                    />
-                                </svg>
+                            <div className="w-16 h-16 bg-rose-950/50 border border-rose-500/20 rounded-full flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+                                <XCircleIcon className="h-8 w-8 text-rose-500" />
                             </div>
-                            <h3 className="text-xl font-semibold text-red-400 mb-2">Error</h3>
-                            <p className="text-white/80 mb-6">{message}</p>
+                            <h3 className="text-xl font-bold text-rose-400 mb-2 drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]">Error</h3>
+                            <p className="text-slate-300 mb-6">{message}</p>
                             <button
                                 onClick={onClose}
-                                className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-medium transition-colors"
+                                className="px-6 py-2 bg-rose-600/20 border border-rose-500/50 hover:bg-rose-600/40 text-rose-200 rounded-lg transition-all shadow-[0_0_10px_rgba(244,63,94,0.1)]"
                             >
                                 Close
                             </button>
@@ -143,40 +125,39 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50"
+                    className="fixed inset-0 bg-black/90 backdrop-blur-md flex justify-center items-center z-50"
                 >
                     <motion.div
                         initial={{ y: 50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: 50, opacity: 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="bg-[#141B3C] rounded-2xl shadow-xl w-full max-w-md m-4 p-8 text-white"
+                        className="bg-[#0b1221] border border-rose-600/40 rounded-2xl shadow-[0_0_40px_rgba(220,38,38,0.2)] w-full max-w-md m-4 p-8 text-slate-200"
                     >
                         <div className="flex flex-col items-center text-center">
-                            <div className="p-3 rounded-full bg-red-500/10 mb-4">
-                                <ShieldExclamationIcon className="w-12 h-12 text-red-500" />
+                            <div className="p-3 rounded-full bg-rose-950/50 border border-rose-500/20 mb-4 animate-pulse">
+                                <ShieldExclamationIcon className="w-12 h-12 text-rose-500" />
                             </div>
-                            <h2 className="text-xl font-bold mb-2">Delete Account Confirmation</h2>
-                            <p className="text-white/70 mb-6 text-sm">
-                                Are you absolutely sure? Your account will be deactivated.
-                                <strong className="block text-red-400 mt-2">This action is irreversible.</strong>
+                            <h2 className="text-2xl font-bold mb-2 text-rose-500 tracking-wider uppercase">System Alert</h2>
+                            <p className="text-slate-400 mb-6 text-sm">
+                                Deactivating account protocol initiated.
+                                <strong className="block text-rose-400 mt-2 drop-shadow-[0_0_5px_rgba(248,113,113,0.8)]">THIS ACTION IS IRREVERSIBLE.</strong>
                             </p>
                             <div className="flex justify-center gap-4 w-full">
                                 <motion.button
-                                    whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                                    whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={onClose}
-                                    className="w-full py-2.5 px-4 rounded-md bg-white/10 transition-colors font-semibold"
+                                    className="w-full py-2.5 px-4 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-slate-500 transition-all font-mono text-sm"
                                 >
-                                    Cancel
+                                    ABORT
                                 </motion.button>
                                 <motion.button
-                                    whileHover={{ scale: 1.05, backgroundColor: '#B91C1C' }}
+                                    whileHover={{ scale: 1.05, backgroundColor: 'rgba(220, 38, 38, 0.3)' }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={onConfirm}
-                                    className="w-full py-2.5 px-4 rounded-md bg-red-600 transition-colors font-bold"
+                                    className="w-full py-2.5 px-4 rounded-lg bg-rose-950/30 border border-rose-600/50 text-rose-500 hover:text-rose-400 hover:shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all font-mono font-bold text-sm"
                                 >
-                                    Delete Account
+                                    CONFIRM DELETION
                                 </motion.button>
                             </div>
                         </div>
@@ -257,79 +238,82 @@ const ApiKeyModal = ({ isOpen, onClose, apiKeys, onSave }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex justify-center items-center z-50"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50"
                 >
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-[#141B3C] border border-white/[15%] rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"
+                        className="bg-[#0b1221] border border-cyan-500/20 rounded-xl p-6 max-w-md w-full mx-4 shadow-[0_0_30px_rgba(6,182,212,0.1)]"
                     >
-                        <h3 className="text-xl font-semibold text-[#00BFFF] mb-4">Validating API Keys</h3>
+                        <h3 className="text-xl font-bold text-cyan-400 mb-4 tracking-wide flex items-center">
+                            <KeyIcon className="size-5 mr-2" />
+                            VALIDATING CREDENTIALS
+                        </h3>
 
-                        <div className="space-y-4 mb-6">
+                        <div className="space-y-4 mb-6 bg-[#020617]/50 p-4 rounded-lg border border-slate-800">
                             {/* Gemini API Validation */}
-                            <div className="flex items-center justify-between">
-                                <span className="text-white/80">Gemini API</span>
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                                <span className="text-slate-300 font-mono text-sm">Gemini API</span>
                                 <div className="flex items-center">
                                     {validationStates.gemini.loading ? (
-                                        <div className="h-5 w-5 border-2 border-[#00BFFF] border-t-transparent rounded-full animate-spin" />
+                                        <div className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                                     ) : validationStates.gemini.valid ? (
-                                        <CheckCircleIcon className="h-5 w-5 text-[#00BFFF]" />
+                                        <CheckCircleIcon className="h-5 w-5 text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]" />
                                     ) : validationStates.gemini.valid === false ? (
-                                        <XCircleIcon className="h-5 w-5 text-red-500" />
-                                    ) : null}
+                                        <XCircleIcon className="h-5 w-5 text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.5)]" />
+                                    ) : <span className="text-slate-600 text-xs">PENDING</span>}
                                 </div>
                             </div>
 
                             {/* DallE API Validation */}
-                            <div className="flex items-center justify-between">
-                                <span className="text-white/80">DallE API</span>
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                                <span className="text-slate-300 font-mono text-sm">DallE API</span>
                                 <div className="flex items-center">
                                     {validationStates.dallE.loading ? (
-                                        <div className="h-5 w-5 border-2 border-[#00BFFF] border-t-transparent rounded-full animate-spin" />
+                                        <div className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                                     ) : validationStates.dallE.valid ? (
-                                        <CheckCircleIcon className="h-5 w-5 text-[#00BFFF]" />
+                                        <CheckCircleIcon className="h-5 w-5 text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]" />
                                     ) : validationStates.dallE.valid === false ? (
-                                        <XCircleIcon className="h-5 w-5 text-red-500" />
-                                    ) : null}
+                                        <XCircleIcon className="h-5 w-5 text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.5)]" />
+                                    ) : <span className="text-slate-600 text-xs">PENDING</span>}
                                 </div>
                             </div>
 
                             {/* Murf API Validation */}
                             <div className="flex items-center justify-between">
-                                <span className="text-white/80">Murf API</span>
+                                <span className="text-slate-300 font-mono text-sm">Murf API</span>
                                 <div className="flex items-center">
                                     {validationStates.murf.loading ? (
-                                        <div className="h-5 w-5 border-2 border-[#00BFFF] border-t-transparent rounded-full animate-spin" />
+                                        <div className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                                     ) : validationStates.murf.valid ? (
-                                        <CheckCircleIcon className="h-5 w-5 text-[#00BFFF]" />
+                                        <CheckCircleIcon className="h-5 w-5 text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]" />
                                     ) : validationStates.murf.valid === false ? (
-                                        <XCircleIcon className="h-5 w-5 text-red-500" />
-                                    ) : null}
+                                        <XCircleIcon className="h-5 w-5 text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.5)]" />
+                                    ) : <span className="text-slate-600 text-xs">PENDING</span>}
                                 </div>
                             </div>
                         </div>
 
                         {overallStatus === 'error' && (
-                            <p className="text-red-400 text-sm mb-4">
-                                One or more API keys are invalid. Please check and try again.
+                            <p className="text-rose-400 text-sm mb-4 font-mono text-center">
+                                ERROR: Invalid credentials detected.
                             </p>
                         )}
 
                         <div className="flex justify-end space-x-3">
                             <button
                                 onClick={onClose}
-                                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors text-sm font-medium"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={validateAllKeys}
                                 disabled={overallStatus === 'validating'}
-                                className="px-4 py-2 rounded-lg bg-[#00BFFF] hover:bg-[#0099CC] text-white disabled:opacity-50 transition-colors"
+                                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-50 transition-colors shadow-[0_0_10px_rgba(8,145,178,0.4)] text-sm font-bold tracking-wide"
                             >
-                                {overallStatus === 'validating' ? 'Validating...' : 'Validate All'}
+                                {overallStatus === 'validating' ? 'VALIDATING...' : 'VALIDATE ALL'}
                             </button>
                         </div>
                     </motion.div>
@@ -624,8 +608,9 @@ export default function Setting() {
                 datasets: [{
                     label: 'Tokens Used',
                     data: [0, 0, 0, 0, 0, 0, 0],
-                    borderColor: '#00BFFF',
-                    backgroundColor: 'rgba(0, 191, 255, 0.2)',
+                    // UPDATED: Chart Colors to match Cyan Theme
+                    borderColor: '#22d3ee', // Tailwind cyan-400
+                    backgroundColor: 'rgba(34, 211, 238, 0.2)',
                     tension: 0.3,
                     fill: true
                 }]
@@ -645,8 +630,9 @@ export default function Setting() {
             datasets: [{
                 label: 'Tokens Used',
                 data: dataPoints,
-                borderColor: '#00BFFF',
-                backgroundColor: 'rgba(0, 191, 255, 0.2)',
+                // UPDATED: Chart Colors to match Cyan Theme
+                borderColor: '#22d3ee', // Tailwind cyan-400
+                backgroundColor: 'rgba(34, 211, 238, 0.2)',
                 tension: 0.3,
                 fill: true
             }]
@@ -655,9 +641,10 @@ export default function Setting() {
 
     if (isLoading) {
         return (
-            <main className="flex w-full min-h-screen justify-center bg-gradient-to-r from-[#000120] to-[#18214E] text-white p-4 sm:p-6 lg:p-8">
-                <div className="w-full max-w-7xl mx-auto flex justify-center items-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00BFFF]"></div>
+            <main className="flex w-full min-h-screen justify-center items-center bg-black text-white" style={{ backgroundImage: 'radial-gradient(circle at top right, #1e293b 0%, #020617 40%, #000000 100%)' }}>
+                <div className="flex flex-col items-center">
+                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400 mb-4 shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
+                   <div className="text-cyan-400 font-mono tracking-widest animate-pulse">LOADING SYSTEM...</div>
                 </div>
             </main>
         );
@@ -665,14 +652,15 @@ export default function Setting() {
 
     if (error) {
         return (
-            <main className="flex w-full min-h-screen justify-center bg-gradient-to-r from-[#000120] to-[#18214E] text-white p-4 sm:p-6 lg:p-8">
-                <div className="w-full max-w-7xl mx-auto bg-red-900/30 p-6 rounded-lg">
-                    <p className="text-red-400">Error: {error}</p>
+            <main className="flex w-full min-h-screen justify-center items-center bg-black text-white" style={{ backgroundImage: 'radial-gradient(circle at top right, #1e293b 0%, #020617 40%, #000000 100%)' }}>
+                <div className="w-full max-w-lg mx-auto bg-rose-950/20 border border-rose-500/30 p-8 rounded-xl backdrop-blur-md shadow-[0_0_30px_rgba(244,63,94,0.15)]">
+                    <h2 className="text-xl font-bold text-rose-400 mb-2">System Error</h2>
+                    <p className="text-rose-200/80 mb-6 font-mono text-sm">{error}</p>
                     <button
                         onClick={() => window.location.reload()}
-                        className="mt-4 bg-[#00BFFF] hover:bg-[#0099CC] text-white font-bold py-2 px-4 rounded"
+                        className="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-6 rounded-lg shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all"
                     >
-                        Try Again
+                        Reboot System
                     </button>
                 </div>
             </main>
@@ -686,7 +674,9 @@ export default function Setting() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex w-full min-h-screen justify-center bg-gradient-to-r from-[#000120] to-[#18214E] text-white p-4 sm:p-6 lg:p-8"
+                className="flex w-full min-h-screen justify-center bg-black text-slate-200 p-4 sm:p-6 lg:p-8 font-sans"
+                // UPDATED: Theme Background
+                style={{ backgroundImage: 'radial-gradient(circle at top right, #1e293b 0%, #020617 40%, #000000 100%)' }}
             >
                 <DeleteConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDeleteAccount} />
 
@@ -696,30 +686,42 @@ export default function Setting() {
                     initial="hidden"
                     animate="visible"
                 >
-                    <motion.div variants={itemVariants} className="flex items-center mb-8">
+                    <motion.div variants={itemVariants} className="flex items-center mb-8 pt-4">
                         <motion.button
                             onClick={() => router.back()}
                             aria-label="Go back to previous page"
-                            className="p-2 mr-4 rounded-full bg-white/[8%] hover:bg-white/[15%] transition-colors duration-200"
-                            whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-                            whileTap={{ scale: 0.9 }}
+                            className="p-2 mr-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 hover:bg-slate-700/50 transition-colors duration-200 group"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                         >
-                            <ArrowLeftIcon className="w-6 h-6 text-[#00BFFF]" />
+                            <ArrowLeftIcon className="w-6 h-6 text-slate-400 group-hover:text-cyan-400 transition-colors" />
                         </motion.button>
-                        <h1 className="text-3xl font-bold text-[#00BFFF]">Settings</h1>
+                        {/* UPDATED: Neon Title */}
+                        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600" style={{ filter: 'drop-shadow(0 0 8px rgba(34, 211, 238, 0.4))' }}>
+                            Settings Protocol
+                        </h1>
                     </motion.div>
 
                     <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-3 space-y-8 grid lg:grid-cols-2 gap-8 h-max">
+                            
                             {/* Profile Section */}
-                            <motion.section variants={itemVariants} whileHover={{ y: -5, boxShadow: '0 8px 30px rgba(0, 191, 255, 0.1)' }} className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-6 shadow-xl h-full">
-                                <h2 className="text-xl font-semibold mb-6 flex items-center">
-                                    <UserCircleIcon className="w-6 h-6 mr-3 text-[#00BFFF]" /> Profile Details
+                            <motion.section 
+                                variants={itemVariants} 
+                                // UPDATED: Glassmorphic Card Style
+                                className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-xl p-6 relative overflow-hidden group"
+                                whileHover={cardHoverEffect}
+                            >
+                                {/* Decorative Glow */}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+
+                                <h2 className="text-xl font-bold mb-6 flex items-center text-slate-100 relative z-10">
+                                    <UserCircleIcon className="w-6 h-6 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" /> Profile Details
                                 </h2>
-                                <form onSubmit={handlePasswordUpdate}>
+                                <form onSubmit={handlePasswordUpdate} className="relative z-10">
                                     <div className="space-y-6">
                                         <div>
-                                            <label htmlFor="name" className="block text-sm font-medium text-white/80 mb-2">
+                                            <label htmlFor="name" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">
                                                 Full Name
                                             </label>
                                             <input
@@ -728,19 +730,20 @@ export default function Setting() {
                                                 name="name"
                                                 value={profileData.name}
                                                 onChange={handleProfileChange}
-                                                className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                                // UPDATED: Input Styles
+                                                className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none"
                                                 placeholder="Enter your full name"
                                             />
                                         </div>
 
-                                        <h2 className="text-lg font-semibold mb-6 flex items-center pt-4">
-                                            <KeyIcon className="w-6 h-6 mr-3 text-[#00BFFF]" />
-                                            Change Password
+                                        <h2 className="text-lg font-bold mb-6 flex items-center pt-4 text-slate-100">
+                                            <KeyIcon className="w-6 h-6 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" />
+                                            Security Clearance
                                         </h2>
 
                                         <div className="space-y-4">
                                             <div>
-                                                <label htmlFor="currentPassword" className="block text-sm font-medium text-white/80 mb-2">
+                                                <label htmlFor="currentPassword" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">
                                                     Current Password
                                                 </label>
                                                 <input
@@ -749,12 +752,12 @@ export default function Setting() {
                                                     name="currentPassword"
                                                     value={profileData.currentPassword}
                                                     onChange={handleProfileChange}
-                                                    className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                                    className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none"
                                                     placeholder="••••••••"
                                                 />
                                             </div>
                                             <div>
-                                                <label htmlFor="newPassword" className="block text-sm font-medium text-white/80 mb-2">
+                                                <label htmlFor="newPassword" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">
                                                     New Password
                                                 </label>
                                                 <input
@@ -763,12 +766,12 @@ export default function Setting() {
                                                     name="newPassword"
                                                     value={profileData.newPassword}
                                                     onChange={handleProfileChange}
-                                                    className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                                    className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none"
                                                     placeholder="••••••••"
                                                 />
                                             </div>
                                             <div>
-                                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-white/80 mb-2">
+                                                <label htmlFor="confirmPassword" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">
                                                     Confirm New Password
                                                 </label>
                                                 <input
@@ -777,14 +780,14 @@ export default function Setting() {
                                                     name="confirmPassword"
                                                     value={profileData.confirmPassword}
                                                     onChange={handleProfileChange}
-                                                    className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                                    className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none"
                                                     placeholder="••••••••"
                                                 />
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="mt-6 flex justify-end">
-                                        <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-[#00BFFF] hover:bg-[#0099CC] transition-colors text-white font-bold py-2 px-6 rounded-md text-sm">
+                                    <div className="mt-8 flex justify-end">
+                                        <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-colors text-white font-bold py-2.5 px-6 rounded-lg text-sm tracking-wide">
                                             Update Password
                                         </motion.button>
                                     </div>
@@ -792,15 +795,21 @@ export default function Setting() {
                             </motion.section>
 
                             {/* API Keys Section */}
-                            <motion.section variants={itemVariants} whileHover={{ y: -5, boxShadow: '0 8px 30px rgba(0, 191, 255, 0.1)' }} className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-6 shadow-xl h-full">
-                                <h2 className="text-lg font-semibold mb-6 flex items-center">
-                                    <KeyIcon className="w-6 h-6 mr-3 text-[#00BFFF]" /> API Keys
+                            <motion.section 
+                                variants={itemVariants} 
+                                className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-xl p-6 relative overflow-hidden group"
+                                whileHover={cardHoverEffect}
+                            >
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+
+                                <h2 className="text-xl font-bold mb-6 flex items-center text-slate-100 relative z-10">
+                                    <KeyIcon className="w-6 h-6 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" /> API Integrations
                                 </h2>
-                                <form onSubmit={handleApiKeysUpdate}>
+                                <form onSubmit={handleApiKeysUpdate} className="relative z-10">
                                     <div className="space-y-4">
                                         <div>
-                                            <label htmlFor="gemini_api" className="block text-sm font-medium text-white/80 mb-2">
-                                                GEMINI API KEY <span className="text-red-500 font-bold">*</span>
+                                            <label htmlFor="gemini_api" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">
+                                                GEMINI API KEY <span className="text-cyan-400 font-bold">*</span>
                                             </label>
                                             <input
                                                 type="password"
@@ -808,13 +817,13 @@ export default function Setting() {
                                                 name="gemini_api"
                                                 value={apiKeys.gemini_api}
                                                 onChange={handleApiKeyChange}
-                                                className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                                className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none font-mono text-sm"
                                                 placeholder="••••••••"
                                             />
                                         </div>
                                         <div>
-                                            <label htmlFor="dall_e_api" className="block text-sm font-medium text-white/80 mb-2">
-                                                DallE API <span className="text-red-500 font-bold">*</span>
+                                            <label htmlFor="dall_e_api" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">
+                                                DallE API <span className="text-cyan-400 font-bold">*</span>
                                             </label>
                                             <input
                                                 type="password"
@@ -822,13 +831,13 @@ export default function Setting() {
                                                 name="dall_e_api"
                                                 value={apiKeys.dall_e_api}
                                                 onChange={handleApiKeyChange}
-                                                className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                                className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none font-mono text-sm"
                                                 placeholder="••••••••"
                                             />
                                         </div>
                                         <div>
-                                            <label htmlFor="murf_api" className="block text-sm font-medium text-white/80 mb-2">
-                                                MURF API <span className="text-red-500 font-bold">*</span>
+                                            <label htmlFor="murf_api" className="block text-xs font-mono text-cyan-200/60 mb-2 uppercase tracking-widest">
+                                                MURF API <span className="text-cyan-400 font-bold">*</span>
                                             </label>
                                             <input
                                                 type="password"
@@ -836,27 +845,30 @@ export default function Setting() {
                                                 name="murf_api"
                                                 value={apiKeys.murf_api}
                                                 onChange={handleApiKeyChange}
-                                                className="w-full bg-black/[30%] border border-white/[25%] rounded-md text-white focus:outline-none focus:border-[#00BFFF] py-2 px-3 text-sm"
+                                                className="w-full p-3 bg-[#0f172a]/60 border border-slate-700/50 rounded-lg text-slate-200 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder-slate-500 outline-none font-mono text-sm"
                                                 placeholder="••••••••"
                                             />
                                         </div>
                                     </div>
-                                    <div className="mt-6 flex justify-end">
-                                        <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-[#00BFFF] hover:bg-[#0099CC] transition-colors text-white font-bold py-2 px-6 rounded-md text-sm">
+                                    <div className="mt-8 flex justify-end">
+                                        <motion.button type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_15px_rgba(8,145,178,0.4)] transition-colors text-white font-bold py-2.5 px-6 rounded-lg text-sm tracking-wide">
                                             Update API Keys
                                         </motion.button>
                                     </div>
-                                    <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.5 } }} className="bg-[#4C132A]/[40%] border border-red-500/50 rounded-2xl p-6 shadow-xl lg:col-span-2 mt-6">
-                                        <h2 className="text-xl font-semibold mb-4 flex items-center text-red-400">
-                                            <ShieldExclamationIcon className="w-6 h-6 mr-3" /> Danger Zone
-                                        </h2>
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                    
+                                    {/* Danger Zone */}
+                                    <motion.section 
+                                        initial={{ opacity: 0 }} 
+                                        animate={{ opacity: 1, transition: { delay: 0.5 } }} 
+                                        className="mt-8 pt-6 border-t border-slate-800"
+                                    >
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl bg-rose-950/10 border border-rose-900/30 hover:bg-rose-950/20 transition-colors">
                                             <div>
-                                                <h3 className="font-bold">Delete Account</h3>
-                                                <p className="text-sm text-white/60 max-w-lg">This will deactivate your account. Your data will be preserved but you won't be able to log in.</p>
+                                                <h3 className="font-bold text-rose-400 flex items-center"><ShieldExclamationIcon className="size-4 mr-2"/> Danger Zone</h3>
+                                                <p className="text-xs text-rose-200/60 pt-1">Permanently delete your account and data.</p>
                                             </div>
-                                            <motion.button type="button" onClick={() => setIsDeleteModalOpen(true)} whileHover={{ scale: 1.05, backgroundColor: '#B91C1C' }} whileTap={{ scale: 0.95 }} className="flex items-center justify-center mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 bg-red-600/80 transition-colors text-white font-bold py-2 px-4 rounded-md text-sm">
-                                                <TrashIcon className="w-4 h-4 mr-2" /> Delete My Account
+                                            <motion.button type="button" onClick={() => setIsDeleteModalOpen(true)} whileHover={{ scale: 1.05, backgroundColor: '#dc2626' }} whileTap={{ scale: 0.95 }} className="flex items-center justify-center mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 bg-rose-900/50 border border-rose-700/50 text-rose-200 font-bold py-2 px-4 rounded-lg text-xs tracking-wider uppercase transition-all shadow-[0_0_10px_rgba(220,38,38,0.1)]">
+                                                <TrashIcon className="w-3 h-3 mr-2" /> Delete Account
                                             </motion.button>
                                         </div>
                                     </motion.section>
@@ -864,29 +876,57 @@ export default function Setting() {
                             </motion.section>
                         </div>
 
-                        <motion.h1 variants={itemVariants} className="text-3xl font-bold text-[#00BFFF] my-8 lg:col-span-3">Usage</motion.h1>
+                        <motion.h1 variants={itemVariants} className="text-2xl font-bold text-slate-200 my-8 lg:col-span-3 border-l-4 border-cyan-500 pl-4 flex items-center">
+                            Resource Usage Analysis
+                        </motion.h1>
 
                         <aside className="lg:col-span-3 grid lg:grid-cols-3 gap-8">
                             {Object.entries(usageStats).map(([type, stats]) => (
-                                <motion.section key={type} className="bg-[#141B3C]/[64%] border border-white/[15%] rounded-2xl p-6 shadow-xl h-full" variants={itemVariants} whileHover={{ y: -5, boxShadow: '0 8px 30px rgba(0, 191, 255, 0.1)' }}>
-                                    <h2 className="text-xl font-semibold mb-6 flex items-center">
-                                        <ChartBarIcon className="w-6 h-6 mr-3 text-[#00BFFF]" /> {typeToDisplayName[type] || type} Usage
+                                <motion.section 
+                                    key={type} 
+                                    className="bg-[#0b1221]/80 backdrop-blur-sm border border-slate-800/60 rounded-xl p-6 shadow-xl h-full flex flex-col justify-between" 
+                                    variants={itemVariants} 
+                                    whileHover={cardHoverEffect}
+                                >
+                                    <h2 className="text-lg font-bold mb-6 flex items-center text-slate-200">
+                                        <ChartBarIcon className="w-5 h-5 mr-3 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]" /> 
+                                        {typeToDisplayName[type] || type}
                                     </h2>
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-2 gap-4 text-center">
-                                            <div className="bg-black/20 p-4 rounded-lg">
-                                                <DocumentTextIcon className="w-8 h-8 mx-auto text-[#00BFFF]/80 mb-2" />
-                                                <p className="text-2xl font-bold">{stats.total_count}</p>
-                                                <p className="text-xs text-white/60">Jobs Created</p>
+                                            <div className="bg-[#0f172a]/60 border border-slate-700/50 p-4 rounded-xl">
+                                                <DocumentTextIcon className="w-6 h-6 mx-auto text-cyan-400/80 mb-2" />
+                                                <p className="text-2xl font-bold text-white font-mono">{stats.total_count}</p>
+                                                <p className="text-[10px] uppercase tracking-widest text-slate-500">Requests</p>
                                             </div>
-                                            <div className="bg-black/20 p-4 rounded-lg">
-                                                <CpuChipIcon className="w-8 h-8 mx-auto text-[#00BFFF]/80 mb-2" />
-                                                <p className="text-2xl font-bold">{stats.total_token_received.toLocaleString()}</p>
-                                                <p className="text-xs text-white/60">Tokens Generated</p>
+                                            <div className="bg-[#0f172a]/60 border border-slate-700/50 p-4 rounded-xl">
+                                                <CpuChipIcon className="w-6 h-6 mx-auto text-cyan-400/80 mb-2" />
+                                                <p className="text-2xl font-bold text-white font-mono">{stats.total_token_received.toLocaleString()}</p>
+                                                <p className="text-[10px] uppercase tracking-widest text-slate-500">Tokens</p>
                                             </div>
                                         </div>
-                                        <div>
-                                            <Line data={generateChartData(type)} options={{ responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Usage This Week', color: '#FFFFFF', position: 'bottom' } }, scales: { y: { ticks: { color: 'rgba(255,255,255,0.7)' } }, x: { ticks: { color: 'rgba(255,255,255,0.7)' } } } }} />
+                                        <div className="pt-2">
+                                            {/* Chart options simplified and styled for the dark theme */}
+                                            <Line 
+                                                data={generateChartData(type)} 
+                                                options={{ 
+                                                    responsive: true, 
+                                                    plugins: { 
+                                                        legend: { display: false }, 
+                                                        title: { display: false } 
+                                                    }, 
+                                                    scales: { 
+                                                        y: { 
+                                                            ticks: { color: 'rgba(148, 163, 184, 0.6)', font: { size: 10, family: 'monospace' } },
+                                                            grid: { color: 'rgba(51, 65, 85, 0.3)' }
+                                                        }, 
+                                                        x: { 
+                                                            ticks: { color: 'rgba(148, 163, 184, 0.6)', font: { size: 10, family: 'monospace' } },
+                                                            grid: { display: false }
+                                                        } 
+                                                    } 
+                                                }} 
+                                            />
                                         </div>
                                     </div>
                                 </motion.section>
@@ -902,9 +942,3 @@ export default function Setting() {
         </AnimatePresence>
     );
 }
-
-
-
-
-
-
