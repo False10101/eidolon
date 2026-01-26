@@ -353,6 +353,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <title>{pageTitle}</title>
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
       </head>
       <body 
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen bg-black text-slate-200 flex flex-col`}
