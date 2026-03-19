@@ -273,7 +273,7 @@ export default function Document() {
         setLoadingMessage("Preparing PDF download...");
 
         try {
-            const response = await fetch('/api/document/downloadDocument', {
+            const response = await fetch('/api/note/downloadNote', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
