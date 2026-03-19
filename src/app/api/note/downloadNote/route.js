@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
@@ -225,139 +225,139 @@ const PDF_STYLE = `
 //  2. UTILS
 // ---------------------------------------------------------
 function generateSlug(text) {
-    if (!text) return '';
-    return text.toString().toLowerCase().trim()
-        .replace(/<[^>]*>/g, '')
-        .replace(/[*_~`]/g, '')
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+  if (!text) return '';
+  return text.toString().toLowerCase().trim()
+    .replace(/<[^>]*>/g, '')
+    .replace(/[*_~`]/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 // ---------------------------------------------------------
 //  3. SMART BROWSER LAUNCHER
 // ---------------------------------------------------------
 async function launchBrowser() {
-    const args = [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--no-zygote',
-        '--disable-features=site-per-process',
-        '--js-flags=--max-old-space-size=512',
-        '--disk-cache-size=0',
-        '--media-cache-size=0',
+  const args = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--disable-extensions',
+    '--no-zygote',
+    '--disable-features=site-per-process',
+    '--js-flags=--max-old-space-size=512',
+    '--disk-cache-size=0',
+    '--media-cache-size=0',
+  ];
+
+  const launchConfig = { headless: 'new', args, timeout: 30000 };
+
+  if (process.platform === 'linux') {
+    const possiblePaths = [
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome'
     ];
-
-    const launchConfig = { headless: 'new', args, timeout: 30000 };
-
-    if (process.platform === 'linux') {
-        const possiblePaths = [
-            '/usr/bin/chromium-browser',
-            '/usr/bin/chromium',
-            '/usr/bin/google-chrome-stable',
-            '/usr/bin/google-chrome'
-        ];
-        const foundPath = possiblePaths.find(path => fs.existsSync(path));
-        if (foundPath) {
-            console.log(`[PDF] Using system browser at: ${foundPath}`);
-            launchConfig.executablePath = foundPath;
-        }
-    } else if (process.platform === 'darwin') {
-        const macPaths = [
-            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-            '/Applications/Chromium.app/Contents/MacOS/Chromium',
-        ];
-        const foundPath = macPaths.find(path => fs.existsSync(path));
-        if (foundPath) {
-            console.log(`[PDF] Using system browser at: ${foundPath}`);
-            launchConfig.executablePath = foundPath;
-        }
+    const foundPath = possiblePaths.find(path => fs.existsSync(path));
+    if (foundPath) {
+      console.log(`[PDF] Using system browser at: ${foundPath}`);
+      launchConfig.executablePath = foundPath;
     }
+  } else if (process.platform === 'darwin') {
+    const macPaths = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    ];
+    const foundPath = macPaths.find(path => fs.existsSync(path));
+    if (foundPath) {
+      console.log(`[PDF] Using system browser at: ${foundPath}`);
+      launchConfig.executablePath = foundPath;
+    }
+  }
 
-    return await puppeteer.launch(launchConfig);
+  return await puppeteer.launch(launchConfig);
 }
 
 // ---------------------------------------------------------
 //  4. MAIN API HANDLER
 // ---------------------------------------------------------
 export async function POST(req) {
-    const cookies = req.headers.get('cookie');
-    const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
+  const cookies = req.headers.get('cookie');
+  const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
 
-    if (!token) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  let browser = null;
+
+  try {
+    const body = await req.json();
+    const { mdText, fileName } = body;
+
+    if (!mdText) {
+      return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
     }
 
-    let browser = null;
+    // --- MARKDOWN & TOC ---
+    const toc = [];
+    const lines = mdText.split('\n');
+    const headingRegex = /^(#{1,6})\s+(.*)$/;
 
-    try {
-        const body = await req.json();
-        const { mdText, fileName } = body;
+    lines.forEach(line => {
+      const match = line.match(headingRegex);
+      if (match) {
+        const level = match[1].length;
+        const rawText = match[2];
+        const displayText = rawText.replace(/\*\*/g, '').replace(/\*/g, '').trim();
+        const slug = generateSlug(rawText);
+        toc.push({ level, text: displayText, slug });
+      }
+    });
 
-        if (!mdText) {
-            return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
+    const marked = new Marked(
+      markedHighlight({
+        langPrefix: 'hljs language-',
+        highlight(code, lang) {
+          const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+          return hljs.highlight(code, { language }).value;
         }
+      })
+    );
 
-        // --- MARKDOWN & TOC ---
-        const toc = [];
-        const lines = mdText.split('\n');
-        const headingRegex = /^(#{1,6})\s+(.*)$/;
+    marked.use({
+      renderer: {
+        heading({ tokens, depth, raw }) {
+          const text = this.parser.parseInline(tokens);
+          const cleanRaw = raw.replace(/^#+\s+/, '');
+          const slug = generateSlug(cleanRaw);
+          return `<h${depth} id="${slug}">${text}</h${depth}>`;
+        }
+      }
+    });
 
-        lines.forEach(line => {
-            const match = line.match(headingRegex);
-            if (match) {
-                const level = match[1].length;
-                const rawText = match[2];
-                const displayText = rawText.replace(/\*\*/g, '').replace(/\*/g, '').trim();
-                const slug = generateSlug(rawText);
-                toc.push({ level, text: displayText, slug });
-            }
-        });
+    const contentHtml = await marked.parse(mdText);
 
-        const marked = new Marked(
-            markedHighlight({
-                langPrefix: 'hljs language-',
-                highlight(code, lang) {
-                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                    return hljs.highlight(code, { language }).value;
-                }
-            })
-        );
-
-        marked.use({
-            renderer: {
-                heading({ tokens, depth, raw }) {
-                    const text = this.parser.parseInline(tokens);
-                    const cleanRaw = raw.replace(/^#+\s+/, '');
-                    const slug = generateSlug(cleanRaw);
-                    return `<h${depth} id="${slug}">${text}</h${depth}>`;
-                }
-            }
-        });
-
-        const contentHtml = await marked.parse(mdText);
-
-        let tocHtml = '';
-        if (toc.length > 0) {
-            tocHtml = `
+    let tocHtml = '';
+    if (toc.length > 0) {
+      tocHtml = `
             <div class="toc-wrapper">
                 <div class="toc-title">Table of Contents</div>
                 <ul class="toc-list">
                     ${toc.map(item => {
-                        if (item.level > 3) return '';
-                        return `
+        if (item.level > 3) return '';
+        return `
                         <li class="toc-item toc-level-${item.level}">
                             <a href="#${item.slug}" class="toc-link">${item.text}</a>
                         </li>`;
-                    }).join('')}
+      }).join('')}
                 </ul>
             </div>`;
-        }
+    }
 
-        const fullHtml = `
+    const fullHtml = `
             <!DOCTYPE html>
             <html>
             <head><style>${PDF_STYLE}</style></head>
@@ -365,40 +365,48 @@ export async function POST(req) {
             </html>
         `;
 
-        // --- LAUNCH BROWSER ---
-        browser = await launchBrowser();
+    // --- LAUNCH BROWSER ---
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ]
+    });
 
-        const page = await browser.newPage();
-        await page.setContent(fullHtml, {
-            waitUntil: 'domcontentloaded',
-            timeout: 20000,
-        });
+    const page = await browser.newPage();
+    await page.setContent(fullHtml, {
+      waitUntil: 'domcontentloaded',
+      timeout: 20000,
+    });
 
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            timeout: 30000,
-            margin: { top: '0', bottom: '0', left: '0', right: '0' }
-        });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      timeout: 30000,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
 
-        await browser.close();
+    await browser.close();
 
-        const cleanName = (fileName || 'document').replace(/[^a-zA-Z0-9-_]/g, '');
-        return new NextResponse(pdfBuffer, {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="${cleanName}.pdf"`,
-            },
-        });
+    const cleanName = (fileName || 'document').replace(/[^a-zA-Z0-9-_]/g, '');
+    return new NextResponse(pdfBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${cleanName}.pdf"`,
+      },
+    });
 
-    } catch (error) {
-        console.error('PDF Generation Error:', error);
-        if (browser) await browser.close();
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
+    if (browser) await browser.close();
 
-        return NextResponse.json(
-            { message: 'Internal Server Error', error: error.toString() },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json(
+      { message: 'Internal Server Error', error: error.toString() },
+      { status: 500 }
+    );
+  }
 }
