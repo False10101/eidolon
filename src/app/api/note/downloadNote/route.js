@@ -1,29 +1,27 @@
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
-import fs from 'fs'; // Added to check if browser exists
+import fs from 'fs';
 
 // ---------------------------------------------------------
 //  1. CSS STYLES
 // ---------------------------------------------------------
 const PDF_STYLE = `
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
   :root {
-    --c-ink: #0f172a;           
-    --c-subtle: #475569;        
-    --c-primary: #3b82f6;       
-    --c-accent: #8b5cf6;        
-    --c-surface: #ffffff;       
-    --c-surface-alt: #f8fafc;   
-    --bg-code-block: #f8fafc;   
-    --bg-code-header: #f1f5f9;  
-    --border-code: #e2e8f0;     
-    --font-heading: 'Space Grotesk', sans-serif;
-    --font-body: 'Inter', sans-serif;
-    --font-code: 'JetBrains Mono', monospace;
+    --c-ink: #0f172a;
+    --c-subtle: #475569;
+    --c-primary: #3b82f6;
+    --c-accent: #8b5cf6;
+    --c-surface: #ffffff;
+    --c-surface-alt: #f8fafc;
+    --bg-code-block: #f8fafc;
+    --bg-code-header: #f1f5f9;
+    --border-code: #e2e8f0;
+    --font-heading: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-body: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-code: 'Courier New', Courier, monospace;
     --radius-md: 12px;
   }
 
@@ -80,7 +78,7 @@ const PDF_STYLE = `
     display: flex;
     align-items: center;
   }
-  
+
   h3::before {
     content: "";
     display: inline-block;
@@ -102,15 +100,15 @@ const PDF_STYLE = `
   pre {
     background: var(--bg-code-block);
     color: #334155;
-    padding: 3.5em 1.2em 1.2em 1.2em; 
+    padding: 3.5em 1.2em 1.2em 1.2em;
     margin: 2.5em 0;
     border-radius: var(--radius-md);
     position: relative;
     border: 1px solid var(--border-code);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
     page-break-inside: avoid;
-    overflow-x: hidden; 
-    white-space: pre-wrap;      
+    overflow-x: hidden;
+    white-space: pre-wrap;
     word-wrap: break-word;
   }
 
@@ -147,10 +145,10 @@ const PDF_STYLE = `
 
   code {
     font-family: var(--font-code);
-    font-size: 11px;         
-    line-height: 1.5;       
+    font-size: 11px;
+    line-height: 1.5;
     letter-spacing: -0.3px;
-    tab-size: 2;             
+    tab-size: 2;
   }
 
   :not(pre) > code {
@@ -189,34 +187,33 @@ const PDF_STYLE = `
   }
   blockquote p { margin: 0; font-style: italic; color: var(--c-ink); font-weight: 500; }
 
-  .toc-wrapper { 
-    page-break-after: always; 
-    margin-bottom: 4rem; 
+  .toc-wrapper {
+    page-break-after: always;
+    margin-bottom: 4rem;
     padding: 2rem;
     background: #f8fafc;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
   }
-  .toc-title { 
-    font-family: var(--font-heading); 
-    font-size: 24px; 
-    font-weight: 700; 
-    margin-bottom: 1.5rem; 
-    color: var(--c-ink); 
-    text-transform: uppercase; 
-    letter-spacing: 0.05em; 
-    border-bottom: 2px solid var(--c-primary); 
-    padding-bottom: 10px; 
-    display: inline-block; 
+  .toc-title {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--c-ink);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--c-primary);
+    padding-bottom: 10px;
+    display: inline-block;
   }
   .toc-list { list-style: none; padding: 0; }
   .toc-item { margin-bottom: 0.5rem; position: relative; padding-left: 20px; }
-  .toc-item::before { content: "→"; position: absolute; left: 0; top: 0; color: var(--c-primary); font-weight: bold; font-family: var(--font-body); }
+  .toc-item::before { content: "→"; position: absolute; left: 0; top: 0; color: var(--c-primary); font-weight: bold; }
   .toc-level-1 { margin-top: 1.2em; font-weight: 700; font-size: 1.1em; color: var(--c-ink); margin-left: 0; }
   .toc-level-2 { margin-left: 1.5rem; font-size: 1em; }
-  .toc-link { text-decoration: none; color: inherit; transition: color 0.2s; display: block; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; }
-  .toc-link:hover { color: var(--c-primary); border-bottom-color: var(--c-primary); }
-  
+  .toc-link { text-decoration: none; color: inherit; display: block; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; }
+
   .hljs-keyword, .hljs-operator, .hljs-selector-tag { color: #a626a4; font-weight: 500; }
   .hljs-built_in, .hljs-literal, .hljs-number { color: #986801; }
   .hljs-string, .hljs-attr { color: #50a14f; }
@@ -230,32 +227,32 @@ const PDF_STYLE = `
 function generateSlug(text) {
     if (!text) return '';
     return text.toString().toLowerCase().trim()
-        .replace(/<[^>]*>/g, '')  
-        .replace(/[*_~`]/g, '')   
-        .replace(/[^\w\s-]/g, '') 
-        .replace(/[\s_-]+/g, '-') 
-        .replace(/^-+|-+$/g, ''); 
+        .replace(/<[^>]*>/g, '')
+        .replace(/[*_~`]/g, '')
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
 }
 
 // ---------------------------------------------------------
 //  3. SMART BROWSER LAUNCHER
 // ---------------------------------------------------------
 async function launchBrowser() {
-    // Basic flags for VPS stability
     const args = [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--disable-extensions'
+        '--disable-extensions',
+        '--no-zygote',
+        '--disable-features=site-per-process',
+        '--js-flags=--max-old-space-size=512',
+        '--disk-cache-size=0',
+        '--media-cache-size=0',
     ];
 
-    const launchConfig = {
-        headless: 'new',
-        args: args
-    };
+    const launchConfig = { headless: 'new', args, timeout: 30000 };
 
-    // Only look for custom paths on Linux
     if (process.platform === 'linux') {
         const possiblePaths = [
             '/usr/bin/chromium-browser',
@@ -263,16 +260,20 @@ async function launchBrowser() {
             '/usr/bin/google-chrome-stable',
             '/usr/bin/google-chrome'
         ];
-
-        // Find the first path that actually exists
         const foundPath = possiblePaths.find(path => fs.existsSync(path));
-
         if (foundPath) {
             console.log(`[PDF] Using system browser at: ${foundPath}`);
             launchConfig.executablePath = foundPath;
-        } else {
-            console.log('[PDF] No system browser found. Attempting to use bundled Puppeteer...');
-            // We do NOT set executablePath, so it falls back to node_modules
+        }
+    } else if (process.platform === 'darwin') {
+        const macPaths = [
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Chromium.app/Contents/MacOS/Chromium',
+        ];
+        const foundPath = macPaths.find(path => fs.existsSync(path));
+        if (foundPath) {
+            console.log(`[PDF] Using system browser at: ${foundPath}`);
+            launchConfig.executablePath = foundPath;
         }
     }
 
@@ -330,7 +331,7 @@ export async function POST(req) {
             renderer: {
                 heading({ tokens, depth, raw }) {
                     const text = this.parser.parseInline(tokens);
-                    const cleanRaw = raw.replace(/^#+\s+/, ''); 
+                    const cleanRaw = raw.replace(/^#+\s+/, '');
                     const slug = generateSlug(cleanRaw);
                     return `<h${depth} id="${slug}">${text}</h${depth}>`;
                 }
@@ -346,7 +347,7 @@ export async function POST(req) {
                 <div class="toc-title">Table of Contents</div>
                 <ul class="toc-list">
                     ${toc.map(item => {
-                        if (item.level > 3) return ''; 
+                        if (item.level > 3) return '';
                         return `
                         <li class="toc-item toc-level-${item.level}">
                             <a href="#${item.slug}" class="toc-link">${item.text}</a>
@@ -365,15 +366,18 @@ export async function POST(req) {
         `;
 
         // --- LAUNCH BROWSER ---
-        // This function now handles the logic safely
         browser = await launchBrowser();
 
         const page = await browser.newPage();
-        await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+        await page.setContent(fullHtml, {
+            waitUntil: 'domcontentloaded',
+            timeout: 20000,
+        });
 
-        const pdfBuffer = await page.pdf({ 
-            format: 'A4', 
+        const pdfBuffer = await page.pdf({
+            format: 'A4',
             printBackground: true,
+            timeout: 30000,
             margin: { top: '0', bottom: '0', left: '0', right: '0' }
         });
 
@@ -391,7 +395,7 @@ export async function POST(req) {
     } catch (error) {
         console.error('PDF Generation Error:', error);
         if (browser) await browser.close();
-        
+
         return NextResponse.json(
             { message: 'Internal Server Error', error: error.toString() },
             { status: 500 }
