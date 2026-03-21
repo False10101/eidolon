@@ -31,11 +31,11 @@ async function executeTransactionWithRetry(operations, maxRetries = 3) {
         try {
             connection = await db.getConnection();
             await connection.beginTransaction();
-            
+
             for (const op of operations) {
                 await connection.execute(op.sql, op.params);
             }
-            
+
             await connection.commit();
             return;
         } catch (err) {
@@ -117,6 +117,7 @@ export async function updateTextbookInBackground(textbookId, activityId, user_id
 
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
+            apiEndpoint: process.env.GEMINI_PROXY_URL,
             authClient: null
         });
 
@@ -190,7 +191,7 @@ export async function updateTextbookInBackground(textbookId, activityId, user_id
         if (!pdfPath) {
             const pdfFileName = `${uuidv4()}_${textbook.name}_explained.pdf`;
             const pdfRelativePath = `textbook/explanation/${pdfFileName}`;
-            
+
             await r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
                 Key: pdfRelativePath,

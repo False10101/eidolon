@@ -24,8 +24,8 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
         }
 
         // Store old paths for cleanup
-        oldNotePath = note.noteFilePath?.startsWith('/') 
-            ? note.noteFilePath.slice(1) 
+        oldNotePath = note.noteFilePath?.startsWith('/')
+            ? note.noteFilePath.slice(1)
             : note.noteFilePath;
 
         // --- TRANSACTION 1: SET 'PROCESSING' ---
@@ -35,7 +35,7 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
             await connection.execute(`UPDATE note SET status = 'PROCESSING' WHERE id = ?`, [noteId]);
             await connection.execute(
                 `UPDATE activity SET title = ?, status = 'PROCESSING' 
-                 WHERE type = 'Inclass Notes' AND user_id = ? AND respective_table_id = ? AND id = ?`, 
+                 WHERE type = 'Inclass Notes' AND user_id = ? AND respective_table_id = ? AND id = ?`,
                 [note.name, note.user_id, noteId, activityId]
             );
             await connection.commit();
@@ -71,7 +71,8 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
         // Step 4: Generate updated content with Gemini
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            authClient: null  
+            apiEndpoint: process.env.GEMINI_PROXY_URL,
+            authClient: null
         });
 
         const result = await genAI.models.generateContent({
@@ -118,7 +119,7 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
                  WHERE id = ?`,
                 [`/${newNotesRelativePath}`, noteId]
             );
-            
+
             await connection.execute(
                 `UPDATE activity SET 
                     status = 'COMPLETED', 
@@ -127,7 +128,7 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
                  WHERE type = 'Inclass Notes' AND respective_table_id = ? AND id = ?`,
                 [usageMetadata.promptTokenCount, usageMetadata.candidatesTokenCount, noteId, activityId]
             );
-            
+
             await connection.commit();
         } catch (err) {
             await connection.rollback();
@@ -154,7 +155,7 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
 
     } catch (error) {
         console.error(`Failed to update note ID ${noteId}:`, error);
-        
+
         // Clean up any newly created files if the operation failed
         if (oldNotePath) {
             try {
@@ -173,7 +174,7 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
             const errorMessage = error.message.includes('SAFETY')
                 ? 'Content blocked by safety features. Try adjusting your transcript content.'
                 : error.message;
-            
+
             connection = await db.getConnection();
             try {
                 await connection.beginTransaction();
@@ -200,13 +201,13 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
 function cleanFilename(filename) {
     // Remove UUID prefix (format: 8-4-4-4-12 hex digits separated by hyphens)
     let cleaned = filename.replace(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/i, 
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/i,
         ''
     );
-    
+
     // Remove _notes.txt or _transcript.txt suffix
     cleaned = cleaned.replace(/_notes\.txt$|_transcript\.txt$/i, '');
-    
+
     return cleaned;
 }
 

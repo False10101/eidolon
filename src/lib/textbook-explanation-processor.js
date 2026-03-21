@@ -31,11 +31,11 @@ async function executeTransactionWithRetry(operations, maxRetries = 3) {
         try {
             connection = await db.getConnection();
             await connection.beginTransaction();
-            
+
             for (const op of operations) {
                 await connection.execute(op.sql, op.params);
             }
-            
+
             await connection.commit();
             return;
         } catch (err) {
@@ -131,6 +131,7 @@ export async function textbook_explanation_processor(textbookId, activityId, use
 
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
+            apiEndpoint: process.env.GEMINI_PROXY_URL,
             authClient: null
         });
 
@@ -219,7 +220,7 @@ export async function textbook_explanation_processor(textbookId, activityId, use
 
     } catch (error) {
         console.error("An error occurred during textbook processing:", error);
-        
+
         // ONLY CHANGE: Wrapped in retry helper
         if (textbookId) {
             await executeTransactionWithRetry([

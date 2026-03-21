@@ -34,7 +34,7 @@ export async function processNoteInBackground(noteId, activityId, user_id) {
             await connection.commit();
         } catch (err) {
             await connection.rollback();
-            throw err; 
+            throw err;
         } finally {
             if (connection) connection.release();
         }
@@ -51,10 +51,10 @@ export async function processNoteInBackground(noteId, activityId, user_id) {
         const temperatureParam = note.style === 'minimal' ? 0.3 : note.style === "creative" ? 1 : 0.6;
 
         // Step 3: Read the transcript file from R2
-        const transcriptPath = note.transcriptFilePath.startsWith('/') 
-            ? note.transcriptFilePath.slice(1) 
+        const transcriptPath = note.transcriptFilePath.startsWith('/')
+            ? note.transcriptFilePath.slice(1)
             : note.transcriptFilePath;
-        
+
         const { Body: transcriptBody } = await r2.send(new GetObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: transcriptPath
@@ -64,7 +64,8 @@ export async function processNoteInBackground(noteId, activityId, user_id) {
         // Step 4: Construct the prompt and call the Gemini API
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            authClient: null  
+            apiEndpoint: process.env.GEMINI_PROXY_URL,
+            authClient: null
         });
 
         const result = await genAI.models.generateContent({
@@ -90,7 +91,7 @@ export async function processNoteInBackground(noteId, activityId, user_id) {
         // Step 5: Save the generated note text to R2
         const uniqueNotesFileName = `${uuidv4()}_${note.name}_notes.txt`;
         const notesRelativePath = `note/${uniqueNotesFileName}`; // No leading slash for R2
-        
+
         await r2.send(new PutObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: notesRelativePath,
@@ -113,7 +114,7 @@ export async function processNoteInBackground(noteId, activityId, user_id) {
             await connection.commit();
         } catch (err) {
             await connection.rollback();
-            throw err; 
+            throw err;
         } finally {
             if (connection) connection.release();
         }
@@ -124,10 +125,10 @@ export async function processNoteInBackground(noteId, activityId, user_id) {
         console.error(`Failed to process note ID ${noteId}:`, error);
         // Step 7 (Error Handling): Update both note and activity records to 'FAILED'
         if (noteId) {
-            const errorMessage = error.message.includes('SAFETY') 
-                ? 'Content blocked by safety features. Try adjusting your transcript content.' 
+            const errorMessage = error.message.includes('SAFETY')
+                ? 'Content blocked by safety features. Try adjusting your transcript content.'
                 : error.message;
-            
+
             connection = await db.getConnection();
             try {
                 await connection.beginTransaction();

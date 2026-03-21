@@ -42,9 +42,10 @@ export async function updateDocumentInBackground(documentId, activityId, user_id
         // --- EXTERNAL CALLS (NO TRANSACTION OPEN) ---
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            authClient: null  
+            apiEndpoint: process.env.GEMINI_PROXY_URL,
+            authClient: null
         });
-        
+
         const result = await genAI.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: [{ role: "user", parts: [{ text: buildUserPrompt(topic, additionalDetails, format_type) }] }],
@@ -114,7 +115,7 @@ export async function updateDocumentInBackground(documentId, activityId, user_id
             const errorMessage = error.message.includes('SAFETY')
                 ? 'Content blocked by safety features. Try adjusting your document content.'
                 : error.message;
-                
+
             connection = await db.getConnection();
             try {
                 await connection.beginTransaction();

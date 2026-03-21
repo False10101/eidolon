@@ -1,4 +1,4 @@
-import {db} from "@/lib/db";
+import { db } from "@/lib/db";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { GoogleGenAI } from "@google/genai";
 import { r2 } from "@/lib/r2"; // Import R2 client
@@ -12,7 +12,7 @@ export async function processDocumentInBackground(documentId, activityId, user_i
     try {
 
         const [rows] = await queryWithRetry('SELECT * FROM document WHERE id = ?', [documentId]);
-        
+
         document = rows[0];
 
         const [secondrows] = await queryWithRetry('SELECT gemini_api from user WHERE id = ? ', [user_id]);
@@ -31,7 +31,7 @@ export async function processDocumentInBackground(documentId, activityId, user_i
             await connection.commit();
         } catch (err) {
             await connection.rollback();
-            throw err; 
+            throw err;
         } finally {
             if (connection) connection.release();
         }
@@ -44,7 +44,8 @@ export async function processDocumentInBackground(documentId, activityId, user_i
 
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            authClient: null  
+            apiEndpoint: process.env.GEMINI_PROXY_URL,
+            authClient: null
         });
 
         const result = await genAI.models.generateContent({
@@ -87,7 +88,7 @@ export async function processDocumentInBackground(documentId, activityId, user_i
             await connection.commit();
         } catch (err) {
             await connection.rollback();
-            throw err; 
+            throw err;
         } finally {
             if (connection) connection.release();
         }
