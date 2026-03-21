@@ -71,7 +71,9 @@ export async function updateNoteInBackground(noteId, activityId, user_id) {
         // Step 4: Generate updated content with Gemini
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            apiEndpoint: process.env.GEMINI_PROXY_URL,
+            httpOptions: {
+                baseUrl: process.env.GEMINI_PROXY_URL
+            },
             authClient: null
         });
 
