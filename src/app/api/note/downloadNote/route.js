@@ -262,8 +262,9 @@ async function launchBrowser() {
     ];
     const foundPath = possiblePaths.find(path => fs.existsSync(path));
     if (foundPath) {
-      console.log(`[PDF] Using system browser at: ${foundPath}`);
       launchConfig.executablePath = foundPath;
+    } else {
+      launchConfig.executablePath = '/usr/bin/chromium-browser';
     }
   } else if (process.platform === 'darwin') {
     const macPaths = [

@@ -37,6 +37,7 @@
     "path-to-regexp": "^8.2.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.3.31",
+    "puppeteer": "^24.40.0",
     "puppeteer-core": "^24.39.1",
     "rc-checkbox": "^3.5.0",
     "react": "^19.0.0",
