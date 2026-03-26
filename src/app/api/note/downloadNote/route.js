@@ -367,15 +367,7 @@ export async function POST(req) {
         `;
 
     // --- LAUNCH BROWSER ---
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ]
-    });
+    browser = await launchBrowser();
 
     const page = await browser.newPage();
     await page.setContent(fullHtml, {
