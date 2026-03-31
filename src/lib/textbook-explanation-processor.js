@@ -131,9 +131,6 @@ export async function textbook_explanation_processor(textbookId, activityId, use
 
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            httpOptions: {
-                baseUrl: process.env.GEMINI_PROXY_URL
-            },
             authClient: null
         });
 

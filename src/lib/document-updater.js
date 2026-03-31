@@ -42,9 +42,6 @@ export async function updateDocumentInBackground(documentId, activityId, user_id
         // --- EXTERNAL CALLS (NO TRANSACTION OPEN) ---
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            httpOptions: {
-                baseUrl: process.env.GEMINI_PROXY_URL
-            },
             authClient: null
         });
 

@@ -117,9 +117,6 @@ export async function updateTextbookInBackground(textbookId, activityId, user_id
 
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            httpOptions: {
-                baseUrl: process.env.GEMINI_PROXY_URL
-            },
             authClient: null
         });
 

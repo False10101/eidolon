@@ -44,9 +44,6 @@ export async function processDocumentInBackground(documentId, activityId, user_i
 
         const genAI = new GoogleGenAI({
             apiKey: gemini_api_key,
-            httpOptions: {
-                baseUrl: process.env.GEMINI_PROXY_URL
-            },
             authClient: null
         });
 
