@@ -3,9 +3,11 @@
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
+import ConfirmModal from '@/app/ConfirmModal';
+import ErrorModal from '@/app/ErrorModal';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatCreatedAt(ts) {
@@ -110,8 +112,11 @@ export default function TranscriptViewer({ params }) {
 
   const [tx, setTx] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -148,6 +153,30 @@ export default function TranscriptViewer({ params }) {
     a.download = `${tx.label ?? 'transcript'}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+    const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const token = await getAccessTokenSilently();
+      const res = await fetch('/api/transcript/delete', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteModal(false);
+        setDeleteError(data.error);
+        setDeleting(false);
+        return;
+      }
+      router.push('/transcript');
+    } catch {
+      setDeleteModal(false); 
+      setDeleteError('Something went wrong. Please try again.');
+      setDeleting(false);
+    }
   };
 
   return (
@@ -263,11 +292,12 @@ export default function TranscriptViewer({ params }) {
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
                   }>Download</ActionBtn>
-                  <ActionBtn danger icon={
+                  <ActionBtn danger onClick={()=> setDeleteModal(true)} icon={
                     <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                       <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M9 6V4h6v2" />
                     </svg>
-                  }>Delete</ActionBtn>
+                  }>{deleting ? 'Deleting…' : 'Delete'}
+                  </ActionBtn>
                 </div>
               </div>
 
@@ -312,6 +342,21 @@ export default function TranscriptViewer({ params }) {
           </motion.main>
         )}
       </div>
+
+      <AnimatePresence>
+        {deleteError && <ErrorModal message={deleteError} onClose={() => setDeleteError(null)} />}
+        {deleteModal && (
+          <ConfirmModal
+            title="Delete this transcript?"
+            message="This transcript will be permanently deleted. Any notes that used it as a source will lose the link."
+            confirmLabel="Delete"
+            loadingLabel="Deleting…"
+            loading={deleting}
+            onConfirm={handleDelete}
+            onCancel={() => { if (!deleting) setDeleteModal(false); }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Copy toast */}
       <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#9898a8] transition-all duration-200

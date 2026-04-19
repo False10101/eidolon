@@ -10,23 +10,22 @@ export async function DELETE(req) {
         const { publicId } = await req.json();
         if (!publicId) return NextResponse.json({ error: "Missing publicId." }, { status: 400 });
 
-        const [note] = await sql`
-            SELECT id, status, generation_type FROM "note"
+        const [transcript] = await sql`
+            SELECT id FROM "transcript"
             WHERE public_id = ${publicId} AND user_id = ${userId}
         `;
 
-        if (!note) return NextResponse.json({ error: "Note not found." }, { status: 404 });
-        if (note.generation_type === 'group') return NextResponse.json({ error: "Group notes cannot be deleted." }, { status: 403 });
-        if (['pending', 'reading', 'generating', 'saving'].includes(note.status)) {
-            return NextResponse.json({ error: "Cannot delete a note while it is being generated." }, { status: 400 });
-        }
+        if (!transcript) return NextResponse.json({ error: "Transcript not found." }, { status: 404 });
 
-        await sql`DELETE FROM "note" WHERE id = ${note.id}`;
+        await sql.begin(async (tx) => {
+            await tx`UPDATE "note" SET transcript_id = NULL WHERE transcript_id = ${transcript.id}`;
+            await tx`DELETE FROM "transcript" WHERE id = ${transcript.id}`;
+        });
 
         return NextResponse.json({ success: true });
 
     } catch (error) {
-        console.error("DELETE /note/delete error:", error);
+        console.error("DELETE /transcript/delete error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

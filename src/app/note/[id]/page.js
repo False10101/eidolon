@@ -3,11 +3,14 @@
 import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
-import {motion, AnimatePresence} from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
 import MDEditor from '@uiw/react-md-editor';
 import GeneratingOverlay from '@/app/GeneratingOverlays';
+import ConfirmModal from '@/app/ConfirmModal';
+import ErrorModal from '@/app/ErrorModal';
+
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatCreatedAt(ts) {
@@ -77,11 +80,13 @@ export default function NoteViewer({ params }) {
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(false);
   const [saved, setSaved] = useState(false);
-
+  const [deleteError, setDeleteError] = useState(null);
 
   const [editName, setEditName] = useState('');
   const [editTopic, setEditTopic] = useState('');
@@ -170,6 +175,30 @@ export default function NoteViewer({ params }) {
       console.error('Save failed:', err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const token = await getAccessTokenSilently();
+      const res = await fetch('/api/note/delete', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteModal(false);
+        setDeleteError(data.error);
+        setDeleting(false);
+        return;
+      }
+      router.push('/note');
+    } catch {
+      setDeleteModal(false); 
+      setDeleteError('Something went wrong. Please try again.');
+      setDeleting(false);
     }
   };
 
@@ -453,11 +482,13 @@ export default function NoteViewer({ params }) {
                         </svg>
                       }>Fullscreen</ActionBtn>
 
-                      <ActionBtn danger icon={
+                      <ActionBtn danger onClick={() => setDeleteModal(true)} icon={
                         <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M9 6V4h6v2" />
                         </svg>
-                      }>Delete</ActionBtn>
+                      }>
+                        {deleting ? 'Deleting…' : 'Delete'}
+                      </ActionBtn>
                     </div>
                   </div>
 
@@ -517,6 +548,18 @@ export default function NoteViewer({ params }) {
 
       {/* ── Fullscreen reader ── */}
       <AnimatePresence>
+        {deleteError && <ErrorModal message={deleteError} onClose={() => setDeleteError(null)} />}
+        {deleteModal && (
+          <ConfirmModal
+            title="Delete this note?"
+            message="This note will be permanently deleted and cannot be recovered."
+            confirmLabel="Delete"
+            loadingLabel="Deleting…"
+            loading={deleting}
+            onConfirm={handleDelete}
+            onCancel={() => { if (!deleting) setDeleteModal(false); }}
+          />
+        )}
         {isFullscreen && (
           <motion.div
             initial={{ opacity: 0 }}
