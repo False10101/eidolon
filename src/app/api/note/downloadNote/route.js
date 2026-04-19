@@ -4,6 +4,13 @@ import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import fs from 'fs';
+import { db } from '@/lib/storage/db';
+
+import { jwtVerify, createRemoteJWKSet } from 'jose';
+
+// Auth0 Configuration (Matches your other endpoints)
+const domain = process.env.AUTH0_DOMAIN.startsWith('http') ? process.env.AUTH0_DOMAIN : `https://${process.env.AUTH0_DOMAIN}`;
+const JWKS = createRemoteJWKSet(new URL(`${domain}/.well-known/jwks.json`));
 
 // ---------------------------------------------------------
 //  1. CSS STYLES
@@ -285,22 +292,28 @@ async function launchBrowser() {
 //  4. MAIN API HANDLER
 // ---------------------------------------------------------
 export async function POST(req) {
-  const cookies = req.headers.get('cookie');
-  const token = cookies ? cookies.split('; ').find(row => row.startsWith('token='))?.split('=')[1] : null;
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
 
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   let browser = null;
 
   try {
-    const body = await req.json();
-    const { mdText, fileName } = body;
+    // 2. Verify JWT
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `${domain}/`,
+      audience: process.env.AUTH0_AUDIENCE,
+    });
 
-    if (!mdText) {
-      return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
-    }
+    // 3. Verify User in DB
+    const [userRows] = await db.query('SELECT id FROM user WHERE google_id = ?', [payload.sub]);
+    if (!userRows || userRows.length === 0) return NextResponse.json({ error: 'User not synced' }, { status: 401 });
+
+    const body = await req.json();
+    const { mdText, fileName } = body; // 'style' can be academic, minimal, etc.
+
+    if (!mdText) return NextResponse.json({ message: 'Markdown content is required.' }, { status: 400 });
 
     // --- MARKDOWN & TOC ---
     const toc = [];

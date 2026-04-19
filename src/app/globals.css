@@ -1,15 +1,255 @@
 @import "tailwindcss";
 
 
+/* ── Cursor defaults ──────────────────────────────────────────────────────────
+   Browsers default buttons to `default` cursor. Fix it globally.           */
+button,
+a,
+[role="button"],
+label[for],
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Anything explicitly non-interactive */
+[data-no-cursor] {
+  cursor: default;
+}
+
+/* ── Button active state ──────────────────────────────────────────────────────
+   Every button gets a subtle press feel — scale down on click.
+   Pages can override with their own active: class if needed.               */
+button:not(:disabled):active {
+  transform: scale(0.97);
+  transition: transform 80ms ease;
+}
+
+/* ── Focus rings ──────────────────────────────────────────────────────────────
+   Remove ugly browser default, replace with our teal ring.
+   Only shows on keyboard navigation (not on click) via :focus-visible.     */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid rgba(0, 212, 200, 0.5);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Inputs handle their own focus via border color — no outline ring needed  */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* ── Text selection ───────────────────────────────────────────────────────────
+   Default blue selection looks off against this dark palette.              */
+::selection {
+  background: rgba(0, 212, 200, 0.2);
+  color: #e8e8ed;
+}
+
+/* ── User select ──────────────────────────────────────────────────────────────
+   UI chrome (labels, badges, icons) shouldn't be selectable.
+   Use select-none on components; this handles common patterns globally.    */
+button,
+nav,
+[role="tab"],
+[role="tablist"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Autofill ─────────────────────────────────────────────────────────────────
+   Chrome's autofill injects a yellow/blue background. Override it.        */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #18181f inset;
+  -webkit-text-fill-color: #e8e8ed;
+  caret-color: #e8e8ed;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ── Scrollbars ───────────────────────────────────────────────────────────────
+   Custom thin scrollbar that matches the palette.
+   Firefox uses scrollbar-width/color (set inline where needed).
+   Webkit gets styled here globally.                                        */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a35;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a48;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Transitions ──────────────────────────────────────────────────────────────
+   Opt into smooth color/border transitions on interactive elements
+   without specifying it on every single class.                             */
+button,
+a,
+input,
+textarea,
+select {
+  transition-property: color, background-color, border-color, opacity, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* ── Image drag ───────────────────────────────────────────────────────────────
+   Images shouldn't be draggable in an app context.                        */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* ── Smooth scroll ────────────────────────────────────────────────────────────
+   Smooth anchor scrolling. Respects prefers-reduced-motion.               */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ─── DEPTH UTILITIES ──────────────────────────────────────────────────────────
+   Add these to globals.css. Apply .surface to any card, .surface-teal to cards
+   containing the primary teal metric.
+────────────────────────────────────────────────────────────────────────────── */
+
+/* Simulates light hitting the top edge — lifts cards off the background     */
+.surface {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    /* top edge catch-light      */
+    0 2px 12px rgba(0, 0, 0, 0.45);
+  /* drop shadow under card   */
+}
+
+/* For cards that contain teal values (balance, spend)                       */
+.surface-teal {
+  box-shadow:
+    inset 0 1px 0 rgba(0, 212, 200, 0.18),
+    /* teal catch-light on top  */
+    0 0 0 1px rgba(0, 212, 200, 0.04),
+    /* outer teal border whisper */
+    0 8px 32px rgba(0, 212, 200, 0.06),
+    /* ambient teal glow         */
+    0 2px 12px rgba(0, 0, 0, 0.45);
+  /* base drop shadow          */
+}
+
+/* Subtle grain on card surfaces — adds tactility without pattern            */
+.noise {
+  position: relative;
+  overflow: hidden;
+}
+.noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  background-repeat: repeat;
+}
+
+/* Navbar depth — gives the nav a physical separation from page content      */
+.nav-surface {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    /* bottom edge light leak    */
+    0 4px 24px rgba(0, 0, 0, 0.4);
+  /* page shadow underneath    */
+}
+
+/* ─── Device blocking ──────────────────────────────────────────────────────────
+   Block screens are always in the DOM; CSS decides what's visible.
+   No JS state, no hydration flash, no event listeners needed.
+──────────────────────────────────────────────────────────────────────────────── */
+
+/* Hidden by default on desktop */
+.block-mobile {
+  display: none;
+}
+
+.block-tablet-portrait {
+  display: none;
+}
+
+/* Mobile: phones (up to 767px) */
+@media (max-width: 767px) {
+  .block-mobile {
+    display: flex;
+  }
+
+  .app-root {
+    display: none;
+  }
+}
+
+/* Tablet portrait: 768px–1199px in portrait orientation */
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: portrait) {
+  .block-tablet-portrait {
+    display: flex;
+  }
+
+  .app-root {
+    display: none;
+  }
+}
+
 /* In your global CSS */
 /* Fix editor container height */
+
+.wmde-markdown .anchor {
+  display: none !important;
+}
 
 .w-md-editor {
   height: 100% !important;
   min-height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
+}
 
+.w-md-editor-text-pre>code,
+.w-md-editor-text-pre {
+  background: transparent !important;
+  color: transparent !important;
+}
+
+.w-md-editor-text-input {
+  color: #9898a8 !important;
+  -webkit-text-fill-color: #9898a8 !important;
 }
 
 /* Fix content area */
@@ -37,6 +277,221 @@ textarea.w-md-editor-text-input {
   height: auto !important;
 }
 
+/* ── MD Editor theme ── */
+.w-md-editor {
+  background: #111116 !important;
+  border: none !important;
+  color: #9898a8 !important;
+}
+
+.w-md-editor-toolbar {
+  background: #18181f !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding: 4px 8px !important;
+}
+
+.w-md-editor-toolbar li button {
+  color: #6b6b7a !important;
+  border-radius: 6px !important;
+}
+
+.w-md-editor-toolbar li button:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #e8e8ed !important;
+}
+
+.w-md-editor-toolbar li.active button {
+  background: rgba(0, 212, 200, 0.07) !important;
+  color: #00d4c8 !important;
+}
+
+.w-md-editor-toolbar-divider {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.w-md-editor-text-input,
+.w-md-editor-text {
+  background: #111116 !important;
+  color: #9898a8 !important;
+  font-size: 14px !important;
+  line-height: 1.8 !important;
+}
+
+.w-md-editor .token.title {
+  color: #e8e8ed !important;
+  font-weight: 500 !important;
+}
+
+.w-md-editor .token.bold {
+  color: #e8e8ed !important;
+}
+
+.w-md-editor .token.italic {
+  color: #00d4c8 !important;
+}
+
+.w-md-editor .token.code {
+  color: #00d4c8 !important;
+}
+
+.w-md-editor .token.blockquote {
+  color: #00d4c8 !important;
+}
+
+.w-md-editor .token.list.punctuation {
+  color: #6b6b7a !important;
+}
+
+.wmde-markdown {
+  background: transparent !important;
+  color: #9898a8 !important;
+  font-size: 14px !important;
+  line-height: 1.8 !important;
+}
+
+.wmde-markdown h1 {
+  color: #e8e8ed !important;
+  font-size: 26px !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding-bottom: 8px !important;
+  margin-bottom: 16px !important;
+}
+
+.wmde-markdown h2 {
+  color: #e8e8ed !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding-bottom: 6px !important;
+  margin-top: 28px !important;
+  margin-bottom: 12px !important;
+}
+
+.wmde-markdown h3 {
+  color: #e8e8ed !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  margin-top: 20px !important;
+  margin-bottom: 8px !important;
+}
+
+.wmde-markdown h4 {
+  color: #e8e8ed !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  margin-top: 16px !important;
+  margin-bottom: 6px !important;
+}
+
+.wmde-markdown h5 {
+  color: #e8e8ed !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  margin-top: 12px !important;
+  margin-bottom: 4px !important;
+}
+
+.wmde-markdown h6 {
+  color: #e8e8ed !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  margin-top: 8px !important;
+  margin-bottom: 4px !important;
+}
+
+.wmde-markdown strong {
+  color: #e8e8ed !important;
+  font-weight: 500 !important;
+}
+
+.wmde-markdown em {
+  color: #00d4c8 !important;
+}
+
+.wmde-markdown blockquote {
+  border-left: 2px solid #00d4c8 !important;
+  background: #18181f !important;
+  color: #9898a8 !important;
+  border-radius: 0 8px 8px 0 !important;
+  padding: 10px 16px !important;
+  margin: 12px 0 !important;
+}
+
+.wmde-markdown blockquote p {
+  margin: 0 !important;
+}
+
+.wmde-markdown code {
+  background: #18181f !important;
+  color: #00d4c8 !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 4px !important;
+  padding: 1px 6px !important;
+  font-size: 12px !important;
+}
+
+.wmde-markdown pre {
+  background: #18181f !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 8px !important;
+}
+
+.wmde-markdown pre code {
+  border: none !important;
+  color: #9898a8 !important;
+}
+
+.wmde-markdown table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.wmde-markdown table th {
+  background: #18181f !important;
+  color: #e8e8ed !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding: 8px 12px !important;
+  font-weight: 500 !important;
+}
+
+.wmde-markdown table td {
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding: 8px 12px !important;
+  color: #9898a8 !important;
+}
+
+.wmde-markdown table tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.wmde-markdown hr {
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+.wmde-markdown a {
+  color: #00d4c8 !important;
+}
+
+.wmde-markdown li::marker {
+  color: #6b6b7a !important;
+}
+
+.w-md-editor-text::-webkit-scrollbar {
+  width: 3px;
+}
+
+.w-md-editor-text::-webkit-scrollbar-thumb {
+  background: #1e1e27;
+  border-radius: 2px;
+}
+
 @property --angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -50,7 +505,25 @@ textarea.w-md-editor-text-input {
   0% {
     --angle: 0deg;
   }
+
   100% {
     --angle: 360deg;
   }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #18181f 25%, #1e1e27 50%, #18181f 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 6px;
 }

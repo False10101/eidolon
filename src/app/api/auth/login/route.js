@@ -1,66 +1,72 @@
-import { serialize } from 'cookie';
-import { db } from '@/lib/db';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
-import { queryWithRetry } from '@/lib/queryWithQuery';
+import { sql } from '@/lib/storage/db';
+import { jwtVerify, createRemoteJWKSet } from 'jose';
 
-export async function POST(req) {
-  const { username, password } = await req.json();
-
-  const queryResult = await queryWithRetry('SELECT * FROM user WHERE username = ?', [username]);
-  const response = queryResult[0]; // Extract the first row from the result
-
-  if(response.length === 0) {
-    return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
-  }
-
-  const isMatch = await bcrypt.compare(password, response[0].password);
-  if (!isMatch) {
-    return new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401 });
-  }
-
-  const token = jwt.sign(
-    { id: response[0].id, username: response[0].username },
-    process.env.JWT_SECRET,
-    { expiresIn: '48h' }
-  );
-
-  const serialized = serialize('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 4 // 4 days
-  });
-
-  const [dbResult] = await queryWithRetry(`UPDATE user SET last_login = NOW() WHERE id = ?`, [response[0].id]);
-
-  if(dbResult.length === 0){
-    return new Response(JSON.stringify({message : "Error logging in. Please try again."}, {status : 400}));
-  }
-
-  return new Response(null, {
-    status: 200,
-    headers: {
-      'Set-Cookie': serialized
-    }
-  });
-}
+// Ensures https:// is present
+const domain = process.env.AUTH0_DOMAIN.startsWith('http') ? process.env.AUTH0_DOMAIN : `https://${process.env.AUTH0_DOMAIN}`;
+const JWKS = createRemoteJWKSet(new URL(`${domain}/.well-known/jwks.json`));
 
 export async function GET(req) {
-  const cookies = req.headers.get('cookie');
-  const token = cookies ? cookies.split('; ').find(row => row.startsWith('token=')).split('=')[1] : null;
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
 
-  if (!token) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
+  if (!token) return new Response(JSON.stringify({ error: 'No token' }), { status: 401 });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    return new Response(JSON.stringify({ username: decoded.username, userId: decoded.id }), { status: 200 });
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `${domain}/`,
+      audience: process.env.AUTH0_AUDIENCE,
+    });
+
+    const googleId = payload.sub;
+
+    // 🚨 THE FIX: Access tokens don't have emails. We MUST fetch it manually from Auth0! 🚨
+    const userInfoRes = await fetch(`${domain}/userinfo`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    const userInfo = await userInfoRes.json();
     
+    const email = userInfo.email; 
+    const username = userInfo.nickname || userInfo.name || 'User';
+    const picture = userInfo.picture || '';
+
+    // 1. Try finding by google_id
+    // Postgres.js returns an array directly, so we don't need [rows] destructuring
+    let rows = await sql`SELECT * FROM "user" WHERE google_id = ${googleId}`;
+    let user = rows[0];
+
+    // 2. AUTO-LINK FIX: Now that we ACTUALLY have the email, link it!
+    if (!user && email) {
+        const emailRows = await sql`SELECT * FROM "user" WHERE email = ${email}`;
+        user = emailRows[0];
+
+        if (user) {
+            // Found your old account! Link the Google ID permanently
+            await sql`UPDATE "user" SET google_id = ${googleId} WHERE id = ${user.id}`;
+        }
+    }
+
+    // 3. If STILL not found, create brand new user
+    if (!user) {
+      // Postgres superpower: RETURNING * lets us skip the second SELECT query entirely!
+      const newRows = await sql`
+        INSERT INTO "user" (username, email, google_id, avatar_url, last_login, status, role, balance) 
+        VALUES (${username}, ${email}, ${googleId}, ${picture}, NOW(), 'normal', 'user', 0.00)
+        RETURNING *
+      `;
+      user = newRows[0];
+    } else {
+      // Update last login
+      await sql`UPDATE "user" SET last_login = NOW(), avatar_url = ${picture} WHERE id = ${user.id}`;
+    }
+
+    return new Response(JSON.stringify({ 
+      userId: user.id, // Your old ID is safe and returned!
+      username: user.username,
+      role: user.role 
+    }), { status: 200 });
+
   } catch (error) {
-    console.log(error);
-    return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 });
+    console.error("JWT Verification or sql failed:", error);
+    return new Response(JSON.stringify({ error: 'Invalid Token or Server Error' }), { status: 401 });
   }
 }

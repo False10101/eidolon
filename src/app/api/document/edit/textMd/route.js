@@ -2,7 +2,7 @@ import { r2 } from "@/lib/r2";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-import { queryWithRetry } from "@/lib/queryWithQuery";
+import { queryWithRetry } from "@/lib/queryWithRetry";
 
 export async function POST(req) {  
     const cookies = req.headers.get('cookie');

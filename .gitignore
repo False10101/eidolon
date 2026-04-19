@@ -24,6 +24,8 @@
 /build
 
 
+src/lib/note/buildUserPrompt.js
+src/lib/exam-prep/buildUserPrompt.js
 
 # debug
 npm-debug.log*
@@ -42,3 +44,12 @@ yarn-error.log*
 next-env.d.ts
 
 src/.DS_Store
+
+/src/generated/prisma
+
+/src/generated/prisma
+
+/tmp-convert
+/tmp
+/tmp-transcript
+/tmp-slips

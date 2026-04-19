@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { db } from '@/lib/db';
+import { db } from '@/lib/storage/db';
 import { processDocumentInBackground } from "@/lib/document-processor";
 import { checkAPI } from '@/lib/apiChecker';
 

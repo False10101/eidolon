@@ -9,11 +9,9 @@ export function formatTimeAgo(createdAtISO) {
 
     const pastDate = new Date(createdAtISO);
 
-    console.log(pastDate);
     
     // new Date() creates a date object for the current time in the user's timezone.
     const now = new Date();
-    console.log(now);
 
     // The difference is calculated in milliseconds, correctly accounting for timezones.
     let differenceInMs = now.getTime() - pastDate.getTime();

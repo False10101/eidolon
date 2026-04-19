@@ -1,0 +1,285 @@
+'use client';
+
+import { motion } from 'framer-motion';
+
+// ─── Odometer ──────────────────────────────────────────────────────────────────
+const DIGIT_H = 60;
+
+function OdometerDigit({ value }) {
+  return (
+    <div style={{ height: DIGIT_H, overflow: 'hidden', position: 'relative' }}>
+      <motion.div
+        animate={{ y: -value * DIGIT_H }}
+        transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
+        style={{ willChange: 'transform' }}
+      >
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+          <div key={n} style={{
+            height: DIGIT_H, lineHeight: `${DIGIT_H}px`,
+            fontFamily: 'var(--font-geist-mono, monospace)',
+            fontSize: 52, fontWeight: 500, color: '#00d4c8',
+            display: 'block', textAlign: 'center',
+          }}>
+            {n}
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+function OdometerNumber({ value }) {
+  const v    = Math.min(100, Math.max(0, Math.round(value)));
+  const h    = Math.floor(v / 100);
+  const tens = Math.floor((v % 100) / 10);
+  const ones = v % 10;
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', lineHeight: 1 }}>
+      {h > 0 && <OdometerDigit value={h} />}
+      <OdometerDigit value={tens} />
+      <OdometerDigit value={ones} />
+      <span style={{
+        fontFamily: 'var(--font-geist-mono, monospace)',
+        fontSize: 28, fontWeight: 500,
+        color: 'rgba(0,212,200,0.45)',
+        lineHeight: `${DIGIT_H}px`, marginLeft: 3,
+      }}>%</span>
+    </div>
+  );
+}
+
+// ─── Audio variant — waveform bars ────────────────────────────────────────────
+const BARS = Array.from({ length: 32 }, (_, i) => ({
+  height:   18 + Math.sin(i * 0.7) * 14 + Math.sin(i * 1.3) * 7,
+  duration: 0.55 + (i % 7) * 0.09,
+  delay:    (i % 5) * 0.07,
+}));
+
+function Waveform() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3, height: 52 }}>
+      {BARS.map((bar, i) => (
+        <div key={i} style={{
+          width: 3, height: bar.height, borderRadius: 99,
+          background: `rgba(0,212,200,${0.2 + (i % 5) * 0.1})`,
+          animation: `wave-bar ${bar.duration}s ease-in-out ${bar.delay}s infinite alternate`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Document variant — text lines materializing ──────────────────────────────
+// Looks like lines of text being written. Each bar is a "line",
+// widths vary to mimic real text layout. Shimmer sweeps left-to-right
+// at staggered delays — gives the impression of content being generated.
+const DOC_LINES = [
+  { w: '88%',  delay: 0    },
+  { w: '100%', delay: 0.18 },
+  { w: '73%',  delay: 0.36 },
+  { w: '95%',  delay: 0.54 },
+  { w: '100%', delay: 0.72 },
+  { w: '58%',  delay: 0.90 },
+];
+
+function DocumentLines() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', height: 52, justifyContent: 'center' }}>
+      {DOC_LINES.map((line, i) => (
+        <div key={i} style={{
+          position: 'relative', height: 3, width: line.w,
+          borderRadius: 99, background: 'rgba(0,212,200,0.1)',
+          overflow: 'hidden',
+        }}>
+          {/* Sweep shimmer — suggests text being written */}
+          <div style={{
+            position: 'absolute', inset: 0, width: '45%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(0,212,200,0.55) 50%, transparent 100%)',
+            animation: `doc-sweep 2s ease-in-out ${line.delay}s infinite`,
+          }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Stage pill ────────────────────────────────────────────────────────────────
+function StagePill({ label }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      borderRadius: 99, border: '1px solid rgba(255,255,255,0.07)',
+      background: '#111116', padding: '4px 12px',
+    }}>
+      <span style={{
+        width: 5, height: 5, borderRadius: '50%',
+        background: '#00d4c8',
+        animation: 'pulse-dot 1.4s ease-in-out infinite',
+        flexShrink: 0,
+      }} />
+      <span style={{
+        fontFamily: 'var(--font-geist-mono, monospace)',
+        fontSize: 11, color: '#6b6b7a',
+        textTransform: 'uppercase', letterSpacing: '0.06em',
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ─── GeneratingOverlay ─────────────────────────────────────────────────────────
+// variant: 'audio' (default) — waveform bars, suits audio processing
+//          'document'        — text line animation, suits note/exam generation
+export default function GeneratingOverlay({
+  title, subtitle, progress, onCancel,
+  variant = 'audio',
+  done = false, doneLabel,
+  onView, onViewLabel = 'View result',
+  onReset, onResetLabel = 'Start over',
+}) {
+  const isDone = done || progress >= 100;
+
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0c0c0e]">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: isDone
+            ? 'radial-gradient(ellipse at 50% 45%, rgba(34,197,94,0.05) 0%, transparent 60%)'
+            : 'radial-gradient(ellipse at 50% 45%, rgba(0,212,200,0.05) 0%, transparent 60%)',
+          transition: 'background 0.8s ease',
+        }}
+      />
+
+      {isDone ? (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, position: 'relative' }}
+        >
+          <div style={{
+            width: 64, height: 64, borderRadius: 18,
+            border: '1px solid rgba(34,197,94,0.25)',
+            background: 'rgba(34,197,94,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 32px rgba(34,197,94,0.12), inset 0 1px 0 rgba(34,197,94,0.2)',
+          }}>
+            <svg viewBox="0 0 24 24" style={{ width: 28, height: 28, stroke: '#22c55e', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }}>
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-geist-sans, sans-serif)', fontSize: 22, fontWeight: 400, color: '#e8e8ed', letterSpacing: '-0.02em' }}>
+              {title?.replace('…', '') ?? 'Complete'}
+            </div>
+            {doneLabel && (
+              <div style={{ marginTop: 4, fontSize: 13, color: '#6b6b7a' }}>{doneLabel}</div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {onView && (
+              <button onClick={onView} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: '#00d4c8', borderRadius: 8,
+                padding: '10px 20px', fontSize: 13, fontWeight: 500,
+                color: '#0c0c0e', border: 'none', cursor: 'pointer',
+              }}>
+                {onViewLabel?.toLowerCase().includes('download') ? (
+                  <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, stroke: 'currentColor', fill: 'none', strokeWidth: 2.2 }}>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, stroke: 'currentColor', fill: 'none', strokeWidth: 2.2 }}>
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+                {onViewLabel}
+              </button>
+            )}
+            {onReset && (
+              <button onClick={onReset} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: '#18181f', borderRadius: 8,
+                padding: '10px 16px', fontSize: 13,
+                color: '#9898a8', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer',
+              }}>
+                {onResetLabel}
+              </button>
+            )}
+          </div>
+        </motion.div>
+
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, width: 360, position: 'relative' }}
+        >
+          {/* Visual — swaps based on variant */}
+          {variant === 'audio' ? <Waveform /> : <DocumentLines />}
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <OdometerNumber value={progress} />
+            <div style={{ fontFamily: 'var(--font-geist-sans, sans-serif)', fontSize: 18, fontWeight: 400, color: '#e8e8ed', letterSpacing: '-0.01em', marginTop: 2 }}>
+              {title}
+            </div>
+            <StagePill label={subtitle} />
+          </div>
+
+          <div style={{ width: '100%' }}>
+            <div style={{ position: 'relative', height: 2, width: '100%', borderRadius: 99, background: '#1a1a22', overflow: 'hidden' }}>
+              <div style={{
+                position: 'absolute', inset: '0 auto 0 0',
+                width: `${progress}%`, borderRadius: 99,
+                background: 'linear-gradient(90deg, #007a75, #00d4c8)',
+                transition: 'width 0.7s ease-out',
+              }} />
+              <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${progress}%`, overflow: 'hidden', borderRadius: 99 }}>
+                <div style={{
+                  position: 'absolute', inset: '0', width: '55%',
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0) 15%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 85%, transparent 100%)',
+                  animation: 'bar-sweep 1.8s ease-in-out infinite',
+                }} />
+              </div>
+            </div>
+          </div>
+
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              style={{ fontSize: 12, color: '#4b4b5a', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => e.target.style.color = '#ef4444'}
+              onMouseLeave={e => e.target.style.color = '#4b4b5a'}
+            >
+              Cancel
+            </button>
+          )}
+        </motion.div>
+      )}
+
+      <style>{`
+        @keyframes wave-bar {
+          0%   { transform: scaleY(0.3); }
+          100% { transform: scaleY(1);   }
+        }
+        @keyframes doc-sweep {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(280%);  }
+        }
+        @keyframes bar-sweep {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(280%);  }
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1;   transform: scale(1);    }
+          50%       { opacity: 0.4; transform: scale(0.75); }
+        }
+      `}</style>
+    </div>
+  );
+}

@@ -2,29 +2,20 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 
 export default function Home() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth0();
 
 
   useEffect(() => {
-      const checkAuth = async () => {
-          try {
-              const res = await fetch(`/api/auth/login`, {
-                  method: 'GET',
-                  credentials: 'include'
-              });
-              if (res.status === 200) {
-                      router.push('/home');
-              }
-              else{
-                router.push('/auth/login');
-              }
-              } catch (err) {
-                  console.error('Auth check failed:', err);
-                }
-            };
-    
-            checkAuth();
-        }, []);
+  if (isLoading) return;
+
+  if (isAuthenticated) {
+    router.push('/home');
+  } else {
+    router.push('/auth/login');
+  }
+}, [isAuthenticated, isLoading, router]);
 }

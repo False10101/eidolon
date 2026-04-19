@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { queryWithRetry } from "@/lib/queryWithQuery";
+import { queryWithRetry } from "@/lib/queryWithRetry";
 
 export async function GET(req) {
     const cookies = req.headers.get('cookie');

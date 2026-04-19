@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { queryWithRetry } from "@/lib/queryWithQuery";
+import { queryWithRetry } from "@/lib/queryWithRetry";
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { r2 } from "@/lib/r2";
 

@@ -1,0 +1,6 @@
+import { Queue } from "bullmq";
+import connection from "./redis";
+
+export const audioQueue = new Queue('audio-conversion', {connection});
+export const transcriptorQueue = new Queue('transcription', {connection});
+export const slipQueue = new Queue('slip-verification', {connection});

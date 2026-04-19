@@ -2,7 +2,7 @@ import { r2 } from "@/lib/r2"; // Import R2 client
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"; // Import S3 command
 import { NextResponse } from "next/server";
 import jwt from 'jsonwebtoken';
-import { queryWithRetry } from "@/lib/queryWithQuery";
+import { queryWithRetry } from "@/lib/queryWithRetry";
 
 export async function DELETE(req) {
     const cookies = req.headers.get('cookie');

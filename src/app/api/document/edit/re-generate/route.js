@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db'; // Using your corrected import
+import { db } from '@/lib/storage/db'; // Using your corrected import
 import { updateDocumentInBackground } from '@/lib/document-updater';
 import { checkAPI } from '@/lib/apiChecker';
 

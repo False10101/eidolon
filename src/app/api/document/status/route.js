@@ -1,4 +1,4 @@
-import { queryWithRetry } from "@/lib/queryWithQuery";
+import { queryWithRetry } from "@/lib/queryWithRetry";
 import jwt from 'jsonwebtoken';
 
 export async function GET(req) {
