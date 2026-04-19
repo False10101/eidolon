@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,7 +56,7 @@ function ConfirmModal({ title, message, confirmLabel, onConfirm, onCancel }) {
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
-export default function TopupPage() {
+function TopupPage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { getAccessTokenSilently } = useAuth0();
@@ -410,5 +410,13 @@ export default function TopupPage() {
         {toast}
       </div>
     </div>
+  );
+}
+
+export default function Topup() {
+  return (
+    <Suspense>
+      <TopupPage />
+    </Suspense>
   );
 }
