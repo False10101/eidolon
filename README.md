@@ -1,128 +1,193 @@
-# ⟡ Eidolon
-> **The Student Survival Kit.**
-> Automated lecture processing, transcription, and document generation for high-stakes academic environments.
+# ⟡ Eidolon v2
+
+> **The Student Survival Kit — rebuilt from the ground up.**
+> AI-powered lecture processing, transcription, and exam preparation for high-stakes academic environments.
 
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Self--Hosted-336791?style=for-the-badge&logo=postgresql)
 ![Tailwind](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css)
-![Puppeteer](https://img.shields.io/badge/Puppeteer-PDF-green?style=for-the-badge&logo=puppeteer)
+![BullMQ](https://img.shields.io/badge/BullMQ-Redis-red?style=for-the-badge)
 ![FFmpeg](https://img.shields.io/badge/FFmpeg-Media-green?style=for-the-badge&logo=ffmpeg)
 
----
-
-## 📖 Overview
-
-**Eidolon** is a comprehensive academic utility platform designed to streamline the "lecture-to-study" pipeline. It replaces manual note-taking with an automated workflow that ingests raw transcripts, video, or audio, and outputs structured, study-ready materials.
-
-Currently deployed on a custom VPS infrastructure to support large-scale media processing (5GB+ files) and heavily used by students for open-book exam preparation.
+![Hero — Home Dashboard](docs/images/hero.png)
 
 ---
 
-## 🚀 Key Features
+## Overview
 
-### 1. 📝 Intelligent Note Taker
-Transforms raw, messy `.txt` lecture transcripts into structured Markdown notes.
-* **Smart Tagging:** Auto-detects headings, highlights key points, and flags "To-Do" items mentioned by professors.
-* **Definition Extraction:** Automatically pulls definitions into a dedicated section.
-* **Auto-Summarization:** Generates a concise summary with extracted key terms.
-* **Visual Themes:** Exports notes to PDF in **Academic**, **Minimal**, or **Creative** styles.
-
-### 2. 🎙️ Media Studio (New)
-* **MP4 to MP3 Converter:** High-performance, stream-based extraction of audio from lecture recordings. (Does not persist data to DB to save storage).
-* **Whisper Transcription:** Integrates **Groq's Whisper V3 Turbo** for near-instant transcription of audio files into text.
-
-### 3. 📄 Document Generator
-* **Essay/Proposal Writer:** Generates long-form content for proposals or essays based on prompts.
-* **Textbook Explainer:** Ingests PDF textbooks and simplifies complex concepts.
+Eidolon v2 is a full rewrite of the original platform. Every major subsystem has been replaced or significantly upgraded — from the database layer and authentication to the AI model stack and job queue infrastructure. The result is a faster, more scalable, and more capable platform designed to support a growing user base with real payment flows and collaborative features.
 
 ---
 
-## 🛠️ Tech Stack
+## What's New in v2
+
+### Breaking Changes from v1
+- **Database:** MySQL (PlanetScale) → **self-hosted PostgreSQL** on Hetzner VPS
+- **Authentication:** Custom JWT/bcrypt → **NextAuth with Google OAuth only**
+- **Queue infrastructure:** Upstash Redis → **self-hosted Redis** (BullMQ, same Hetzner box)
+- **Storage:** Local filesystem → **Cloudflare R2** for all media and slip files
+- **Removed:** PDF export (Puppeteer), document generator, textbook explainer, BYOK
+
+### New in v2
+- **Exam Prep Generator** — structured practice questions from notes or transcripts, individual and group
+- **Group Workspace System** — shared generation with cost splitting; membership snapshotted at generation time
+- **Top-Up System** — credit-based balance with EasySlip auto-verification and LINE notify
+- **Admin Dashboard** — user management, activity logs, top-up approval queue, slip viewer
+- **Transcriptor** — chunked audio splitting for large files, async BullMQ processing, history and detail views
+- **Audio Converter** — MP4→MP3 extraction via FFmpeg, ephemeral by design (no DB persistence)
+- **Profile & Activity History** — per-user usage stats, token consumption, charge breakdown, balance history
+
+---
+
+## Features
+
+### Intelligent Note Taker
+
+Transforms raw lecture transcripts into structured, study-ready Markdown notes. Three output styles: standard prose, textbook-format, and ultra-compact exam/cheat sheet. Supports individual and group generation with tiered pricing.
+
+![Note List — Group cards, locked state, individual rows with style/tier/cost badges](docs/images/note-list.png)
+
+Configure the output style, source material, and course details before generation. Cost is estimated live based on input length and selected style.
+
+![Note Create — Style picker with descriptions and cost estimates](docs/images/note-new.png)
+
+The generated note is rendered as structured Markdown with a detail sidebar, fullscreen mode, and inline editing.
+
+![Note Viewer — Rendered output with sidebar and edit actions](docs/images/note-viewer.png)
+
+---
+
+### Transcriptor
+
+Uploads audio files (chunked for large inputs), queues async transcription jobs via Groq Whisper V3 Turbo, and stores results with full history. Supports files well beyond standard serverless limits.
+
+![Transcriptor Upload — File drop zone and language picker](docs/images/transcriptor-upload.png)
+
+![Transcriptor Viewer — Detail sidebar and full transcript content](docs/images/transcriptor-viewer.png)
+
+---
+
+### Audio Converter
+
+Stream-based MP4-to-MP3 extraction using FFmpeg. Jobs are queued via BullMQ, processed asynchronously, and cleaned up automatically. No data is persisted to the database.
+
+![Audio Converter](docs/images/audio-converter.png)
+
+---
+
+### Exam Prep Generator
+
+Generates structured practice material from existing notes or transcripts. Fully configurable question types (True/False, MCQ, Theory, Scenario, Calculation) and difficulty levels. Available for both individual users and group workspaces with shared cost splitting.
+
+![Exam Prep Create — Note picker, question type toggles, difficulty selector](docs/images/exam-prep-new.png)
+
+![Exam Prep List — Group and individual entries with question type badges](docs/images/exam-prep-list.png)
+
+The viewer presents questions in a two-panel layout — filter by question type on the left, read and reveal answers on the right.
+
+![Exam Prep Viewer — Two-panel layout with type filter sidebar and questions](docs/images/exam-prep-viewer.png)
+
+---
+
+### Group Workspaces
+
+Users can create and join groups with fixed-tier pricing (small / study / class / faculty). Costs are split across `max_members` at generation time, with the generator receiving a platform-subsidized discount. Membership is snapshotted at the time of generation.
+
+![Groups](docs/images/groups.png)
+
+---
+
+### Top-Up & Billing
+
+Credit-based system. Users upload bank transfer slips which are auto-verified via EasySlip API. Failed or unverified slips fall through to admin manual review. LINE messaging integration notifies users of approval status.
+
+![Top-Up — Slip upload and balance view](docs/images/topup.png)
+
+---
+
+### Admin Dashboard
+
+Full visibility into platform activity: user list, per-user balance and usage, pending top-up queue with slip viewer, and approve/reject controls.
+
+![Admin Dashboard](docs/images/admin.png)
+
+---
+
+## Tech Stack
 
 ### Frontend
-* **Framework:** Next.js 15 (App Router)
-* **UI Library:** React 19
-* **Styling:** Tailwind CSS + Framer Motion (Animations)
-* **Editor:** `@uiw/react-md-editor`
+- **Framework:** Next.js 15 (App Router)
+- **UI:** React 19, Tailwind CSS v4, Framer Motion / Motion
+- **Editor:** `@uiw/react-md-editor`
 
 ### Backend
-* **Runtime:** Node.js (VPS Optimized)
-* **PDF Engine:** Puppeteer (Standard Linux Build)
-* **Database:** MySQL (via Drizzle ORM)
-* **AI/ML:** Groq SDK (Whisper V3 Turbo)
-* **Media Processing:** FFmpeg (System Level)
+- **Runtime:** Node.js on Ubuntu 24.04 VPS
+- **API:** Next.js API Routes
+- **ORM:** Drizzle ORM
+- **Database:** PostgreSQL (self-hosted, Hetzner CX22)
+- **Queue:** BullMQ + self-hosted Redis
+- **Storage:** Cloudflare R2 (media files, bank slips)
+- **Auth:** NextAuth.js (Google OAuth)
+
+### AI / ML
+- **Notes generation:** MiniMax M2.7 via Fireworks AI
+- **Exam prep generation:** Qwen3.6 Plus via Together AI
+- **Transcription:** Groq Whisper V3 Turbo
 
 ### Infrastructure
-* **Hosting:** Ubuntu 24.04 VPS
-* **Web Server:** Nginx (Custom Reverse Proxy)
-* **Process Manager:** PM2
+- **VPS:** Hetzner (built-in DDoS protection, outbound-only bandwidth)
+- **Web Server:** Nginx (reverse proxy, 10GB upload limit)
+- **Process Manager:** PM2
+- **Backups:** `pg_dump` cron → Cloudflare R2 (7-day retention)
 
 ---
 
-## ⚙️ VPS & Deployment Constraints
+## Architecture
 
-Eidolon runs on a **custom VPS environment** rather than Vercel/Serverless due to heavy computation requirements:
+```
+Nginx (TLS termination, upload limit)
+    └── Next.js App (port 3000)
+            ├── API Routes (note, transcript, exam-prep, topup, admin, group)
+            └── BullMQ Producers
+                    ├── audio-worker          (FFmpeg conversion)
+                    ├── transcriptor-worker   (Groq Whisper, chunked)
+                    └── topup-worker          (EasySlip verification, LINE notify)
 
-1.  **Puppeteer:** Uses a full headless Chrome instance (not the limited AWS Lambda version) for high-fidelity PDF rendering.
-2.  **FFmpeg:** Requires system-level access for video conversion.
-3.  **Upload Limits:** Nginx is configured to bypass standard 100MB limits, allowing **up to 5GB** uploads for lecture recordings.
-
----
-
-## 🔧 Installation
-
-### Prerequisites
-* Node.js 20+
-* FFmpeg (`sudo apt install ffmpeg`)
-* System libraries for Puppeteer (libasound2, libnss3, etc.)
-
-### 1. Clone & Install
-
-    git clone https://github.com/yourusername/eidolon.git
-    cd eidolon
-    npm install
-
-### 2. Configure Environment (.env)
-Create a `.env` file in the root:
-
-    # App
-    NEXT_PUBLIC_API_URL=https://eidolon.yourdomain.com
-    NEXTAUTH_URL=https://eidolon.yourdomain.com
-    NEXTAUTH_SECRET=your_generated_secret
-
-    # AI Providers
-    GROQ_API_KEY=gsk_your_groq_key_here
-
-    # Database
-    DATABASE_URL=mysql://user:pass@localhost:3306/eidolon
-
-### 3. Build & Run
-
-    npm run build
-    pm2 start npm --name "eidolon" -- start -- -p 3002
+Self-hosted Redis  ←→  BullMQ Workers
+PostgreSQL (Drizzle ORM)
+Cloudflare R2 (audio dumps, bank slips)
+```
 
 ---
 
-## 📂 Nginx Configuration (Critical)
+## Database Schema
 
-To support large file uploads (Video/Audio) and long AI timeouts, the Nginx block includes specific optimizations:
+Tables: `user`, `note`, `note_access`, `transcript`, `exam_prep`, `pending_topups`, `activity`
 
-    server {
-        # Allow 5GB uploads for video lectures
-        client_max_body_size 5G;
-        
-        # 10-minute timeout for AI Transcription/PDF Gen
-        proxy_read_timeout 600s;
-        
-        location / {
-            # Streaming optimizations
-            proxy_request_buffering off;
-            proxy_pass http://localhost:3002;
-        }
-    }
+Key design decisions:
+- `activity` tracks token consumption, model used, charge amount, and `balance_after` for a full audit trail
+- `note_access` snapshots group membership at generation time — changes to group size after the fact do not affect past cost splits
+- `pending_topups` stores slip R2 keys and EasySlip `transRef` for deduplication
 
 ---
 
-## 🛡️ License
-Private / Proprietary. 
+## Pricing
+
+| Feature | Tier | Price |
+|---|---|---|
+| Notes | < 15k tokens | ฿6 |
+| Notes | 15k–25k tokens | ฿8 |
+| Notes | 25k–40k tokens | ฿13 |
+| Notes | 40k+ tokens | ฿18 |
+| Transcription | < 1 hour | ฿2 |
+| Transcription | 1–2 hours | ฿4 |
+| Transcription | 2–3 hours | ฿6 |
+| Transcription | 3+ hours | hours × 1.40 × 1.2 (rounded) |
+
+---
+
+## License
+
+Private / Proprietary.
 Built for survival.
