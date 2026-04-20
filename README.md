@@ -130,15 +130,14 @@ Full visibility into platform activity: user list, per-user balance and usage, p
 ### Backend
 - **Runtime:** Node.js on Ubuntu 24.04 VPS
 - **API:** Next.js API Routes
-- **ORM:** Drizzle ORM
-- **Database:** PostgreSQL (self-hosted, Hetzner CX22)
+- **Database:** PostgreSQL (self-hosted, Hetzner CX22) via postgres.js
 - **Queue:** BullMQ + self-hosted Redis
 - **Storage:** Cloudflare R2 (media files, bank slips)
 - **Auth:** NextAuth.js (Google OAuth)
 
 ### AI / ML
-- **Notes generation:** MiniMax M2.7 via Fireworks AI
-- **Exam prep generation:** Qwen3.6 Plus via Together AI
+- **Notes generation:** OpenRouter
+- **Exam prep generation:** OpenRouter
 - **Transcription:** Groq Whisper V3 Turbo
 
 ### Infrastructure
@@ -161,7 +160,7 @@ Nginx (TLS termination, upload limit)
                     └── topup-worker          (EasySlip verification, LINE notify)
 
 Self-hosted Redis  ←→  BullMQ Workers
-PostgreSQL (Drizzle ORM)
+PostgreSQL (postgres.js)
 Cloudflare R2 (audio dumps, bank slips)
 ```
 
