@@ -77,8 +77,8 @@ const worker = new Worker('transcription', async (job) => {
             `;
 
             await tx`
-                INSERT INTO "activity" (type, title, charge_amount, balance_after, date, user_id, respective_table_id)
-                VALUES ('transcript', ${label}, ${transcriptionPrice}, ${updated.balance}, NOW(), ${userId}, ${transcriptId})
+                INSERT INTO "activity" (type, title, charge_amount, balance_after, date, user_id, respective_table_id, status)
+                VALUES ('transcript', ${label}, ${transcriptionPrice}, ${updated.balance}, NOW(), ${userId}, ${transcriptId}, 'Completed')
             `;
         });
 
