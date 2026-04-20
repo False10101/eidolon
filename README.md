@@ -181,10 +181,10 @@ Key design decisions:
 
 | Feature | Tier | Price |
 |---|---|---|
-| Notes | < 15k tokens | ฿6 |
-| Notes | 15k–25k tokens | ฿8 |
-| Notes | 25k–40k tokens | ฿13 |
-| Notes | 40k+ tokens | ฿18 |
+| Notes | < 25k tokens | ฿3 |
+| Notes | 25k–50k tokens | ฿6 |
+| Notes | 50k–75k tokens | ฿10 |
+| Notes | 100k+ tokens | ฿13 |
 | Transcription | < 1 hour | ฿2 |
 | Transcription | 1–2 hours | ฿4 |
 | Transcription | 2–3 hours | ฿6 |
