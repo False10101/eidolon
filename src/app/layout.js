@@ -27,65 +27,117 @@ export function useAdmin() {
 }
 
 // ─── Device Block Screens ───────────────────────────────────────────────────────
-// Visibility controlled by CSS (globals.css). Motion only on the card — one
-// subtle fade-up. Nothing else moves. That's intentional.
 const DeviceBlockScreen = ({ variant, className }) => {
   const isMobile = variant === 'mobile';
 
   return (
     <div
-      className={`${className} bg-black text-rose-500 h-screen w-screen flex-col items-center justify-center overflow-hidden font-mono p-6 text-center fixed inset-0 z-50`}
-      style={{ backgroundImage: 'radial-gradient(circle at center, #2e0202 0%, #000000 100%)' }}
+      className={`${className} h-screen w-screen flex-col items-center justify-center overflow-hidden fixed inset-0 z-50`}
+      style={{ background: '#0c0c0e' }}
     >
-      {/* CRT scanline overlay */}
+      {/* Subtle radial glow behind card */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #ff000005 3px)' }}
+        style={{
+          background: 'radial-gradient(ellipse 60% 40% at 50% 50%, rgba(0,212,200,0.04) 0%, transparent 70%)',
+        }}
       />
 
-      {/* One animation, one element, done. */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="border border-rose-600/50 bg-[#1a0505]/80 backdrop-blur-xl p-8 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.2)] max-w-lg z-10"
+        className="relative mx-6 w-full max-w-sm overflow-hidden rounded-2xl surface noise"
+        style={{
+          background: '#111116',
+          border: '1px solid rgba(255,255,255,0.07)',
+          padding: '2rem',
+        }}
       >
-        <ExclamationTriangleIcon className="w-20 h-20 text-rose-500 mx-auto mb-6 animate-pulse" />
+        {/* Teal catch-light top edge */}
+        <div
+          className="absolute top-0 left-0 right-0 h-px"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(0,212,200,0.3), transparent)' }}
+        />
 
-        <h1 className="text-3xl font-extrabold mb-2 tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]">
-          {isMobile ? 'ACCESS DENIED' : 'ROTATE DEVICE'}
-        </h1>
+        {/* Icon */}
+        <div
+          className="flex h-11 w-11 items-center justify-center rounded-xl mb-5"
+          style={{
+            background: 'rgba(0,212,200,0.07)',
+            border: '1px solid rgba(0,212,200,0.2)',
+          }}
+        >
+          {isMobile ? (
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.8]" style={{ stroke: '#00d4c8' }}>
+              <rect x="5" y="2" width="14" height="20" rx="2" />
+              <line x1="12" y1="18" x2="12" y2="18.01" strokeLinecap="round" strokeWidth="2" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.8]" style={{ stroke: '#00d4c8' }}>
+              <rect x="2" y="7" width="20" height="14" rx="2" />
+              <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          )}
+        </div>
 
-        <p className="text-rose-200/70 mb-8 text-sm uppercase tracking-wide border-b border-rose-900/50 pb-6">
+        {/* Title */}
+        <div className="mb-1" style={{ fontSize: '15px', fontWeight: 500, color: '#e8e8ed', letterSpacing: '-0.01em' }}>
+          {isMobile ? 'Desktop only' : 'Rotate your device'}
+        </div>
+
+        {/* Subtitle */}
+        <p style={{ fontSize: '13px', lineHeight: '1.7', color: '#6b6b7a', marginBottom: '1.5rem' }}>
           {isMobile
-            ? 'System Protocol Violation: Unsupported Hardware'
-            : 'Landscape Mode Required for Tablet Access'}
+            ? 'Eidolon requires a desktop or laptop to use. Please switch devices to continue.'
+            : 'Eidolon requires landscape orientation on tablets. Rotate your device or switch to a desktop.'}
         </p>
 
-        <div className="flex justify-center items-center space-x-8 mb-8 opacity-80">
-          <div className="flex flex-col items-center">
-            <DevicePhoneMobileIcon className="w-12 h-12 text-rose-500/40" />
-            <span className="text-xs text-rose-500/40 mt-2 line-through">MOBILE</span>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <DeviceTabletIcon className={`w-12 h-12 ${!isMobile ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'text-rose-500/40'}`} />
-            <span className={`text-xs mt-2 ${!isMobile ? 'text-amber-400 font-bold' : 'text-rose-500/40 line-through'}`}>
-              {!isMobile ? 'LANDSCAPE ✓' : 'TABLET'}
+        {/* Device status row */}
+        <div
+          className="flex items-center justify-between rounded-xl px-4 py-3"
+          style={{ background: '#18181f', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          {/* Mobile */}
+          <div className="flex flex-col items-center gap-1.5">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.6]" style={{ stroke: isMobile ? '#ef4444' : '#3a3a46' }}>
+              <rect x="5" y="2" width="14" height="20" rx="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <span style={{ fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: isMobile ? '#ef4444' : '#3a3a46' }}>
+              {isMobile ? 'blocked' : 'mobile'}
             </span>
           </div>
 
-          <div className="flex flex-col items-center">
-            <ComputerDesktopIcon className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-            <span className="text-xs text-emerald-400 mt-2 font-bold">DESKTOP ✓</span>
+          {/* Divider */}
+          <div style={{ width: '1px', height: '32px', background: 'rgba(255,255,255,0.05)' }} />
+
+          {/* Tablet */}
+          <div className="flex flex-col items-center gap-1.5">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.6]" style={{ stroke: !isMobile ? '#f59e0b' : '#3a3a46' }}>
+              <rect x="4" y="2" width="16" height="20" rx="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <span style={{ fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: !isMobile ? '#f59e0b' : '#3a3a46' }}>
+              {!isMobile ? 'landscape' : 'tablet'}
+            </span>
+          </div>
+
+          {/* Divider */}
+          <div style={{ width: '1px', height: '32px', background: 'rgba(255,255,255,0.05)' }} />
+
+          {/* Desktop */}
+          <div className="flex flex-col items-center gap-1.5">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.6]" style={{ stroke: '#00d4c8' }}>
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+            <span style={{ fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#00d4c8' }}>
+              desktop ✓
+            </span>
           </div>
         </div>
-
-        <p className="text-xs text-rose-400/60">
-          {isMobile
-            ? <> This terminal requires a high-resolution desktop interface.<br />Please switch to a desktop or laptop to proceed. </>
-            : <> Rotate your tablet to landscape mode to continue.<br />Desktop access is always fully supported. </>}
-        </p>
       </motion.div>
     </div>
   );
