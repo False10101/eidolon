@@ -48,13 +48,17 @@ Transforms raw lecture transcripts into structured, study-ready Markdown notes. 
 
 ![Note List — Group cards, locked state, individual rows with style/tier/cost badges](docs/images/note-list.png)
 
-Configure the output style, source material, and course details before generation. Cost is estimated live based on input length and selected style.
+Configure the output style and source material before generation. Cost is estimated live based on input length and selected style.
 
-![Note Create — Style picker with descriptions and cost estimates](docs/images/note-new.png)
+![Note Create — Style picker with descriptions and cost estimates](docs/images/note-new-1.png)
+
+![Note Create — Source and course details](docs/images/note-new-2.png)
 
 The generated note is rendered as structured Markdown with a detail sidebar, fullscreen mode, and inline editing.
 
 ![Note Viewer — Rendered output with sidebar and edit actions](docs/images/note-viewer.png)
+
+![Note Viewer — Fullscreen reading mode](docs/images/note-fullscreen.png)
 
 ---
 
@@ -87,6 +91,8 @@ Generates structured practice material from existing notes or transcripts. Fully
 The viewer presents questions in a two-panel layout — filter by question type on the left, read and reveal answers on the right.
 
 ![Exam Prep Viewer — Two-panel layout with type filter sidebar and questions](docs/images/exam-prep-viewer.png)
+
+![Exam Prep Viewer — Fullscreen mode](docs/images/exam-prep-fullscreen.png)
 
 ---
 
