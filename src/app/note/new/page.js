@@ -63,7 +63,7 @@ const LANGUAGE_OPTIONS = [
 
 const NOTE_STEPS = ['Reading transcript', 'Generating note', 'Saving note'];
 const stepMap = { pending: 0, reading: 0, generating: 1, saving: 2 };
-const progressMap = { pending: 5, reading: 20, generating: 60, saving: 90, completed: 100 };
+const progressMap = { pending: 5, reading: 20, generating: 90, saving: 95, completed: 100 };
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {

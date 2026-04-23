@@ -54,7 +54,7 @@ const worker = new Worker(('slip-verification'), async (job) => {
             const receiverName = verifyData.data.receiver?.account?.name;
             const receiverAccount = verifyData.data.receiver?.account?.proxy?.account || "";
             const safeName = (receiverName || "").toUpperCase();
-            const isMyAccount = /\bMIN\b/.test(safeName) && receiverAccount.endsWith("8446");
+            const isMyAccount = safeName.includes('MIN') && receiverAccount.endsWith("8446");
 
             if (!isMyAccount) {
                 console.error(`Slip valid, but wrong receiver: ${receiverName} / ${receiverAccount}`);
