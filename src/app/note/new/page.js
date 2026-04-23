@@ -38,6 +38,29 @@ const costMap = {
   textbook: '฿ 6 – 10',
 };
 
+const LANGUAGE_OPTIONS = [
+  { value: 'auto', label: 'Auto-detect (Same as transcript)' },
+  { value: 'English', label: 'English' },
+  { value: 'Simplified Chinese', label: 'Simplified Chinese (Mandarin)' },
+  { value: 'Traditional Chinese', label: 'Traditional Chinese (Cantonese)' },
+  { value: 'Thai', label: 'Thai' },
+  { value: 'Japanese', label: 'Japanese' },
+  { value: 'Korean', label: 'Korean' },
+  { value: 'Vietnamese', label: 'Vietnamese' },
+  { value: 'Indonesian', label: 'Indonesian' },
+  { value: 'Malay', label: 'Malay' },
+  { value: 'Hindi', label: 'Hindi' },
+  { value: 'Spanish', label: 'Spanish' },
+  { value: 'French', label: 'French' },
+  { value: 'German', label: 'German' },
+  { value: 'Portuguese', label: 'Portuguese' },
+  { value: 'Italian', label: 'Italian' },
+  { value: 'Russian', label: 'Russian' },
+  { value: 'Dutch', label: 'Dutch' },
+  { value: 'Turkish', label: 'Turkish' },
+  { value: 'Arabic', label: 'Arabic' }
+];
+
 const NOTE_STEPS = ['Reading transcript', 'Generating note', 'Saving note'];
 const stepMap = { pending: 0, reading: 0, generating: 1, saving: 2 };
 const progressMap = { pending: 5, reading: 20, generating: 60, saving: 90, completed: 100 };
@@ -59,8 +82,7 @@ export default function NewNotePage() {
 
   const [file, setFile] = useState(null);
   const [courseName, setCourseName] = useState('');
-  const [topicName, setTopicName] = useState('');
-  const [instructorName, setInstructorName] = useState('');
+  const [outputLanguage, setOutputLanguage] = useState('auto');
   const [compactness, setCompactness] = useState('standard');
   const [transcriptId, setTranscriptId] = useState(null);
 
@@ -113,9 +135,8 @@ export default function NewNotePage() {
       if (file) form.append('file', file);
       if (transcriptId) form.append('transcript_id', transcriptId);
       form.append('name', courseName);
-      form.append('topic', topicName);
-      form.append('instructor', instructorName);
       form.append('style', compactness);
+      form.append('target_language', outputLanguage);
 
       const endpoint = mode === 'group'
         ? '/api/note/generate/group'
@@ -162,7 +183,7 @@ export default function NewNotePage() {
               variant="document"
               title="Generating your note…"
               subtitle={NOTE_STEPS[stepMap[currentStatus]] ?? 'Processing…'}
-              progress={progressMap[currentStatus] ?? 5}
+              targetProgress={procStatus === 'done' ? 100 : (progressMap[currentStatus] ?? 5)}
               onCancel={null}
             />
           )}
@@ -194,8 +215,10 @@ export default function NewNotePage() {
               />
             </motion.div>
 
-            {/* Metadata fields */}
-            <motion.div variants={itemVariants} className="grid flex-shrink-0 grid-cols-3 gap-3.5">
+            {/* Metadata fields (2 Columns) */}
+            <motion.div variants={itemVariants} className="grid flex-shrink-0 grid-cols-2 gap-3.5">
+
+              {/* Course Name */}
               <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
                 <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
                   Course name <span className="text-[#ef4444]">*</span>
@@ -204,22 +227,33 @@ export default function NewNotePage() {
                   placeholder="e.g., CSC531 Data Mining"
                   className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#6b6b7a] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
               </div>
+
+              {/* Output Language */}
               <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
                 <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
-                  Topic <span className="normal-case opacity-40">(optional)</span>
+                  Output Language
                 </div>
-                <input type="text" value={topicName} onChange={(e) => setTopicName(e.target.value)}
-                  placeholder="e.g., Clustering"
-                  className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#6b6b7a] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
-              </div>
-              <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
-                  Instructor <span className="normal-case opacity-40">(optional)</span>
+                <div className="relative">
+                  <select
+                    value={outputLanguage}
+                    onChange={(e) => setOutputLanguage(e.target.value)}
+                    className="w-full appearance-none rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 pr-10 text-[13px] text-[#e8e8ed] outline-none focus:border-[rgba(0,212,200,0.35)] transition-colors cursor-pointer"
+                  >
+                    {LANGUAGE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Custom SVG arrow for the select box to match dark mode theme */}
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#6b6b7a]">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-current fill-none stroke-2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
                 </div>
-                <input type="text" value={instructorName} onChange={(e) => setInstructorName(e.target.value)}
-                  placeholder="e.g., Dr. Smith"
-                  className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#6b6b7a] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
               </div>
+
             </motion.div>
 
             {/* Note style */}
@@ -244,8 +278,24 @@ export default function NewNotePage() {
                         </span>
                       </div>
                       <p className="flex-1 text-[11.5px] leading-[1.6] text-[#6b6b7a]">{opt.description}</p>
-                      <div className={`text-[11px] font-mono transition-colors ${active ? 'text-[#00d4c8]' : 'text-[#6b6b7a]'}`}>
-                        {costMap[opt.value]}
+                      <div className="mt-1 flex items-center justify-between">
+                        <span className={`text-[11px] font-mono transition-colors ${active ? 'text-[#00d4c8]' : 'text-[#6b6b7a]'}`}>
+                          {costMap[opt.value]}
+                        </span>
+
+                        <span
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            router.push(`/note/sample?style=${opt.value}`);
+                          }}
+                          className={`flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.05em] transition-colors hover:text-[#00ebd9] cursor-pointer ${active ? 'text-[#00a89f]' : 'text-[#6b6b7a]'}`}
+                        >
+                          See example
+                          <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </span>
                       </div>
                     </button>
                   );

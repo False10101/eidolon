@@ -54,7 +54,10 @@ export async function POST(req) {
         const formData = await req.formData();
         const file = formData.get('file');
         const label = formData.get('label') || file.name.split(".")[0];
-        const language = formData.get('language');
+        const model = formData.get('model') || 'whisper-v3-turbo';
+        const vad = formData.get('vad') || 'true';
+        const outputFormat = formData.get('outputFormat') || 'text';
+        const diarization = formData.get('diarization') || 'false';
 
         if (!file) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -69,17 +72,22 @@ export async function POST(req) {
         await writeFile(inputPath, buffer);
 
         const durationHours = (await getAudioDuration(inputPath)) / 3600;
-        const isEnglish = language === 'en';
+
+        if (durationHours >= 10) {
+            return NextResponse.json({ error: "Audio duration exceeds our 10-hour limit." }, { status: 400 });
+        }
+
+        const premiumModel = (model === 'whisper-v3');
+        const rate = premiumModel ? 4 : 2.5;
 
         let transcriptionPrice;
         if (durationHours < 1) {
-            transcriptionPrice = isEnglish ? 2 : 6;
+            transcriptionPrice = premiumModel ? 4 : 2.5;
         } else if (durationHours < 2) {
-            transcriptionPrice = isEnglish ? 4 : 12;
+            transcriptionPrice = premiumModel ? 8 : 5;
         } else if (durationHours < 3) {
-            transcriptionPrice = isEnglish ? 6 : 18;
+            transcriptionPrice = premiumModel ? 12 : 7.5;
         } else {
-            const rate = isEnglish ? 2 : 6;
             transcriptionPrice = Math.round(durationHours * rate * 1.2);
         }
 
@@ -93,11 +101,14 @@ export async function POST(req) {
             inputPath,
             userId,
             label,
-            language,
+            model,
+            vad,
             fileName,
+            outputFormat,
+            diarization
         });
 
-        return NextResponse.json({ jobId: job.id, })
+        return NextResponse.json({ jobId: job.id })
 
     } catch (error) {
         if (inputPath) await unlink(inputPath).catch(() => { });

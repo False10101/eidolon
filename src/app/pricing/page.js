@@ -8,54 +8,54 @@ import { useRouter } from 'next/navigation';
 
 // ─── Pricing data ──────────────────────────────────────────────────────────────
 const NOTE_TIERS = [
-  { range: 'Under 25k tokens',   strong: 'Under 25k',   badge: 'Tier 1', badgeClass: 'green',  price: 3 },
-  { range: '25k – 50k tokens',   strong: '25k – 50k',   badge: 'Tier 2', badgeClass: 'amber',  price: 6 },
-  { range: '50k – 75k tokens',   strong: '50k – 75k',   badge: 'Tier 3', badgeClass: 'orange', price: 10 },
-  { range: '75k – 100k tokens',  strong: '75k – 100k',  badge: 'Tier 4', badgeClass: 'red',    price: 13, sub: 'Hard capped at 100k tokens' },
+  { range: 'Under 25k tokens', strong: 'Under 25k', badge: 'Tier 1', badgeClass: 'green', price: 3 },
+  { range: '25k – 50k tokens', strong: '25k – 50k', badge: 'Tier 2', badgeClass: 'amber', price: 6 },
+  { range: '50k – 75k tokens', strong: '50k – 75k', badge: 'Tier 3', badgeClass: 'orange', price: 10 },
+  { range: '75k – 100k tokens', strong: '75k – 100k', badge: 'Tier 4', badgeClass: 'red', price: 13, sub: 'Hard capped at 100k tokens' },
 ];
 
 const TRANSCRIPT_TIERS = [
-  { range: 'Under 1 hour', strong: 'Under 1 hour', badge: 'Tier 1', badgeClass: 'green',  price: '฿ 2' },
-  { range: '1 – 2 hours',  strong: '1 – 2 hours',  badge: 'Tier 2', badgeClass: 'amber',  price: '฿ 4' },
-  { range: '2 – 3 hours',  strong: '2 – 3 hours',  badge: 'Tier 3', badgeClass: 'orange', price: '฿ 6' },
-  { range: 'Over 3 hours', strong: 'Over 3 hours', badge: 'Tier 4', badgeClass: 'red',    price: '฿ 8+', sub: '฿2 per extra hour' },
+  { range: 'Under 1 hour', strong: 'Under 1 hour', badge: 'Tier 1', badgeClass: 'green', prem: 4, turbo: 2.5 },
+  { range: '1 – 2 hours', strong: '1 – 2 hours', badge: 'Tier 2', badgeClass: 'amber', prem: 8, turbo: 5 },
+  { range: '2 – 3 hours', strong: '2 – 3 hours', badge: 'Tier 3', badgeClass: 'orange', prem: 12, turbo: 7.5 },
+  { range: 'Over 3 hours', strong: 'Over 3 hours', badge: 'Tier 4', badgeClass: 'red', prem: '฿ 4/hr', turbo: '฿ 2.5/hr', sub: 'Hard capped at 10 hours' },
 ];
 
 const GROUP_TIERS = [
   {
     name: 'Small', members: 5, perMemberOff: '15%',
     tiers: [
-      { badge: 'Tier 1', badgeClass: 'green',  range: 'Under 25k tokens', price: 13 },
-      { badge: 'Tier 2', badgeClass: 'amber',  range: '25k – 50k tokens', price: 26 },
+      { badge: 'Tier 1', badgeClass: 'green', range: 'Under 25k tokens', price: 13 },
+      { badge: 'Tier 2', badgeClass: 'amber', range: '25k – 50k tokens', price: 26 },
       { badge: 'Tier 3', badgeClass: 'orange', range: '50k – 75k tokens', price: 43 },
-      { badge: 'Tier 4', badgeClass: 'red',    range: '75k – 100k tokens', price: 56 },
+      { badge: 'Tier 4', badgeClass: 'red', range: '75k – 100k tokens', price: 56 },
     ],
   },
   {
     name: 'Study', members: 10, perMemberOff: '25%',
     tiers: [
-      { badge: 'Tier 1', badgeClass: 'green',  range: 'Under 25k tokens', price: 23 },
-      { badge: 'Tier 2', badgeClass: 'amber',  range: '25k – 50k tokens', price: 45 },
+      { badge: 'Tier 1', badgeClass: 'green', range: 'Under 25k tokens', price: 23 },
+      { badge: 'Tier 2', badgeClass: 'amber', range: '25k – 50k tokens', price: 45 },
       { badge: 'Tier 3', badgeClass: 'orange', range: '50k – 75k tokens', price: 75 },
-      { badge: 'Tier 4', badgeClass: 'red',    range: '75k – 100k tokens', price: 98 },
+      { badge: 'Tier 4', badgeClass: 'red', range: '75k – 100k tokens', price: 98 },
     ],
   },
   {
     name: 'Class', members: 25, perMemberOff: '40%',
     tiers: [
-      { badge: 'Tier 1', badgeClass: 'green',  range: 'Under 25k tokens', price: 45 },
-      { badge: 'Tier 2', badgeClass: 'amber',  range: '25k – 50k tokens', price: 90 },
+      { badge: 'Tier 1', badgeClass: 'green', range: 'Under 25k tokens', price: 45 },
+      { badge: 'Tier 2', badgeClass: 'amber', range: '25k – 50k tokens', price: 90 },
       { badge: 'Tier 3', badgeClass: 'orange', range: '50k – 75k tokens', price: 150 },
-      { badge: 'Tier 4', badgeClass: 'red',    range: '75k – 100k tokens', price: 195 },
+      { badge: 'Tier 4', badgeClass: 'red', range: '75k – 100k tokens', price: 195 },
     ],
   },
   {
     name: 'Faculty', members: 50, perMemberOff: '60%',
     tiers: [
-      { badge: 'Tier 1', badgeClass: 'green',  range: 'Under 25k tokens', price: 60 },
-      { badge: 'Tier 2', badgeClass: 'amber',  range: '25k – 50k tokens', price: 120 },
+      { badge: 'Tier 1', badgeClass: 'green', range: 'Under 25k tokens', price: 60 },
+      { badge: 'Tier 2', badgeClass: 'amber', range: '25k – 50k tokens', price: 120 },
       { badge: 'Tier 3', badgeClass: 'orange', range: '50k – 75k tokens', price: 200 },
-      { badge: 'Tier 4', badgeClass: 'red',    range: '75k – 100k tokens', price: 260 },
+      { badge: 'Tier 4', badgeClass: 'red', range: '75k – 100k tokens', price: 260 },
     ],
   },
 ];
@@ -88,7 +88,7 @@ const FAQ_ITEMS = [
 ];
 
 const TOPUP_PRESETS = [
-  { amount: 50,  hint: '~8 notes' },
+  { amount: 50, hint: '~8 notes' },
   { amount: 100, hint: '~16 notes' },
   { amount: 200, hint: '~33 notes', popular: true },
   { amount: 500, hint: '~83 notes' },
@@ -96,10 +96,10 @@ const TOPUP_PRESETS = [
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const badgeColors = {
-  green:  'bg-[rgba(34,197,94,0.1)]  text-[#22c55e] border-[rgba(34,197,94,0.2)]',
-  amber:  'bg-[rgba(245,158,11,0.1)] text-[#f59e0b] border-[rgba(245,158,11,0.2)]',
+  green: 'bg-[rgba(34,197,94,0.1)]  text-[#22c55e] border-[rgba(34,197,94,0.2)]',
+  amber: 'bg-[rgba(245,158,11,0.1)] text-[#f59e0b] border-[rgba(245,158,11,0.2)]',
   orange: 'bg-[rgba(249,115,22,0.08)] text-[#f97316] border-[rgba(249,115,22,0.2)]',
-  red:    'bg-[rgba(239,68,68,0.1)]  text-[#ef4444] border-[rgba(239,68,68,0.2)]',
+  red: 'bg-[rgba(239,68,68,0.1)]  text-[#ef4444] border-[rgba(239,68,68,0.2)]',
 };
 
 function getNoteTier(tokens) {
@@ -109,20 +109,21 @@ function getNoteTier(tokens) {
   return { idx: 3, ...NOTE_TIERS[3] };
 }
 
-function calcTranscriptCost(durIdx, exactHours) {
-  if (durIdx === 0) return 2;
-  if (durIdx === 1) return 4;
-  if (durIdx === 2) return 6;
-  return Math.round(exactHours * 2);
+function calcTranscriptCost(durIdx, exactHours, model) {
+  if (durIdx === 3) {
+    return Math.round(exactHours * (model === 'prem' ? 4 : 2.5));
+  }
+  return model === 'prem' ? TRANSCRIPT_TIERS[durIdx].prem : TRANSCRIPT_TIERS[durIdx].turbo;
 }
+
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {
-  hidden:  { opacity: 0 },
+  hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
 };
 const itemVariants = {
-  hidden:  { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
 
@@ -150,21 +151,22 @@ function TierRow({ t }) {
       <span className={`rounded-full border px-[7px] py-0.5 text-[10px] uppercase tracking-[0.06em] ${badgeColors[t.badgeClass]}`}>
         {t.badge}
       </span>
-      <span className="min-w-[40px] text-right font-mono text-[14px] font-medium text-[#00d4c8]">
+      <span className="w-[75px] text-right font-mono text-[14px] font-medium text-[#00d4c8]">
         {typeof t.price === 'number' ? `฿ ${t.price}` : t.price}
       </span>
     </div>
   );
 }
 
-function TierBlock({ title, icon, sub, tiers }) {
+function TierBlock({ title, icon, headerRight, tiers }) {
   return (
     <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface noise">
-      <div className="flex items-center justify-between border-b border-white/[0.07] px-[18px] py-3.5">
+      {/* Changed to a fixed height of 52px to force both headers to match exactly */}
+      <div className="flex h-[52px] items-center justify-between border-b border-white/[0.07] px-[18px]">
         <div className="flex items-center gap-2 text-[13px] font-medium text-[#e8e8ed]">
           {icon}{title}
         </div>
-        {sub && <span className="text-[11px] text-[#6b6b7a]">{sub}</span>}
+        {headerRight}
       </div>
       {tiers.map((t, i) => <TierRow key={i} t={t} />)}
     </div>
@@ -213,16 +215,20 @@ function BalanceInput({ label, value, onChange }) {
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function Pricing() {
-  const [calcTab, setCalcTab]           = useState('notes');
-  const [tokenSlider, setTokenSlider]   = useState(20000);
+  const [calcTab, setCalcTab] = useState('notes');
+  const [tokenSlider, setTokenSlider] = useState(20000);
   const [balanceNotes, setBalanceNotes] = useState(85);
-  const [durIdx, setDurIdx]             = useState(0);
-  const [exactHours, setExactHours]     = useState(4);
-  const [balanceTx, setBalanceTx]       = useState(85);
-  const [pipeDurIdx, setPipeDurIdx]     = useState(0);
-  const [pipeTokens, setPipeTokens]     = useState(20000);
-  const [balancePipe, setBalancePipe]   = useState(85);
+  const [durIdx, setDurIdx] = useState(0);
+  const [txModel, setTxModel] = useState('turbo');
+  const [exactHours, setExactHours] = useState(4);
+  const [balanceTx, setBalanceTx] = useState(85);
+  const [pipeDurIdx, setPipeDurIdx] = useState(0);
+  const [pipeTokens, setPipeTokens] = useState(20000);
+  const [balancePipe, setBalancePipe] = useState(85);
   const [selectedTopup, setSelectedTopup] = useState(200);
+  const [calcTxModel, setCalcTxModel] = useState('turbo');
+  const [pipeTxModel, setPipeTxModel] = useState('turbo');
+  const [pipeExactHours, setPipeExactHours] = useState(4);
   const router = useRouter();
 
   // ── Calc results ─────────────────────────────────────────────────────────────
@@ -232,12 +238,12 @@ export default function Pricing() {
     const tier = getNoteTier(tokenSlider);
     calcCost = tier.price; calcTierLabel = tier.badge; calcTierRange = tier.range; calcTierIdx = tier.idx;
   } else if (calcTab === 'transcript') {
-    calcCost = calcTranscriptCost(durIdx, exactHours);
+    calcCost = calcTranscriptCost(durIdx, exactHours, calcTxModel);
     calcTierLabel = `Tier ${durIdx + 1}`;
-    calcTierRange = durIdx === 3 ? `${exactHours} hours (฿2/hr)` : TRANSCRIPT_TIERS[durIdx].range;
+    calcTierRange = durIdx === 3 ? `${exactHours} hours (฿${calcTxModel === 'prem' ? 4 : 2.5}/hr)` : TRANSCRIPT_TIERS[durIdx].range;
     calcTierIdx = durIdx;
   } else {
-    const tCost = calcTranscriptCost(pipeDurIdx, 4);
+    const tCost = calcTranscriptCost(pipeDurIdx, pipeExactHours, pipeTxModel);
     const nTier = getNoteTier(pipeTokens);
     calcCost = tCost + nTier.price;
     calcTierLabel = 'Combined'; calcTierRange = 'Transcription + Notes';
@@ -245,7 +251,7 @@ export default function Pricing() {
   }
 
   const activeBalance = calcTab === 'notes' ? balanceNotes : calcTab === 'transcript' ? balanceTx : balancePipe;
-  const gens    = calcCost > 0 ? Math.floor(activeBalance / calcCost) : 0;
+  const gens = calcCost > 0 ? Math.floor(activeBalance / calcCost) : 0;
   const balAfter = Math.max(0, activeBalance - calcCost).toFixed(2);
 
   return (
@@ -277,11 +283,36 @@ export default function Pricing() {
               <SectionLabel>Individual tiers</SectionLabel>
               <div className="grid grid-cols-2 gap-4">
                 <TierBlock
-                  title="Inclass Notes" sub="per generation" tiers={NOTE_TIERS}
+                  title="Inclass Notes"
+                  headerRight={<span className="text-[11px] text-[#6b6b7a]">per generation</span>}
+                  tiers={NOTE_TIERS}
                   icon={<svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[#00d4c8] fill-none stroke-[1.8]"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>}
                 />
                 <TierBlock
-                  title="Transcription" sub="per session" tiers={TRANSCRIPT_TIERS}
+                  title="Transcription"
+                  headerRight={
+                    <div className="flex rounded-md border border-white/[0.07] bg-[#0c0c0e] p-[2px]">
+                      <button
+                        onClick={() => setTxModel('turbo')}
+                        className={`rounded px-2.5 py-0.5 text-[10px] uppercase tracking-[0.05em] font-medium transition-all ${txModel === 'turbo'
+                          ? 'bg-[#18181f] text-[#00d4c8] border border-white/[0.07] shadow-sm'
+                          : 'text-[#6b6b7a] hover:text-[#9898a8]'
+                          }`}
+                      >
+                        Turbo
+                      </button>
+                      <button
+                        onClick={() => setTxModel('prem')}
+                        className={`rounded px-2.5 py-0.5 text-[10px] uppercase tracking-[0.05em] font-medium transition-all ${txModel === 'prem'
+                          ? 'bg-[#18181f] text-[#00d4c8] border border-white/[0.07] shadow-sm'
+                          : 'text-[#6b6b7a] hover:text-[#9898a8]'
+                          }`}
+                      >
+                        Premium
+                      </button>
+                    </div>
+                  }
+                  tiers={TRANSCRIPT_TIERS.map(t => ({ ...t, price: txModel === 'prem' ? t.prem : t.turbo }))}
                   icon={<svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[#00d4c8] fill-none stroke-[1.8]"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>}
                 />
               </div>
@@ -292,8 +323,8 @@ export default function Pricing() {
               <SectionLabel>Group plans — Inclass Notes only</SectionLabel>
               <div className="grid grid-cols-4 gap-3">
                 {GROUP_TIERS.map((group) => {
-                  const t2Cost   = group.tiers[1].price;
-                  const genCost  = (t2Cost / group.members) * 0.5;
+                  const t2Cost = group.tiers[1].price;
+                  const genCost = (t2Cost / group.members) * 0.5;
                   const otherCost = (t2Cost / group.members);
                   return (
                     <div key={group.name} className="overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] flex flex-col surface noise">
@@ -397,9 +428,23 @@ export default function Pricing() {
                     {calcTab === 'transcript' && (
                       <>
                         <div className="flex flex-col gap-2">
+                          <div className="text-[11px] uppercase tracking-[0.06em] text-[#6b6b7a] opacity-70">Model</div>
+                          <div className="flex mt-1 gap-1">
+                            {['turbo', 'prem'].map((m) => (
+                              <button key={m} onClick={() => setCalcTxModel(m)}
+                                className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] uppercase tracking-[0.05em] font-medium transition-all
+                                  ${calcTxModel === m
+                                    ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
+                                    : 'border-white/[0.07] bg-[#18181f] text-[#6b6b7a] hover:border-white/[0.14] hover:text-[#9898a8]'}`}>
+                                {m === 'prem' ? 'Premium' : 'Turbo'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
                           <div className="text-[11px] uppercase tracking-[0.06em] text-[#6b6b7a] opacity-70">Recording duration</div>
-                          <div className="text-[11px] text-[#6b6b7a] opacity-55">Select the length of your audio file</div>
-                          <div className="mt-1 flex gap-1">
+                          <div className="flex mt-1 gap-1">
                             {['Under 1hr', '1 – 2hr', '2 – 3hr', '3hr+'].map((label, i) => (
                               <button key={i} onClick={() => setDurIdx(i)}
                                 className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] transition-all
@@ -411,6 +456,7 @@ export default function Pricing() {
                             ))}
                           </div>
                         </div>
+
                         {durIdx === 3 && (
                           <div className="flex flex-col gap-1.5">
                             <div className="text-[11px] uppercase tracking-[0.06em] text-[#6b6b7a] opacity-70">Exact duration (hours)</div>
@@ -422,12 +468,27 @@ export default function Pricing() {
                             </div>
                           </div>
                         )}
+
                         <BalanceInput label="Your balance" value={balanceTx} onChange={setBalanceTx} />
                       </>
                     )}
 
                     {calcTab === 'pipeline' && (
                       <>
+                        <div className="flex flex-col gap-2">
+                          <div className="text-[11px] uppercase tracking-[0.06em] text-[#6b6b7a] opacity-70">Transcription Model</div>
+                          <div className="flex mt-1 gap-1">
+                            {['turbo', 'prem'].map((m) => (
+                              <button key={m} onClick={() => setPipeTxModel(m)}
+                                className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] uppercase tracking-[0.05em] font-medium transition-all
+                                  ${pipeTxModel === m
+                                    ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
+                                    : 'border-white/[0.07] bg-[#18181f] text-[#6b6b7a] hover:border-white/[0.14] hover:text-[#9898a8]'}`}>
+                                {m === 'prem' ? 'Premium' : 'Turbo'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <div className="flex flex-col gap-2">
                           <div className="text-[11px] uppercase tracking-[0.06em] text-[#6b6b7a] opacity-70">Recording duration</div>
                           <div className="flex mt-1 gap-1">
@@ -442,6 +503,17 @@ export default function Pricing() {
                             ))}
                           </div>
                         </div>
+                        {pipeDurIdx === 3 && (
+                          <div className="flex flex-col gap-1.5">
+                            <div className="text-[11px] uppercase tracking-[0.06em] text-[#6b6b7a] opacity-70">Exact duration (hours)</div>
+                            <div className="flex overflow-hidden rounded-lg border border-white/[0.07]">
+                              <div className="border-r border-white/[0.07] bg-[#1e1e27] px-3 py-2 text-[12px] text-[#6b6b7a] select-none">hrs</div>
+                              <input type="number" value={pipeExactHours} min="3" max="12" step="0.5"
+                                onChange={(e) => setPipeExactHours(Number(e.target.value))}
+                                className="flex-1 bg-[#18181f] px-3 py-2 font-mono text-[14px] text-[#e8e8ed] outline-none" />
+                            </div>
+                          </div>
+                        )}
                         <div className="flex flex-col gap-2">
                           <div className="text-[11px] uppercase tracking-[0.06em] text-[#6b6b7a] opacity-70">Expected note tokens</div>
                           <div className="flex flex-col gap-1.5 mt-1">
@@ -528,7 +600,7 @@ export default function Pricing() {
                     </button>
                   ))}
                 </div>
-                <button onClick={()=> router.push('/topup')} className="flex w-fit items-center gap-2 rounded-lg bg-[#00d4c8] px-4 py-2.5 text-[13px] font-medium text-[#0c0c0e] transition-opacity hover:opacity-85">
+                <button onClick={() => router.push('/topup')} className="flex w-fit items-center gap-2 rounded-lg bg-[#00d4c8] px-4 py-2.5 text-[13px] font-medium text-[#0c0c0e] transition-opacity hover:opacity-85">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-2">
                     <path d="M12 5v14M5 12l7-7 7 7" />
                   </svg>

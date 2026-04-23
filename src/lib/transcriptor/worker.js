@@ -2,73 +2,111 @@ import { Worker } from "bullmq";
 import fs from 'fs';
 import connection from "../redis.js";
 import { sql } from "../storage/db.js";
-import splitAudioChunks from "./splitAudioChunks.js";
-import Groq from "groq-sdk";
+import { getAudioClient } from "./audioClient.js";
 import getAudioDuration from '../audio-converter-queues/duration.js';
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY
-});
+
 
 const worker = new Worker('transcription', async (job) => {
-    const { inputPath, label, language, userId, fileName } = job.data;
+    const { inputPath, label, model, userId, vad, outputFormat, fileName, diarization } = job.data;
     const tempDir = `./tmp-transcript/${job.id}/`
     const transcript_uuid = uuidv4();
-
-    const maxFileSize = 19 * 1024 * 1024;
 
     const duration = await getAudioDuration(inputPath)
 
     const durationHours = (duration) / 3600;
-    const isEnglish = language === 'en';
+    const premiumModel = (model === 'whisper-v3');
+
+    const rate = premiumModel ? 4 : 2.5;
 
     let transcriptionPrice;
     if (durationHours < 1) {
-        transcriptionPrice = isEnglish ? 2 : 6;
+        transcriptionPrice = premiumModel ? 4 : 2.5;
     } else if (durationHours < 2) {
-        transcriptionPrice = isEnglish ? 4 : 12;
+        transcriptionPrice = premiumModel ? 8 : 5;
     } else if (durationHours < 3) {
-        transcriptionPrice = isEnglish ? 6 : 18;
+        transcriptionPrice = premiumModel ? 12 : 7.5;
     } else {
-        const rate = isEnglish ? 2 : 6;
         transcriptionPrice = Math.round(durationHours * rate * 1.2);
     }
 
-    await job.updateProgress(20);
 
-    const model = language === "en" ? "whisper-large-v3-turbo" : "whisper-large-v3";
+    await job.updateProgress(20);
+    const vadEnabled = vad === 'true' || vad === true;
 
     const rows = await sql`
-        INSERT INTO transcript (user_id, label, language, diarization, status, charge_amount, created_at, filename, public_id, duration)
-        VALUES (${userId}, ${label}, ${language}, ${0}, ${'Initializing'}, ${transcriptionPrice}, NOW(), ${fileName}, ${transcript_uuid}, ${duration})
+        INSERT INTO transcript (user_id, label, status, charge_amount, created_at, filename, public_id, duration, model, output_format, vad_enabled)
+        VALUES (${userId}, ${label}, ${'Initializing'}, ${transcriptionPrice}, NOW(), ${fileName}, ${transcript_uuid}, ${duration}, ${model}, ${outputFormat || 'text'}, ${vadEnabled})
         RETURNING id
     `;
     const transcriptId = rows[0].id;
 
-    const audioChunks = await splitAudioChunks(inputPath, maxFileSize, tempDir);
-    let fullTranscript = "";
-
     await sql`UPDATE transcript SET status = 'Transcribing' WHERE user_id = ${userId} AND id = ${transcriptId}`;
 
     try {
-        for (let i = 0; i < audioChunks.length; i++) {
-            const chunkTranscription = await groq.audio.transcriptions.create({
-                file: fs.createReadStream(audioChunks[i]),
-                model: model,
-                prompt: "",
-                response_format: 'text',
-                language: language,
-                temperature: 0.0
-            });
+        const fileStream = fs.createReadStream(inputPath);
 
-            fullTranscript += chunkTranscription + '\n\n';
-            await job.updateProgress(Math.round(20 + ((i + 1) / audioChunks.length) * 75));
+        const params = {
+            file: fileStream,
+            model: model,
+            temperature: 0.0
+        };
+
+        if (vad === 'true' || vad === true) {
+            params.vad_model = 'silero';
         }
 
+        if (outputFormat === 'verbose_json') {
+            params.response_format = 'verbose_json';
+            params.timestamp_granularities = ['word','segment'];
+
+            if(diarization === 'true'){
+                params.diarize = diarization;
+            }
+        } else {
+            params.response_format = 'text';
+        }
+
+        await job.updateProgress(40);
+
+        const audioClient = getAudioClient(model);
+
+        let response = await audioClient.audio.transcriptions.create(params);
+
+        if (typeof response === 'string') {
+            try {
+                response = JSON.parse(response);
+            } catch (e) {
+            }
+        }
+
+
+        let transcriptContent = "";
+        let segments = null;
+
+        if (typeof response === 'object' && response !== null) {
+            transcriptContent = response.text || "";
+
+            if (response.segments && Array.isArray(response.segments)) {
+                segments = response.segments.map(segment => ({
+                    id: segment.id,
+                    start: segment.start,
+                    end: segment.end,
+                    text: segment.text.trim(),
+                    speaker_id: segment.speaker_id
+                }));
+            }
+        } else if (typeof response === 'string') {
+            transcriptContent = response;
+        }
+
+
+        await job.updateProgress(90);
+
         await sql.begin(async (tx) => {
-            await tx`UPDATE transcript SET status = 'Completed', content = ${fullTranscript} WHERE id = ${transcriptId}`;
+            await tx`UPDATE transcript SET status = 'Completed', content = ${transcriptContent}, segments = ${segments ? JSON.stringify(segments) : null} WHERE id = ${transcriptId}`;
 
             const [updated] = await tx`
                 UPDATE "user" SET balance = balance - ${transcriptionPrice}
@@ -98,7 +136,7 @@ const worker = new Worker('transcription', async (job) => {
     }
 }, {
     connection,
-    concurrency: 1,    
+    concurrency: 1,
 });
 
 worker.on('completed', (job) => console.log(`Job ${job.id} done!`));
