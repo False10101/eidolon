@@ -75,7 +75,7 @@ async function processSlip(body) {
             localFilePath: localFilePath,
             fileName: fileName
         }, {
-            delay: 5 * 60 * 1000,
+            delay: 1 * 60 * 1000,
             removeOnComplete: true,
             removeOnFail: false
         });

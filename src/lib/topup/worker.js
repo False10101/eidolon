@@ -49,12 +49,15 @@ const worker = new Worker(('slip-verification'), async (job) => {
         });
 
         const verifyData = await verifyRes.json();
+        // console.log(JSON.stringify(verifyData.data, null, 2));
+        // console.log(verifyData.data);
 
         if (verifyData.data && verifyData.data.amount) {
             const receiverName = verifyData.data.receiver?.account?.name;
-            const receiverAccount = verifyData.data.receiver?.account?.proxy?.account || "";
+            const receiverAccount = verifyData.data.receiver?.account?.proxy?.account || verifyData.data.receiver?.account?.bank?.account || "";
             const safeName = (receiverName || "").toUpperCase();
-            const isMyAccount = safeName.includes('MIN') && receiverAccount.endsWith("8446");
+
+            const isMyAccount = safeName.includes('MIN') && receiverAccount.includes("8446") || safeName.includes('MIN') && receiverAccount.includes("9895");
 
             if (!isMyAccount) {
                 console.error(`Slip valid, but wrong receiver: ${receiverName} / ${receiverAccount}`);
