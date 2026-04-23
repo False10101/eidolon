@@ -1,8 +1,9 @@
 import { sql } from "@/lib/storage/db";
-import client from "@/lib/openai";
 import buildUserPrompt from "../buildUserPrompt";
+import { textClient } from "@/lib/openai";
+import collectStreamContent from "@/lib/streamCollector";
 
-export async function generateGroup(noteId, userId, groupId, totalPrice) {
+export async function generateGroup(noteId, userId, groupId, totalPrice, targetLanguage) {
     try {
         const rows = await sql`SELECT * FROM "note" WHERE id = ${noteId} AND user_id = ${userId}`;
         const note = rows[0];
@@ -17,21 +18,20 @@ export async function generateGroup(noteId, userId, groupId, totalPrice) {
         }
         if (!sourceContent) throw new Error('Input content not found.');
 
-        const userPrompt = buildUserPrompt(note.style, sourceContent);
+        const userPrompt = buildUserPrompt(note.style, sourceContent, targetLanguage);
         await sql`UPDATE "note" SET status = 'generating' WHERE id = ${noteId}`;
 
-        const response = await client.chat.completions.create({
+        const stream = await textClient.chat.completions.create({
             model: process.env.NOTE_MODEL,
             messages: [{ role: 'user', content: userPrompt }],
-            max_tokens: 40000
-        },{
-            headers: { 'X-OpenRouter-Provider': 'fireworks' },
+            max_tokens: 40000,
+            stream: true
         });
+
+        const {content: output, usage} = await collectStreamContent(stream);
 
         await sql`UPDATE "note" SET status = 'saving' WHERE id = ${noteId}`;
 
-        const outputText = response.choices[0].message.content;
-        const usage = response.usage;
         const totalTokens = usage.total_tokens;
         const inputTokens = usage.prompt_tokens;
         const outputTokens = usage.completion_tokens;
@@ -53,7 +53,7 @@ export async function generateGroup(noteId, userId, groupId, totalPrice) {
 
             await tx`
                 UPDATE "note"
-                SET status = 'completed', content = ${outputText},
+                SET status = 'completed', content = ${output},
                     total_tokens = ${totalTokens}, input_tokens = ${inputTokens},
                     output_tokens = ${outputTokens}, charge_amount = ${totalPrice},
                     unlock_price = ${unlockPrice}

@@ -56,6 +56,7 @@ export async function POST(req) {
     const noteRows = await sql`SELECT * FROM "note" WHERE public_id = ${publicId} AND user_id = ${userId}`;
     const note = noteRows[0];
 
+
     if (!note) return NextResponse.json({ error: "Note not found" }, { status: 404 });
 
     if (note.generation_type === "group") {
@@ -106,7 +107,7 @@ export async function POST(req) {
                 WHERE id = ${note.id}
             `;
 
-            generateGroup(note.id, userId, membership.group_id, totalPrice).catch(err => console.error('Group regen error:', err));
+            generateGroup(note.id, userId, membership.group_id, totalPrice, note.language).catch(err => console.error('Group regen error:', err));
 
             return NextResponse.json({ publicId });
         } catch (error) {
@@ -143,7 +144,7 @@ export async function POST(req) {
                 WHERE id = ${note.id}
             `;
 
-            generate(note.id, userId, worstCaseCost).catch(err => console.error('Regen error:', err));
+            generate(note.id, userId, worstCaseCost, note.language).catch(err => console.error('Regen error:', err));
 
             return NextResponse.json({ publicId });
         } catch (error) {

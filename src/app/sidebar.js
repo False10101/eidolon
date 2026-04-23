@@ -71,7 +71,7 @@ function HistoryItem({ item, active, onClick }) {
 // ─── Section label ──────────────────────────────────────────────────────────────
 function SectionLabel({ children }) {
   return (
-    <div className="flex-shrink-0 px-4 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[#6b6b7a] opacity-40 select-none">
+    <div className="flex-shrink-0 px-4 py-2.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-[#9898a8] select-none">
       {children}
     </div>
   );
@@ -178,7 +178,7 @@ export default function Sidebar() {
           <div className="flex flex-1 flex-col overflow-hidden min-h-0">
 
             {groupHistory.length > 0 && (
-              <div className="flex-[0_0_30%] min-h-0 flex flex-col border-b border-white/[0.07] overflow-hidden">
+              <div className="flex-[4] min-h-0 flex flex-col border-b border-white/[0.07] overflow-hidden">
                 <SectionLabel>Group</SectionLabel>
                 <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
                   {groupHistory.map((item) => (
@@ -193,7 +193,7 @@ export default function Sidebar() {
               </div>
             )}
 
-            <div className="flex flex-1 flex-col overflow-hidden min-h-0">
+            <div className="flex flex-[6] flex-col overflow-hidden min-h-0">
               <SectionLabel>Individual</SectionLabel>
               <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
                 {history.length === 0 ? (

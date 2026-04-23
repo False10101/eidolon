@@ -1,8 +1,11 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY,
-    baseURL: 'https://openrouter.ai/api/v1',
-})
+export const textClient = new OpenAI({
+    apiKey: process.env.FIREWORKS_API_KEY,
+    baseURL: 'https://api.fireworks.ai/inference/v1'
+});
 
-export default client;
+export const audioClient = new OpenAI({
+    apiKey: process.env.FIREWORKS_API_KEY,
+    baseURL: 'https://audio-prod.api.fireworks.ai/v1'
+});

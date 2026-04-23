@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
 
 // ─── Odometer ──────────────────────────────────────────────────────────────────
 const DIGIT_H = 60;
@@ -29,8 +30,8 @@ function OdometerDigit({ value }) {
 }
 
 function OdometerNumber({ value }) {
-  const v    = Math.min(100, Math.max(0, Math.round(value)));
-  const h    = Math.floor(v / 100);
+  const v = Math.min(100, Math.max(0, Math.round(value)));
+  const h = Math.floor(v / 100);
   const tens = Math.floor((v % 100) / 10);
   const ones = v % 10;
   return (
@@ -50,9 +51,9 @@ function OdometerNumber({ value }) {
 
 // ─── Audio variant — waveform bars ────────────────────────────────────────────
 const BARS = Array.from({ length: 32 }, (_, i) => ({
-  height:   18 + Math.sin(i * 0.7) * 14 + Math.sin(i * 1.3) * 7,
+  height: 18 + Math.sin(i * 0.7) * 14 + Math.sin(i * 1.3) * 7,
   duration: 0.55 + (i % 7) * 0.09,
-  delay:    (i % 5) * 0.07,
+  delay: (i % 5) * 0.07,
 }));
 
 function Waveform() {
@@ -74,12 +75,12 @@ function Waveform() {
 // widths vary to mimic real text layout. Shimmer sweeps left-to-right
 // at staggered delays — gives the impression of content being generated.
 const DOC_LINES = [
-  { w: '88%',  delay: 0    },
+  { w: '88%', delay: 0 },
   { w: '100%', delay: 0.18 },
-  { w: '73%',  delay: 0.36 },
-  { w: '95%',  delay: 0.54 },
+  { w: '73%', delay: 0.36 },
+  { w: '95%', delay: 0.54 },
   { w: '100%', delay: 0.72 },
-  { w: '58%',  delay: 0.90 },
+  { w: '58%', delay: 0.90 },
 ];
 
 function DocumentLines() {
@@ -132,13 +133,45 @@ function StagePill({ label }) {
 // variant: 'audio' (default) — waveform bars, suits audio processing
 //          'document'        — text line animation, suits note/exam generation
 export default function GeneratingOverlay({
-  title, subtitle, progress, onCancel,
+  title, subtitle, targetProgress, onCancel,
   variant = 'audio',
   done = false, doneLabel,
   onView, onViewLabel = 'View result',
   onReset, onResetLabel = 'Start over',
 }) {
-  const isDone = done || progress >= 100;
+  const [displayProgress, setDisplayProgress] = useState(0);
+  const isDone = done || targetProgress >= 100;
+
+  const targetRef = useRef(targetProgress);
+
+  useEffect(() => {
+    targetRef.current = targetProgress;
+  }, [targetProgress]);
+
+  useEffect(() => {
+    if (isDone) {
+      setDisplayProgress(100);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setDisplayProgress((prev) => {
+        const currentTarget = targetRef.current;
+        const distance = currentTarget - prev;
+
+        // If we reset or jump back, just snap to the new target
+        if (distance < 0) return currentTarget;
+
+        // The Asymptotic Math: Move 6% of the remaining distance
+        const step = distance * 0.06;
+
+        if (distance < 0.1) return prev;
+        return prev + step;
+      });
+    }, 400);
+
+    return () => clearInterval(interval);
+  }, [isDone]);
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0c0c0e]">
@@ -186,17 +219,6 @@ export default function GeneratingOverlay({
                 padding: '10px 20px', fontSize: 13, fontWeight: 500,
                 color: '#0c0c0e', border: 'none', cursor: 'pointer',
               }}>
-                {onViewLabel?.toLowerCase().includes('download') ? (
-                  <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, stroke: 'currentColor', fill: 'none', strokeWidth: 2.2 }}>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" style={{ width: 14, height: 14, stroke: 'currentColor', fill: 'none', strokeWidth: 2.2 }}>
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                  </svg>
-                )}
                 {onViewLabel}
               </button>
             )}
@@ -220,11 +242,10 @@ export default function GeneratingOverlay({
           transition={{ duration: 0.35, ease: 'easeOut' }}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, width: 360, position: 'relative' }}
         >
-          {/* Visual — swaps based on variant */}
           {variant === 'audio' ? <Waveform /> : <DocumentLines />}
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <OdometerNumber value={progress} />
+            <OdometerNumber value={displayProgress} />
             <div style={{ fontFamily: 'var(--font-geist-sans, sans-serif)', fontSize: 18, fontWeight: 400, color: '#e8e8ed', letterSpacing: '-0.01em', marginTop: 2 }}>
               {title}
             </div>
@@ -235,11 +256,11 @@ export default function GeneratingOverlay({
             <div style={{ position: 'relative', height: 2, width: '100%', borderRadius: 99, background: '#1a1a22', overflow: 'hidden' }}>
               <div style={{
                 position: 'absolute', inset: '0 auto 0 0',
-                width: `${progress}%`, borderRadius: 99,
+                width: `${displayProgress}%`, borderRadius: 99,
                 background: 'linear-gradient(90deg, #007a75, #00d4c8)',
-                transition: 'width 0.7s ease-out',
+                transition: 'width 0.4s linear',
               }} />
-              <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${progress}%`, overflow: 'hidden', borderRadius: 99 }}>
+              <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${displayProgress}%`, overflow: 'hidden', borderRadius: 99 }}>
                 <div style={{
                   position: 'absolute', inset: '0', width: '55%',
                   background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0) 15%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 85%, transparent 100%)',
@@ -253,8 +274,6 @@ export default function GeneratingOverlay({
             <button
               onClick={onCancel}
               style={{ fontSize: 12, color: '#4b4b5a', background: 'none', border: 'none', cursor: 'pointer' }}
-              onMouseEnter={e => e.target.style.color = '#ef4444'}
-              onMouseLeave={e => e.target.style.color = '#4b4b5a'}
             >
               Cancel
             </button>

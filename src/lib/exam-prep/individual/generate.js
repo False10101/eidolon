@@ -1,6 +1,24 @@
 import { sql } from "@/lib/storage/db";
-import client from "@/lib/openai";
+import {textClient} from "@/lib/openai";
 import { buildExamPrepPrompt } from "../buildUserPrompt";
+import { jsonrepair } from 'jsonrepair';
+
+async function collectStreamContent(stream) {
+    let fullContent = '';
+    let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+
+    for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        fullContent += content;
+
+        if (chunk.usage) {
+            usage = chunk.usage;
+        }
+    }
+
+    fullContent = fullContent.trim();
+    return { content: fullContent, usage };
+}
 
 export async function generateExamPrep({
     examPrepId,
@@ -31,19 +49,16 @@ export async function generateExamPrep({
 
         await sql`UPDATE exam_prep SET status = 'Generating' WHERE id = ${examPrepId}`;
 
-        const response = await client.chat.completions.create({
+        const stream = await textClient.chat.completions.create({
             model: process.env.EXAM_MODEL,
             messages: [{ role: 'user', content: prompt }],
-            provider:{
-                order: ["sambanova"],
-                allow_fallbacks: false
-            }
+            stream: true,
+            max_tokens: 64000,
+            temperature: 0.3
         });
 
-        await sql`UPDATE exam_prep SET status = 'Saving' WHERE id = ${examPrepId}`;
+        const { content: raw, usage } = await collectStreamContent(stream);
 
-        const outputText = response.choices[0].message.content;
-        const usage = response.usage;
         const totalTokens = usage.total_tokens;
         const inputTokens = usage.prompt_tokens;
         const outputTokens = usage.completion_tokens;
@@ -56,12 +71,16 @@ export async function generateExamPrep({
 
         const refund = estimatedCost - chargeAmount;
 
+        await sql`UPDATE exam_prep SET status = 'Saving' WHERE id = ${examPrepId}`;
+
         let parsedContent;
         try {
-            const clean = outputText.replace(/```json|```/g, '').trim();
-            parsedContent = JSON.parse(clean);
+            const repaired = jsonrepair(raw);
+            parsedContent = JSON.parse(repaired);
+            console.log('✅ JSON parsed');
         } catch (err) {
-            throw new Error('Model returned invalid JSON.');
+            console.error('Failed to parse exam prep JSON:', err.message);
+            throw new Error(`Could not parse exam prep JSON: ${err.message}`);
         }
 
         await sql.begin(async (tx) => {

@@ -32,6 +32,35 @@ function formatWordCount(content) {
   return content.trim().split(/\s+/).length.toLocaleString() + ' words';
 }
 
+function formatTranscriptContent(tx) {
+    if (tx.segments && tx.output_format === 'verbose_json') {
+        try {
+            const segments = typeof tx.segments === 'string' 
+                ? JSON.parse(tx.segments) 
+                : tx.segments;
+            
+            if (Array.isArray(segments) && segments.length > 0) {
+                return segments.map(segment => {
+                    const startTime = formatTime(segment.start);
+                    const endTime = formatTime(segment.end);
+                    const speaker = segment.speaker_id ? `${segment.speaker_id}: ` : '';
+                    return `[${startTime} → ${endTime}]\n${speaker}${segment.text}`;
+                }).join('\n\n');
+            }
+        } catch (e) {
+            return tx.content;
+        }
+    }
+    return tx.content;
+}
+
+function formatTime(seconds) {
+  if (!seconds && seconds !== 0) return '00:00';
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
 // ─── Action button ─────────────────────────────────────────────────────────────
 function ActionBtn({ children, onClick, icon, danger, disabled }) {
   return (
@@ -155,7 +184,7 @@ export default function TranscriptViewer({ params }) {
     URL.revokeObjectURL(url);
   };
 
-    const handleDelete = async () => {
+  const handleDelete = async () => {
     setDeleting(true);
     try {
       const token = await getAccessTokenSilently();
@@ -173,7 +202,7 @@ export default function TranscriptViewer({ params }) {
       }
       router.push('/transcript');
     } catch {
-      setDeleteModal(false); 
+      setDeleteModal(false);
       setDeleteError('Something went wrong. Please try again.');
       setDeleting(false);
     }
@@ -242,9 +271,10 @@ export default function TranscriptViewer({ params }) {
                   </div>
                 </div>
 
-                <DetailRow label="Language" value={tx.language === 'en' ? 'English' : tx.language ?? '—'} />
-                <DetailRow label="Whisper model" value={tx.language === 'en' ? 'Whisper V3 Turbo' : 'Whisper V3'} />
-                <DetailRow label="Created" value={formatCreatedAt(tx.created_at)} />
+                <DetailRow label="Format Type" value={tx.output_format === 'verbose_json' ? 'Segmented Timestamps' : tx.output_format === 'text' ? "Text" : tx.output_format ?? '—'} />
+                <DetailRow label="Transcription Model" value={tx.model === 'whisper-v3' ? "Whisper Large V3" : tx.model === 'whisper-v3-turbo' ? "Whisper Large V3 Turbo" : tx.model ?? '-'} />
+                <DetailRow label="Voice Activity Detection (VAD)" value={tx.vad_enabled === true ? "Enabled" : "Disabled"} />
+                <DetailRow label="Created At" value={formatCreatedAt(tx.created_at)} />
                 <DetailRow label="Word count" value={formatWordCount(tx.content)} />
 
                 {/* Cost breakdown */}
@@ -257,7 +287,7 @@ export default function TranscriptViewer({ params }) {
                   <div className="flex justify-between text-[12.5px]">
                     <span className="text-[#6b6b7a]">Rate</span>
                     <span className="font-mono text-[12px] text-[#9898a8]">
-                      {tx.language === 'en' ? '฿ 2/hr' : '฿ 6/hr'}
+                      {tx.model === 'whisper-v3-turbo' ? '฿ 2.5/hr' : '฿ 4/hr'}
                     </span>
                   </div>
                   <div className="h-px bg-white/[0.07]" />
@@ -292,7 +322,7 @@ export default function TranscriptViewer({ params }) {
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
                   }>Download</ActionBtn>
-                  <ActionBtn danger onClick={()=> setDeleteModal(true)} icon={
+                  <ActionBtn danger onClick={() => setDeleteModal(true)} icon={
                     <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                       <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M9 6V4h6v2" />
                     </svg>
@@ -318,10 +348,6 @@ export default function TranscriptViewer({ params }) {
                       icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
                     },
                     {
-                      label: tx.language === 'en' ? 'English' : tx.language ?? 'English',
-                      icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>,
-                    },
-                    {
                       label: formatWordCount(tx.content),
                       icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="15" y2="18" /></svg>,
                     },
@@ -334,7 +360,7 @@ export default function TranscriptViewer({ params }) {
 
                 {/* Transcript content */}
                 <div className="max-w-[800px] text-[14px] leading-[2] text-[#b0b0bc] whitespace-pre-wrap">
-                  {tx.content}
+                  {formatTranscriptContent(tx)}
                 </div>
               </div>
             </div>

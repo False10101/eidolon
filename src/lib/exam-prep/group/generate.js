@@ -1,6 +1,24 @@
 import { sql } from "@/lib/storage/db";
 import { buildExamPrepPrompt } from "../buildUserPrompt";
-import client from "@/lib/openai";
+import {textClient} from "@/lib/openai";
+import { jsonrepair } from 'jsonrepair';
+
+async function collectStreamContent(stream) {
+    let fullContent = '';
+    let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+
+    for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        fullContent += content;
+
+        if (chunk.usage) {
+            usage = chunk.usage;
+        }
+    }
+
+    fullContent = fullContent.trim();
+    return { content: fullContent, usage };
+}
 
 export async function generateExamPrepGroup(examPrepId, publicId, userId, groupId, totalPrice, questionTypes, difficulty) {
     try {
@@ -36,36 +54,31 @@ export async function generateExamPrepGroup(examPrepId, publicId, userId, groupI
 
         await sql`UPDATE exam_prep SET status = 'Generating' WHERE id = ${examPrepId}`;
 
-        const response = await client.chat.completions.create({
+        const stream = await textClient.chat.completions.create({
             model: process.env.EXAM_MODEL,
             messages: [{ role: 'user', content: prompt }],
-            max_tokens: 40000,
-            provider: {
-                order: ['sambanova'],
-                allow_fallbacks: false,
-            },
+            stream: true,
+            max_tokens: 64000,
+            temperature: 0.3
         });
 
-        const choice = response.choices[0];
-        if (choice.finish_reason === 'length') {
-            throw new Error('Model output was truncated — source material may be too large.');
-        }
+        const { content: raw, usage } = await collectStreamContent(stream);
 
-        await sql`UPDATE exam_prep SET status = 'Saving' WHERE id = ${examPrepId}`;
-
-        const outputText = choice.message.content;
-        const usage = response.usage;
         const totalTokens = usage.total_tokens;
         const inputTokens = usage.prompt_tokens;
         const outputTokens = usage.completion_tokens;
 
         let parsedContent;
         try {
-            const clean = outputText.replace(/```json|```/g, '').trim();
-            parsedContent = JSON.parse(clean);
-        } catch {
-            throw new Error('Model returned invalid JSON.');
+            const repaired = jsonrepair(raw);
+            parsedContent = JSON.parse(repaired);
+            console.log('✅ JSON parsed');
+        } catch (err) {
+            console.error('Failed to parse exam prep JSON:', err.message);
+            throw new Error(`Could not parse exam prep JSON: ${err.message}`);
         }
+
+        await sql`UPDATE exam_prep SET status = 'Saving' WHERE id = ${examPrepId}`;
 
         await sql.begin(async (tx) => {
             await tx`SELECT id FROM "student_group" WHERE id = ${groupId} FOR UPDATE`;

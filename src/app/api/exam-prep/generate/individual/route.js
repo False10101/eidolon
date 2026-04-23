@@ -75,9 +75,9 @@ export async function POST(req) {
         ...fileContents.map(f => f.content),
     ].join('').length;
 
-    const estimatedTokens = Math.ceil(totalChars / 4) * 2;
+    const estimatedTokens = Math.ceil(totalChars / 4);
 
-    if (estimatedTokens > 100000) {
+    if (estimatedTokens > 65000) {
         return NextResponse.json({ error: 'Source material is too large. Please reduce the number of notes or files.' }, { status: 400 });
     }
 

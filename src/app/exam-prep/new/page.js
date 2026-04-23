@@ -189,7 +189,7 @@ export default function NewExamPrepPage() {
               variant="document"
               title="Generating exam prep…"
               subtitle={STEPS[stepMap[currentStatus]] ?? 'Processing…'}
-              progress={progressMap[currentStatus] ?? 5}
+              progress={progressMap[currentStatus] ?? 5}targetProgress={procStatus === 'done' ? 100 : (progressMap[currentStatus] ?? 5)}
               onCancel={null}
             />
           )}

@@ -61,7 +61,7 @@ function DetailField({ label, value, editing, editValue, onChange, placeholder }
           className="bg-[#18181f] border border-[rgba(0,212,200,0.25)] rounded-lg px-2.5 py-1.5 text-[12px] text-[#e8e8ed] outline-none focus:border-[rgba(0,212,200,0.5)] transition-colors w-full placeholder:text-[#6b6b7a] min-h-[32px]"
         />
       ) : (
-        <div className="bg-[#18181f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-[12px] text-[#9898a8] min-h-[32px] truncate">
+        <div className="bg-[#18181f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-[12px] text-[#9898a8] min-h-[32px] capitalize truncate">
           {value || '—'}
         </div>
       )}
@@ -89,8 +89,6 @@ export default function NoteViewer({ params }) {
   const [deleteError, setDeleteError] = useState(null);
 
   const [editName, setEditName] = useState('');
-  const [editTopic, setEditTopic] = useState('');
-  const [editInstructor, setEditInstructor] = useState('');
 
   const [procStatus, setProcStatus] = useState('idle');
   const [currentStatus, setCurrentStatus] = useState('pending');
@@ -129,8 +127,6 @@ export default function NoteViewer({ params }) {
         }
         setNote(data.detail);
         setEditName(data.detail.name ?? '');
-        setEditTopic(data.detail.lecture_topic ?? '');
-        setEditInstructor(data.detail.instructor ?? '');
         setEditContent(data.detail.content ?? '');
       } catch (err) {
         setError('Failed to load note.');
@@ -162,12 +158,12 @@ export default function NoteViewer({ params }) {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: editContent, publicId: id,
-          name: editName, topic: editTopic, instructor: editInstructor,
+          name: editName
         }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setNote(prev => ({ ...prev, content: editContent, name: editName, lecture_topic: editTopic, instructor: editInstructor }));
+      setNote(prev => ({ ...prev, content: editContent, name: editName}));
       setIsEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -318,7 +314,7 @@ export default function NoteViewer({ params }) {
           {/* ── Content ── */}
           {!loading && note && (
             <motion.div
-              className="flex flex-1 flex-col overflow-hidden min-w-0"
+              className="relative flex flex-1 flex-col overflow-hidden min-w-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.35, ease: 'easeOut' }}
@@ -383,9 +379,9 @@ export default function NoteViewer({ params }) {
                       {isEditing && <div className="text-[10px] text-[#00d4c8] opacity-70">Editing</div>}
                     </div>
                     <div className="p-3 flex flex-col gap-2">
-                      <DetailField label="Course name" value={note.name} editing={isEditing} editValue={editName} onChange={setEditName} />
-                      <DetailField label="Topic" value={note.lecture_topic} editing={isEditing} editValue={editTopic} onChange={setEditTopic} />
-                      <DetailField label="Instructor" value={note.instructor} editing={isEditing} editValue={editInstructor} onChange={setEditInstructor} />
+                      <DetailField label="Name" value={note.name} editing={isEditing} editValue={editName} onChange={setEditName} />
+                      <DetailField label="Language" value={note.language} editing={false} />
+                      <DetailField label="Generation Type" value={note.generation_type} editing={false}/>
                       <DetailField label="Note style" value={styleLabels[note.style] ?? note.style} editing={false} />
                     </div>
                   </div>
@@ -573,7 +569,7 @@ export default function NoteViewer({ params }) {
                 <span className="font-serif text-[18px] text-[#00d4c8]">Eidolon</span>
                 <div className="h-4 w-px bg-white/[0.07]" />
                 <span className="text-[12px] text-[#6b6b7a] truncate max-w-[400px]">
-                  {note.name}{note.lecture_topic ? ` · ${note.lecture_topic}` : ''}
+                  {note.name}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -609,7 +605,7 @@ export default function NoteViewer({ params }) {
             >
               <div className="w-full max-w-[680px]">
                 <div className="text-[11px] uppercase tracking-[0.08em] text-[#6b6b7a] mb-3 select-none">
-                  {note.name}{note.lecture_topic ? ` · ${note.lecture_topic}` : ''}
+                  {note.name}
                   <span className="opacity-50 mx-1">·</span>
                   {formatCreatedAt(note.created_at)}
                 </div>

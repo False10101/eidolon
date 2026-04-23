@@ -3,6 +3,8 @@ import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
 import { v4 as uuidv4 } from "uuid";
 import { generate } from "@/lib/note/individual/generate";
+import { franc } from "franc-min";
+import languageMap from "@/lib/languageMap";
 
 export async function POST(req) {
     const userId = await verifyUserData(req);
@@ -58,8 +60,7 @@ export async function POST(req) {
     }
 
     const name = formData.get('name');
-    const topic = formData.get('topic') || null;
-    const instructor = formData.get('instructor') || null;
+    let language = formData.get('target_language') || null;
     const style = formData.get('style') || 'standard';
     const generation_type = 'individual';
     const publicId = uuidv4();
@@ -80,6 +81,13 @@ export async function POST(req) {
 
     const estimatedInputTokens = Math.ceil(sourceContent.length / 4);
 
+    if (language === null || language === 'auto') {
+        const sampleText = sourceContent.slice(0, 500);
+        const detectedCode = franc(sampleText);
+        language = languageMap[detectedCode] || 'English';
+    }
+
+
     if (estimatedInputTokens > 65000) {
         return NextResponse.json({ error: "Transcript is too long. Maximum input is ~65,000 tokens." }, { status: 400 });
     }
@@ -95,13 +103,13 @@ export async function POST(req) {
     await sql`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId}`;
 
     const result = await sql`
-        INSERT INTO "note" (name, lecture_topic, instructor, created_at, user_id, status, public_id, style, transcript_id, uploaded_filename, source_content, generation_type)
-        VALUES (${name}, ${topic}, ${instructor}, NOW(), ${userId}, 'pending', ${publicId}, ${style}, ${transcriptDbId}, ${uploadedFilename}, ${sourceContent}, ${generation_type})
+        INSERT INTO "note" (name, created_at, user_id, status, public_id, style, transcript_id, uploaded_filename, source_content, generation_type, language)
+        VALUES (${name}, NOW(), ${userId}, 'pending', ${publicId}, ${style}, ${transcriptDbId}, ${uploadedFilename}, ${sourceContent}, ${generation_type}, ${language})
         RETURNING id
     `;
 
     const noteId = result[0].id;
-    generate(noteId, userId, worstCaseCost).catch(err => console.error('Generation error:', err));
+    generate(noteId, userId, worstCaseCost, language).catch(err => console.error('Generation error:', err));
 
     return NextResponse.json({ publicId });
 }
