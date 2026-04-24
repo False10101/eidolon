@@ -12,7 +12,14 @@ import ErrorModal from '@/app/ErrorModal';
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const STEPS = ['Validating balance', 'Reading source material', 'Generating questions', 'Writing solutions', 'Saving result'];
 const stepMap = { pending: 0, reading: 1, generating: 2, writing: 3, saving: 4 };
-const progressMap = { pending: 5, reading: 20, generating: 50, writing: 75, saving: 90, completed: 100 };
+const stageCeilings = {
+  pending: 15,
+  reading: 35,
+  generating: 88,
+  writing: 92,
+  saving: 96,
+  completed: 100,
+};
 
 const QUESTION_TYPES = [
   { key: 'tf', label: 'True / False', desc: 'Statements testing whether a core concept is correct or not.' },
@@ -189,7 +196,8 @@ export default function NewExamPrepPage() {
               variant="document"
               title="Generating exam prep…"
               subtitle={STEPS[stepMap[currentStatus]] ?? 'Processing…'}
-              progress={progressMap[currentStatus] ?? 5}targetProgress={procStatus === 'done' ? 100 : (progressMap[currentStatus] ?? 5)}
+              targetProgress={stageCeilings[currentStatus] ?? 15}
+              smoothed={true}
               onCancel={null}
             />
           )}
