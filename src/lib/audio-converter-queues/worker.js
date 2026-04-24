@@ -15,6 +15,12 @@ const r2 = new S3Client({
   },
 });
 
+const codecMap = {
+  mp3: 'libmp3lame',
+  m4a: 'aac',
+  wav: 'pcm_s16le',
+};
+
 const timeToSeconds = (timeStr) => {
   if (!timeStr) return 0;
   const [hours, minutes, seconds] = timeStr.split(':').map(Number);
@@ -31,6 +37,7 @@ const worker = new Worker('audio-conversion', async (job) => {
   const { inputPath, format, bitrate, durationSeconds, userId, start, end } = job.data;
   const outputFileName = `${job.id}.${format.toLowerCase()}`;
   const outputPath = `./tmp-convert/out-${outputFileName}`;
+  const codec = codecMap[format.toLowerCase()] || 'libmp3lame';
 
   console.log(`Processing job ${job.id}: ${inputPath}`);
 
@@ -39,7 +46,7 @@ const worker = new Worker('audio-conversion', async (job) => {
   await new Promise((resolve, reject) => {
     let command = Ffmpeg(inputPath)
       .noVideo()
-      .audioCodec('libmp3lame')
+      .audioCodec(codec)
       .audioBitrate(bitrate.replace(' kbps', 'k'));
 
     if (start && end) {
