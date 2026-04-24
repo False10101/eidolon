@@ -28,7 +28,9 @@ export async function GET(req, { params }) {
 
     let queuePosition = null;
     if (state === 'waiting') {
-        queuePosition = await job.getPosition();
+        const waitingJobs = await audioQueue.getWaiting();
+        const idx = waitingJobs.findIndex(j => j.id === job.id);
+        queuePosition = idx === -1 ? null : idx + 1; // 1-based
     }
 
     return NextResponse.json({

@@ -71,9 +71,6 @@ function Waveform() {
 }
 
 // ─── Document variant — text lines materializing ──────────────────────────────
-// Looks like lines of text being written. Each bar is a "line",
-// widths vary to mimic real text layout. Shimmer sweeps left-to-right
-// at staggered delays — gives the impression of content being generated.
 const DOC_LINES = [
   { w: '88%', delay: 0 },
   { w: '100%', delay: 0.18 },
@@ -92,7 +89,6 @@ function DocumentLines() {
           borderRadius: 99, background: 'rgba(0,212,200,0.1)',
           overflow: 'hidden',
         }}>
-          {/* Sweep shimmer — suggests text being written */}
           <div style={{
             position: 'absolute', inset: 0, width: '45%',
             background: 'linear-gradient(90deg, transparent 0%, rgba(0,212,200,0.55) 50%, transparent 100%)',
@@ -130,18 +126,18 @@ function StagePill({ label }) {
 }
 
 // ─── GeneratingOverlay ─────────────────────────────────────────────────────────
-// variant: 'audio' (default) — waveform bars, suits audio processing
-//          'document'        — text line animation, suits note/exam generation
+// smoothed = true  (default) — asymptotic fake progress, for notes/exam/transcription
+// smoothed = false           — real progress direct from backend, for audio only
 export default function GeneratingOverlay({
   title, subtitle, targetProgress, onCancel,
   variant = 'audio',
+  smoothed = true,
   done = false, doneLabel,
   onView, onViewLabel = 'View result',
   onReset, onResetLabel = 'Start over',
 }) {
   const [displayProgress, setDisplayProgress] = useState(0);
   const isDone = done || targetProgress >= 100;
-
   const targetRef = useRef(targetProgress);
 
   useEffect(() => {
@@ -154,24 +150,25 @@ export default function GeneratingOverlay({
       return;
     }
 
+    if (!smoothed) {
+      // Real progress from backend — clamp only, never go backwards
+      setDisplayProgress(prev => Math.max(prev, targetProgress ?? 0));
+      return;
+    }
+
+    // Asymptotic smoothing — for fake/slow progress sources
     const interval = setInterval(() => {
       setDisplayProgress((prev) => {
         const currentTarget = targetRef.current;
         const distance = currentTarget - prev;
-
-        // If we reset or jump back, just snap to the new target
         if (distance < 0) return currentTarget;
-
-        // The Asymptotic Math: Move 6% of the remaining distance
-        const step = distance * 0.06;
-
         if (distance < 0.1) return prev;
-        return prev + step;
+        return prev + distance * 0.06;
       });
     }, 400);
 
     return () => clearInterval(interval);
-  }, [isDone]);
+  }, [isDone, smoothed, targetProgress]);
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0c0c0e]">

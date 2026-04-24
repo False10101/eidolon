@@ -248,6 +248,7 @@ export default function AudioConverter() {
               onViewLabel="Download file"
               onReset={resetAll}
               onResetLabel="Convert another"
+              smoothed={false}
             />
           )}
 
