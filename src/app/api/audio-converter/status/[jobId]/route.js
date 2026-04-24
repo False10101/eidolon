@@ -26,8 +26,14 @@ export async function GET(req, { params }) {
     const progress = job.progress;
     const result = job.returnvalue;
 
+    let queuePosition = null;
+    if (state === 'waiting') {
+        queuePosition = await job.getPosition();
+    }
+
     return NextResponse.json({
         state,
-        progress
-        });
+        progress,
+        queuePosition
+    });
 }
