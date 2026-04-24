@@ -32,6 +32,8 @@ const worker = new Worker('audio-conversion', async (job) => {
 
   await new Promise((resolve, reject) => {
     let command = Ffmpeg(inputPath)
+      .noVideo()  
+      .audioCodec('libmp3lame')  
       .audioBitrate(bitrate.replace(' kbps', 'k'));
 
     if (start && end) {
