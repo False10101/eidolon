@@ -63,7 +63,14 @@ const LANGUAGE_OPTIONS = [
 
 const NOTE_STEPS = ['Reading transcript', 'Generating note', 'Saving note'];
 const stepMap = { pending: 0, reading: 0, generating: 1, saving: 2 };
-const progressMap = { pending: 5, reading: 20, generating: 90, saving: 95, completed: 100 };
+
+const stageCeilings = {
+  pending:    15,
+  reading:    35,
+  generating: 88,
+  saving:     96,
+  completed:  100,
+};
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {
@@ -183,8 +190,8 @@ export default function NewNotePage() {
               variant="document"
               title="Generating your note…"
               subtitle={NOTE_STEPS[stepMap[currentStatus]] ?? 'Processing…'}
-              targetProgress={procStatus === 'done' ? 100 : (progressMap[currentStatus] ?? 5)}
-              onCancel={null}
+              targetProgress={stageCeilings[currentStatus] ?? 15}
+              smoothed={true}
             />
           )}
 

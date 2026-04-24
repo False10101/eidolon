@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { transcriptorQueue } from "@/lib/queue";
 import { verifyUserData } from "@/lib/auth/verify";
 
-export async function GET(req, {params}){
+export async function GET(req, { params }) {
 
     const currentUserId = await verifyUserData(req);
     if (!currentUserId) {
@@ -26,10 +26,17 @@ export async function GET(req, {params}){
     const progress = job.progress;
     const result = job.returnvalue;
 
+    let queuePosition = null;
+    if (state === 'waiting') {
+        const waitingJobs = await audioQueue.getWaiting();
+        const idx = waitingJobs.findIndex(j => j.id === job.id);
+        queuePosition = idx === -1 ? null : idx + 1; // 1-based
+    }
 
     return NextResponse.json({
         state,
         progress,
-        publicId : result?.publicId || null
+        publicId: result?.publicId || null,
+        queuePosition
     });
 }

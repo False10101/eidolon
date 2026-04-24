@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,13 +32,6 @@ const OUTPUT_FORMATS = [
   { value: 'verbose_json', label: 'With Timestamps', description: 'Includes segment timestamps — great for subtitles or navigation.' },
 ];
 
-const PROC_STEPS = [
-  'Validating balance',
-  'Processing audio',
-  'Saving transcript',
-  'Finishing up',
-];
-
 function formatBytes(bytes) {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
@@ -51,6 +44,12 @@ const containerVariants = {
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+};
+
+const stageCeilings = {
+  uploading: 12,
+  waiting: 12,
+  active: 88,
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -67,11 +66,11 @@ export default function Transcriptor() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [diarization, setDiarization] = useState(false);
 
-  const [progress, setProgress] = useState(0);
   const [procStatus, setProcStatus] = useState('idle');
-  const [procStep, setProcStep] = useState(0);
   const [resultId, setResultId] = useState(null);
   const [error, setError] = useState(null);
+  const [stage, setStage] = useState('idle');
+  const [stageLabel, setStageLabel] = useState('');
 
   const intervalRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -99,7 +98,17 @@ export default function Transcriptor() {
         });
         const data = await res.json();
 
-        if (data.state === 'completed') {
+        if (data.state === 'waiting') {
+          setStage('waiting');
+          setStageLabel(data.queuePosition ? `Queue position: ${data.queuePosition}` : 'Waiting in queue');
+        } else if (data.state === 'active') {
+          setStage('active');
+          const pct = data.progress || 0;
+          if (pct < 20) setStageLabel('Validating balance');
+          else if (pct < 40) setStageLabel('Reading audio');
+          else if (pct < 90) setStageLabel('Transcribing');
+          else setStageLabel('Saving transcript');
+        } else if (data.state === 'completed') {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
           setResultId(data.publicId);
@@ -109,18 +118,11 @@ export default function Transcriptor() {
           intervalRef.current = null;
           setProcStatus('idle');
           setError('Transcription failed. Check your file format and try again.');
-        } else {
-          const pct = data.progress || 0;
-          setProgress(pct);
-          if (pct < 20) setProcStep(0);
-          else if (pct < 60) setProcStep(1);
-          else if (pct < 90) setProcStep(2);
-          else setProcStep(3);
         }
       } catch (err) {
         console.error('Polling error:', err);
       }
-    }, 500);
+    }, 1500);
   };
 
   // ── Transcribe ──────────────────────────────────────────────────────────────
@@ -128,8 +130,8 @@ export default function Transcriptor() {
     if (!file) return;
     setError(null);
     setProcStatus('processing');
-    setProcStep(0);
-    setProgress(0);
+    setStage('uploading');
+    setStageLabel('Uploading file');
 
     try {
       const token = await getAccessTokenSilently();
@@ -171,8 +173,7 @@ export default function Transcriptor() {
       intervalRef.current = null;
     }
     setProcStatus('idle');
-    setProgress(0);
-    setProcStep(0);
+    setStage('idle');
     setResultId(null);
     removeFile();
     setError(null);
@@ -198,9 +199,9 @@ export default function Transcriptor() {
           {(procStatus === 'processing' || procStatus === 'done') && (
             <GeneratingOverlay
               title="Transcribing audio…"
-              subtitle={PROC_STEPS[procStep]}
-              targetProgress={procStatus === 'done' ? 100 : Math.max(progress, 92)}
-              onCancel={null}
+              subtitle={stageLabel}
+              targetProgress={procStatus === 'done' ? 100 : stageCeilings[stage] ?? 0}
+              smoothed={true}
               done={procStatus === 'done'}
               doneLabel={label || file?.name}
               onView={() => resultId && router.push(`/transcriptor/${resultId}`)}
