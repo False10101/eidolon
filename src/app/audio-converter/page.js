@@ -9,7 +9,7 @@ import GeneratingOverlay from '../GeneratingOverlays';
 import ErrorModal from '../ErrorModal';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-const FORMATS  = ['MP3', 'WAV', 'M4A'];
+const FORMATS = ['MP3', 'WAV', 'M4A'];
 const BITRATES = ['128 kbps', '192 kbps', '256 kbps'];
 
 function formatBytes(bytes) {
@@ -25,18 +25,19 @@ function fmtTimeInput(val) {
 }
 
 function getStepLabel(pct) {
-  if (pct < 30) return 'Extracting audio track';
-  if (pct < 70) return 'Encoding audio';
+  if (pct < 20) return 'Uploading to server';
+  if (pct < 50) return 'Extracting audio track';
+  if (pct < 85) return 'Encoding audio';
   return 'Uploading to storage';
 }
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {
-  hidden:  { opacity: 0 },
+  hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
 };
 const itemVariants = {
-  hidden:  { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
 };
 
@@ -45,28 +46,28 @@ export default function AudioConverter() {
   const { getAccessTokenSilently } = useAuth0();
 
   // File
-  const [file, setFile]         = useState(null);
+  const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   // Config
-  const [format, setFormat]           = useState('MP3');
-  const [bitrate, setBitrate]         = useState('192 kbps');
+  const [format, setFormat] = useState('MP3');
+  const [bitrate, setBitrate] = useState('192 kbps');
   const [trimEnabled, setTrimEnabled] = useState(false);
-  const [trimStart, setTrimStart]     = useState('');
-  const [trimEnd, setTrimEnd]         = useState('');
+  const [trimStart, setTrimStart] = useState('');
+  const [trimEnd, setTrimEnd] = useState('');
 
   // Conversion
-  const [status, setStatus]               = useState('idle');
-  const [progress, setProgress]           = useState(0);
-  const [convStep, setConvStep]           = useState('');
+  const [status, setStatus] = useState('idle');
+  const [progress, setProgress] = useState(0);
+  const [convStep, setConvStep] = useState('');
   const [convertedName, setConvertedName] = useState('');
-  const [error, setError]                 = useState(null);
+  const [error, setError] = useState(null);
 
   // Refs — avoids stale closure bug where state reads null inside callbacks
-  const intervalRef      = useRef(null);
+  const intervalRef = useRef(null);
   const completedJobIdRef = useRef(null); // stores jobId synchronously, never stale
-  const formatRef        = useRef(format); // keeps format in sync for download
+  const formatRef = useRef(format); // keeps format in sync for download
 
   // Keep formatRef in sync with format state
   const handleSetFormat = (f) => {
@@ -90,15 +91,19 @@ export default function AudioConverter() {
   const pollStatus = (jobId, token, fileName) => {
     intervalRef.current = setInterval(async () => {
       try {
-        const res  = await fetch(`/api/audio-converter/status/${jobId}`, {
+        const res = await fetch(`/api/audio-converter/status/${jobId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
 
-        if (data.state === 'completed') {
+        if (data.state === 'waiting') {
+          const pos = data.queuePosition;
+          setConvStep(pos ? `Queue position: ${pos}` : 'Waiting in queue');
+          setProgress(0);
+        } else if (data.state === 'completed') {
           clearInterval(intervalRef.current);
-          intervalRef.current     = null;
-          completedJobIdRef.current = jobId; // store synchronously in ref
+          intervalRef.current = null;
+          completedJobIdRef.current = jobId;
           setConvertedName(`${fileName.split('.')[0]}.${formatRef.current.toLowerCase()}`);
           setProgress(100);
           setStatus('done');
@@ -108,7 +113,7 @@ export default function AudioConverter() {
           setStatus('idle');
           setError('Conversion failed. Check your file format and try again.');
         } else {
-          const pct = data.progress || 0;
+          const pct = 20 + Math.round((data.progress || 0) * 0.8);
           setProgress(pct);
           setConvStep(getStepLabel(pct));
         }
@@ -128,29 +133,39 @@ export default function AudioConverter() {
 
     try {
       const token = await getAccessTokenSilently();
-      const form  = new FormData();
-      form.append('file',    file.raw);
-      form.append('format',  format);
+      const form = new FormData();
+      form.append('file', file.raw);
+      form.append('format', format);
       form.append('bitrate', bitrate);
       if (trimEnabled) {
         form.append('start', trimStart);
-        form.append('end',   trimEnd);
+        form.append('end', trimEnd);
       }
 
-      const res  = await fetch('/api/audio-converter/convert', {
-        method:  'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body:    form,
-      });
-      const data = await res.json();
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/audio-converter/convert');
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
-      if (!res.ok) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            // Upload is ~first 20% of the whole flow
+            const uploadPct = Math.round((e.loaded / e.total) * 20);
+            setProgress(uploadPct);
+          }
+        };
+
+        xhr.onload = () => resolve(JSON.parse(xhr.responseText));
+        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.send(form);
+      });
+
+      if (!data.jobId) {
         setStatus('idle');
         setError(data.error || 'Failed to start conversion.');
         return;
       }
 
-      // Pass fileName directly — avoids stale closure on file state
       pollStatus(data.jobId, token, file.name);
     } catch (err) {
       console.error('Conversion error:', err);
@@ -170,10 +185,10 @@ export default function AudioConverter() {
 
     try {
       const token = await getAccessTokenSilently();
-      const res   = await fetch(`/api/audio-converter/download/${jobId}/${formatRef.current.toLowerCase()}`, {
+      const res = await fetch(`/api/audio-converter/download/${jobId}/${formatRef.current.toLowerCase()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data  = await res.json();
+      const data = await res.json();
 
       if (!res.ok || data.error) {
         setError('Your file has expired. Please convert again.');
@@ -181,8 +196,8 @@ export default function AudioConverter() {
         return;
       }
 
-      const a    = document.createElement('a');
-      a.href     = data.url;
+      const a = document.createElement('a');
+      a.href = data.url;
       a.download = convertedName;
       document.body.appendChild(a);
       a.click();
@@ -225,7 +240,7 @@ export default function AudioConverter() {
             <GeneratingOverlay
               title="Converting your file…"
               subtitle={convStep}
-              progress={progress}
+              targetProgress={progress}
               onCancel={null}
               done={status === 'done'}
               doneLabel={convertedName}
@@ -233,6 +248,7 @@ export default function AudioConverter() {
               onViewLabel="Download file"
               onReset={resetAll}
               onResetLabel="Convert another"
+              smoothed={false}
             />
           )}
 
@@ -368,7 +384,7 @@ export default function AudioConverter() {
                 <div className={`grid grid-cols-2 gap-2 overflow-hidden transition-all duration-200 ${trimEnabled ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
                   {[
                     { label: 'Start', val: trimStart, set: setTrimStart },
-                    { label: 'End',   val: trimEnd,   set: setTrimEnd   },
+                    { label: 'End', val: trimEnd, set: setTrimEnd },
                   ].map(({ label, val, set }) => (
                     <div key={label}>
                       <div className="mb-1 text-[10px] uppercase tracking-[0.05em] text-[#6b6b7a] opacity-55">{label}</div>

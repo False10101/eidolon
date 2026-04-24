@@ -26,8 +26,16 @@ export async function GET(req, { params }) {
     const progress = job.progress;
     const result = job.returnvalue;
 
+    let queuePosition = null;
+    if (state === 'waiting') {
+        const waitingJobs = await audioQueue.getWaiting();
+        const idx = waitingJobs.findIndex(j => j.id === job.id);
+        queuePosition = idx === -1 ? null : idx + 1; // 1-based
+    }
+
     return NextResponse.json({
         state,
-        progress
-        });
+        progress,
+        queuePosition
+    });
 }
