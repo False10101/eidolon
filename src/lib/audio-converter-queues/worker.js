@@ -21,6 +21,12 @@ const timeToSeconds = (timeStr) => {
   return (hours * 3600) + (minutes * 60) + seconds;
 };
 
+const timemarkToSeconds = (timemark) => {
+  if (!timemark) return 0;
+  const parts = timemark.split(':').map(parseFloat);
+  return parts[0] * 3600 + parts[1] * 60 + parts[2];
+};
+
 const worker = new Worker('audio-conversion', async (job) => {
   const { inputPath, format, bitrate, durationSeconds, userId, start, end } = job.data;
   const outputFileName = `${job.id}.${format.toLowerCase()}`;
@@ -32,6 +38,8 @@ const worker = new Worker('audio-conversion', async (job) => {
 
   await new Promise((resolve, reject) => {
     let command = Ffmpeg(inputPath)
+      .noVideo()
+      .audioCodec('libmp3lame')
       .audioBitrate(bitrate.replace(' kbps', 'k'));
 
     if (start && end) {
@@ -45,8 +53,10 @@ const worker = new Worker('audio-conversion', async (job) => {
 
     command
       .on('progress', (p) => {
-        if (p.percent) {
-          job.updateProgress(Math.round(p.percent * 0.95));
+        if (p.timemark && durationSeconds) {
+          const elapsed = timemarkToSeconds(p.timemark);
+          const pct = Math.min(94, Math.round((elapsed / durationSeconds) * 95));
+          job.updateProgress(pct);
         }
       })
       .on('error', reject)
