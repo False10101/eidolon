@@ -16,9 +16,9 @@ const MAX_AGE_MS = 10 * 60 * 1000;
 const INTERVAL_MS = 3 * 60 * 1000;
 
 const TMP_DIRS = [
+  join(process.cwd(), "tmp"),
   join(process.cwd(), "tmp-convert"),
   join(process.cwd(), "tmp-transcript"),
-  join(process.cwd(), "tmp-slips"),
 ];
 
 async function cleanR2() {

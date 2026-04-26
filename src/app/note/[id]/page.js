@@ -10,6 +10,7 @@ import MDEditor from '@uiw/react-md-editor';
 import GeneratingOverlay from '@/app/GeneratingOverlays';
 import ConfirmModal from '@/app/ConfirmModal';
 import ErrorModal from '@/app/ErrorModal';
+import CreditIcon from '@/app/CreditIcon';
 
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -24,10 +25,10 @@ function formatCreatedAt(ts) {
 }
 
 function getTier(tokens) {
-  if (!tokens || tokens <= 25000) return { label: 'Tier 1', price: 3 };
-  if (tokens <= 50000) return { label: 'Tier 2', price: 6 };
-  if (tokens <= 75000) return { label: 'Tier 3', price: 10 };
-  return { label: 'Tier 4', price: 13 };
+  if (!tokens || tokens <= 25000) return { label: 'Tier 1', price: 9 };
+  if (tokens <= 50000) return { label: 'Tier 2', price: 17 };
+  if (tokens <= 75000) return { label: 'Tier 3', price: 29 };
+  return { label: 'Tier 4', price: 37 };
 }
 
 const styleLabels = { exam: 'Exam Note', standard: 'Standard', textbook: 'Textbook' };
@@ -40,7 +41,7 @@ function ActionBtn({ children, onClick, icon, danger, active }) {
       className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] transition-all
         ${active
           ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
-          : 'border-white/[0.07] bg-[#18181f] text-[#9898a8] hover:border-white/[0.14] hover:text-[#e8e8ed]'}
+          : 'border-white/[0.07] bg-[#18181f] text-[#b4b4c2] hover:border-white/[0.14] hover:text-[#e8e8ed]'}
         ${danger ? 'hover:!border-[rgba(239,68,68,0.3)] hover:!text-[#ef4444]' : ''}`}
     >
       {icon}{children}
@@ -52,16 +53,16 @@ function ActionBtn({ children, onClick, icon, danger, active }) {
 function DetailField({ label, value, editing, editValue, onChange, placeholder }) {
   return (
     <div className="flex flex-col gap-1">
-      <div className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-70">{label}</div>
+      <div className="text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">{label}</div>
       {editing ? (
         <input
           value={editValue}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || '—'}
-          className="bg-[#18181f] border border-[rgba(0,212,200,0.25)] rounded-lg px-2.5 py-1.5 text-[12px] text-[#e8e8ed] outline-none focus:border-[rgba(0,212,200,0.5)] transition-colors w-full placeholder:text-[#6b6b7a] min-h-[32px]"
+          className="bg-[#18181f] border border-[rgba(0,212,200,0.25)] rounded-lg px-2.5 py-1.5 text-[12px] text-[#e8e8ed] outline-none focus:border-[rgba(0,212,200,0.5)] transition-colors w-full placeholder:text-[#9a9aaa] min-h-[32px]"
         />
       ) : (
-        <div className="bg-[#18181f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-[12px] text-[#9898a8] min-h-[32px] capitalize truncate">
+        <div className="bg-[#18181f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-[12px] text-[#e8e8ed] min-h-[32px] capitalize truncate">
           {value || '—'}
         </div>
       )}
@@ -302,9 +303,9 @@ export default function NoteViewer({ params }) {
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
                 <div className="mb-2 text-[14px] font-medium text-[#e8e8ed]">Failed to load note</div>
-                <div className="mb-4 text-[12px] text-[#6b6b7a]">{error}</div>
+                <div className="mb-4 text-[12px] text-[#9a9aaa]">{error}</div>
                 <button onClick={() => router.push('/note')}
-                  className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[13px] text-[#9898a8] transition-all hover:text-[#e8e8ed]">
+                  className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[13px] text-[#b4b4c2] transition-all hover:text-[#e8e8ed]">
                   Back to notes
                 </button>
               </div>
@@ -334,8 +335,8 @@ export default function NoteViewer({ params }) {
                 <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed] select-none truncate">
                   {note.name}
                 </h1>
-                <div className="flex-shrink-0 flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[11px] text-[#6b6b7a] select-none">
-                  Last generated: {formatCreatedAt(note.created_at)}
+                <div className="flex-shrink-0 flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[11px] text-[#9a9aaa] select-none">
+                  Last generated: <span className="text-[#b4b4c2]">{formatCreatedAt(note.created_at)}</span>
                 </div>
               </div>
 
@@ -349,7 +350,7 @@ export default function NoteViewer({ params }) {
                 >
                   {/* Source file */}
                   <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
-                    <div className="px-4 py-2.5 border-b border-white/[0.07] text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-70 select-none">
+                    <div className="px-4 py-2.5 border-b border-white/[0.07] text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
                       Source file
                     </div>
                     <div className="p-3.5">
@@ -364,7 +365,7 @@ export default function NoteViewer({ params }) {
                           <div className="truncate text-[12.5px] font-medium text-[#e8e8ed]">
                             {note.uploaded_filename ?? note.transcriptName}
                           </div>
-                          <div className="mt-0.5 text-[11px] text-[#6b6b7a]">
+                          <div className="mt-0.5 text-[11px] text-[#9a9aaa]">
                             {note.uploaded_filename ? 'Uploaded file' : 'In-app transcript'}
                           </div>
                         </div>
@@ -375,7 +376,7 @@ export default function NoteViewer({ params }) {
                   {/* Details */}
                   <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
                     <div className="px-4 py-2.5 border-b border-white/[0.07] flex items-center justify-between select-none">
-                      <div className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-70">Details</div>
+                      <div className="text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">Details</div>
                       {isEditing && <div className="text-[10px] text-[#00d4c8] opacity-70">Editing</div>}
                     </div>
                     <div className="p-3 flex flex-col gap-2">
@@ -388,22 +389,22 @@ export default function NoteViewer({ params }) {
 
                   {/* Token breakdown */}
                   <div className="rounded-xl border border-[rgba(0,212,200,0.1)] bg-[#111116] overflow-hidden surface-teal">
-                    <div className="px-4 py-2.5 border-b border-white/[0.07] text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-70 select-none">
+                    <div className="px-4 py-2.5 border-b border-white/[0.07] text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
                       Usage
                     </div>
                     <div className="p-3.5 flex flex-col gap-1.5">
                       <div className="flex justify-between text-[12.5px]">
-                        <span className="text-[#6b6b7a]">Total tokens</span>
-                        <span className="font-mono text-[12px] text-[#9898a8]">{note.total_tokens?.toLocaleString() ?? '—'}</span>
+                        <span className="text-[#9a9aaa]">Total tokens</span>
+                        <span className="font-mono text-[12px] text-[#e8e8ed]">{note.total_tokens?.toLocaleString() ?? '—'}</span>
                       </div>
                       <div className="flex justify-between text-[12.5px]">
-                        <span className="text-[#6b6b7a]">Tier</span>
-                        <span className="font-mono text-[12px] text-[#9898a8]">{tier.label}</span>
+                        <span className="text-[#9a9aaa]">Tier</span>
+                        <span className="font-mono text-[12px] text-[#e8e8ed]">{tier.label}</span>
                       </div>
                       <div className="h-px bg-white/[0.07] my-1" />
                       <div className="flex items-center justify-between">
-                        <span className="text-[12.5px] font-medium text-[#9898a8]">Charged</span>
-                        <span className="font-mono text-[16px] font-medium text-[#00d4c8]">฿ {note.charge_amount}</span>
+                        <span className="text-[12.5px] font-medium text-[#b4b4c2]">Charged</span>
+                        <span className="font-mono text-[16px] font-medium text-[#00d4c8] flex items-center">{note.charge_amount} <CreditIcon size={16} className='ml-1.5'/></span>
                       </div>
                     </div>
                   </div>
@@ -420,9 +421,6 @@ export default function NoteViewer({ params }) {
                       </svg>
                       Regenerate note
                     </button>
-                    <div className="text-center text-[11px] text-[#6b6b7a]">
-                      Est. cost: <strong className="text-[#9898a8]">฿ {tier.price}</strong> · Balance deducted at generation
-                    </div>
                   </div>
                 </div>
 
@@ -432,7 +430,7 @@ export default function NoteViewer({ params }) {
                   {/* Viewer header */}
                   <div className="flex-shrink-0 flex items-center justify-between gap-3 border-b border-white/[0.07] bg-[#18181f] px-5 py-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-[13px] font-medium text-[#9898a8]">Generated note</span>
+                      <span className="text-[13px] font-medium text-[#b4b4c2]">Generated note</span>
                       <div className="flex items-center gap-1.5 rounded-full bg-[rgba(34,197,94,0.1)] px-2 py-0.5 text-[11px] font-medium text-[#22c55e]">
                         <div className="h-[5px] w-[5px] rounded-full bg-current" />
                         Completed
@@ -519,7 +517,7 @@ export default function NoteViewer({ params }) {
                               icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>,
                             },
                           ].map((m, i) => (
-                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-[#6b6b7a]">
+                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-[#9a9aaa]">
                               {m.icon}{m.label}
                             </div>
                           ))}
@@ -568,13 +566,13 @@ export default function NoteViewer({ params }) {
               <div className="flex items-center gap-4 select-none">
                 <span className="font-serif text-[18px] text-[#00d4c8]">Eidolon</span>
                 <div className="h-4 w-px bg-white/[0.07]" />
-                <span className="text-[12px] text-[#6b6b7a] truncate max-w-[400px]">
+                <span className="text-[12px] text-[#b4b4c2] truncate max-w-[400px]">
                   {note.name}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={copyNote}
-                  className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+                  className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#b4b4c2] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
                   <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                     <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
@@ -582,7 +580,7 @@ export default function NoteViewer({ params }) {
                 </button>
                 <button onClick={() => setIsFullscreen(false)}
                   className="group flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f] transition-all hover:border-[rgba(239,68,68,0.3)]">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-2 stroke-[#6b6b7a] group-hover:stroke-[#ef4444] transition-colors">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-2 stroke-[#9a9aaa] group-hover:stroke-[#ef4444] transition-colors">
                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
@@ -604,13 +602,13 @@ export default function NoteViewer({ params }) {
               onScroll={handleReaderScroll}
             >
               <div className="w-full max-w-[680px]">
-                <div className="text-[11px] uppercase tracking-[0.08em] text-[#6b6b7a] mb-3 select-none">
+                <div className="text-[11px] uppercase tracking-[0.08em] text-[#9a9aaa] mb-3 select-none">
                   {note.name}
-                  <span className="opacity-50 mx-1">·</span>
+                  <span className="text-[#9a9aaa] mx-1">·</span>
                   {formatCreatedAt(note.created_at)}
                 </div>
-                <div className="text-[12px] text-[#6b6b7a] mb-8 flex items-center gap-2 select-none">
-                  Generated by Eidolon <span className="opacity-40">·</span> ฿ {note.charge_amount}
+                <div className="text-[12px] text-[#9a9aaa] mb-8 flex items-center gap-2 select-none">
+                  Generated by Eidolon <span className="text-[#9a9aaa]">·</span> {note.charge_amount}<CreditIcon size={12} color='#9a9aaa'/>
                 </div>
                 <div data-color-mode="dark">
                   <MDEditor.Markdown
@@ -625,7 +623,7 @@ export default function NoteViewer({ params }) {
       </AnimatePresence>
 
       {/* Copy toast */}
-      <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#9898a8] transition-all duration-200
+      <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#b4b4c2] transition-all duration-200
         ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'}`}>
         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[2.2]">
           <polyline points="20 6 9 17 4 12" />

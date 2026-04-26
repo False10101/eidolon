@@ -28,12 +28,12 @@ export default function ErrorModal({ message, onClose }) {
           <div className="mb-2 text-[16px] font-semibold text-[#e8e8ed]">Something went wrong</div>
 
           {/* Message */}
-          <p className="mb-6 text-[13px] leading-[1.7] text-[#6b6b7a]">{message}</p>
+          <p className="mb-6 text-[13px] leading-[1.7] text-[#9a9aaa]">{message}</p>
 
           {/* Button */}
           <button
             onClick={onClose}
-            className="w-full rounded-xl border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] font-medium text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]"
+            className="w-full rounded-xl border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] font-medium text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]"
           >
             Got it
           </button>

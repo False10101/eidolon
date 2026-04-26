@@ -5,17 +5,18 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../navbar';
 import Sidebar from '../sidebar';
+import CreditIcon from '../CreditIcon';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const PERIODS = ['1W', '1M', '6M', '1Y'];
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {
-  hidden:  { opacity: 0 },
+  hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
 };
 const itemVariants = {
-  hidden:  { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
 };
 
@@ -31,8 +32,8 @@ function DeleteModal({ balance, onConfirm, onClose, loading }) {
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1,    y: 0  }}
-        exit={{    opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.22, ease: 'easeOut' }}
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-[420px] mx-4 overflow-hidden rounded-2xl border border-[rgba(239,68,68,0.18)] bg-[#111116] surface"
@@ -42,16 +43,20 @@ function DeleteModal({ balance, onConfirm, onClose, loading }) {
 
         <div className="relative px-6 py-5 border-b border-white/[0.07] bg-[#18181f]">
           <div className="font-serif text-[18px] font-normal tracking-[-0.02em] text-[#e8e8ed]">Delete your account?</div>
-          <div className="mt-0.5 text-[12px] text-[#6b6b7a]">This action is permanent and cannot be undone.</div>
+          <div className="mt-0.5 text-[12px] text-[#9a9aaa]">This action is permanent and cannot be undone.</div>
         </div>
 
         <div className="relative px-6 py-5 flex flex-col gap-4">
-          <p className="text-[13px] leading-relaxed text-[#6b6b7a]">
+          <p className="text-[13px] leading-relaxed text-[#9a9aaa]">
             All notes, transcripts, exam preps, and activity history will be permanently deleted. Your remaining{' '}
-            <span className="text-[#e8e8ed] font-mono">฿ {balance}</span> balance will be forfeited and cannot be refunded.
+            {/* Change flex to inline-flex, remove w-min, add a tiny gap for spacing */}
+            <span className="text-[#e8e8ed] font-mono inline-flex items-center gap-1">
+              {balance} <CreditIcon size={11} color='white' />
+            </span>
+            {' '}balance will be forfeited and cannot be refunded.
           </p>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] text-[#6b6b7a]">
+            <label className="text-[11px] text-[#9a9aaa]">
               Type <span className="text-[#e8e8ed]">delete my account</span> to confirm
             </label>
             <input
@@ -60,14 +65,14 @@ function DeleteModal({ balance, onConfirm, onClose, loading }) {
               onChange={(e) => setConfirmText(e.target.value)}
               disabled={loading}
               placeholder="delete my account"
-              className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2.5 text-[13px] text-[#e8e8ed] outline-none transition-colors focus:border-[rgba(239,68,68,0.4)] placeholder:text-[#6b6b7a] placeholder:opacity-40 disabled:opacity-50"
+              className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2.5 text-[13px] text-[#e8e8ed] outline-none transition-colors focus:border-[rgba(239,68,68,0.4)] placeholder:text-[#9a9aaa] placeholder:opacity-40 disabled:opacity-50"
             />
           </div>
         </div>
 
         <div className="relative flex justify-end gap-2 px-6 pb-5">
           <button onClick={onClose} disabled={loading}
-            className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[12.5px] text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40 disabled:cursor-not-allowed">
+            className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[12.5px] text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40 disabled:cursor-not-allowed">
             Cancel
           </button>
           <button onClick={onConfirm} disabled={!ready || loading}
@@ -85,28 +90,28 @@ function DeleteModal({ balance, onConfirm, onClose, loading }) {
 export default function Profile() {
   const { getAccessTokenSilently } = useAuth0();
 
-  const [profile, setProfile]   = useState(null);
-  const [stats, setStats]       = useState(null);
-  const [history, setHistory]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [period, setPeriod]     = useState('6M');
+  const [profile, setProfile] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('6M');
   const [statsLoading, setStatsLoading] = useState(false);
 
   // Name edit
   const [editingName, setEditingName] = useState(false);
-  const [editedName, setEditedName]   = useState('');
-  const [nameSaving, setNameSaving]   = useState(false);
-  const [nameError, setNameError]     = useState(null);
+  const [editedName, setEditedName] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameError, setNameError] = useState(null);
 
   // Delete
-  const [deleteModal, setDeleteModal]   = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // ── Initial load — profile + stats + history ────────────────────────────────
   useEffect(() => {
     const load = async () => {
       try {
-        const token   = await getAccessTokenSilently();
+        const token = await getAccessTokenSilently();
         const headers = { Authorization: `Bearer ${token}` };
         const [pRes, sRes, hRes] = await Promise.all([
           fetch('/api/profile/me', { headers }),
@@ -133,7 +138,7 @@ export default function Profile() {
       setStatsLoading(true);
       try {
         const token = await getAccessTokenSilently();
-        const res   = await fetch(`/api/profile/stats?period=${period}`, {
+        const res = await fetch(`/api/profile/stats?period=${period}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const s = await res.json();
@@ -154,10 +159,10 @@ export default function Profile() {
     setNameSaving(true);
     try {
       const token = await getAccessTokenSilently();
-      const res   = await fetch('/api/profile/update', {
-        method:  'POST',
+      const res = await fetch('/api/profile/update', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ username: editedName.trim() }),
+        body: JSON.stringify({ username: editedName.trim() }),
       });
       const data = await res.json();
       if (!res.ok) { setNameError(data.error); return; }
@@ -242,7 +247,7 @@ export default function Profile() {
             {/* Account card */}
             <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
               <div className="px-5 py-3.5 border-b border-white/[0.07]">
-                <span className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Account</span>
+                <span className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Account</span>
               </div>
               <div className="p-5">
                 {/* Avatar + name */}
@@ -273,7 +278,7 @@ export default function Profile() {
                         </button>
                         {!nameSaving && (
                           <button onClick={() => { setEditingName(false); setNameError(null); }}
-                            className="text-[11px] text-[#6b6b7a] hover:text-[#e8e8ed] transition-colors">
+                            className="text-[11px] text-[#9a9aaa] hover:text-[#e8e8ed] transition-colors">
                             Cancel
                           </button>
                         )}
@@ -285,7 +290,7 @@ export default function Profile() {
                           onClick={() => { setEditedName(profile.username); setEditingName(true); setNameError(null); }}
                           className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded border border-white/[0.07] bg-[#18181f] hover:border-[rgba(0,212,200,0.3)] hover:text-[#00d4c8] transition-all"
                         >
-                          <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-[#6b6b7a] fill-none stroke-2">
+                          <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-[#9a9aaa] fill-none stroke-2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                           </svg>
@@ -293,7 +298,7 @@ export default function Profile() {
                       </div>
                     )}
                     {nameError && <p className="text-[11px] text-[#ef4444] mb-1">{nameError}</p>}
-                    <div className="text-[12.5px] text-[#6b6b7a] truncate">{profile?.email}</div>
+                    <div className="text-[12.5px] text-[#9a9aaa] truncate">{profile?.email}</div>
                     <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-[rgba(34,197,94,0.2)] bg-[rgba(34,197,94,0.1)] px-2 py-0.5 text-[11px] text-[#22c55e]">
                       <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 stroke-current fill-none stroke-[2.5]"><polyline points="20 6 9 17 4 12" /></svg>
                       Google account
@@ -304,16 +309,16 @@ export default function Profile() {
                 {/* Info rows */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between rounded-lg border border-[rgba(0,212,200,0.12)] bg-[rgba(0,212,200,0.04)] px-3 py-2.5">
-                    <span className="text-[12px] text-[#6b6b7a]">Current balance</span>
-                    <span className="font-mono text-[13px] font-medium text-[#00d4c8]">฿ {balanceFormatted}</span>
+                    <span className="text-[12px] text-[#9a9aaa]">Current balance</span>
+                    <span className="font-mono text-[13px] font-medium text-[#00d4c8]">{balanceFormatted} <CreditIcon size={14}/></span>
                   </div>
                   {[
                     { label: 'Member since', value: new Date(profile?.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) },
-                    { label: 'Account ID',   value: profile?.id },
+                    { label: 'Account ID', value: profile?.id },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex items-center justify-between rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2.5">
-                      <span className="text-[12px] text-[#6b6b7a]">{label}</span>
-                      <span className="font-mono text-[12px] text-[#9898a8]">{value}</span>
+                      <span className="text-[12px] text-[#9a9aaa]">{label}</span>
+                      <span className="font-mono text-[12px] text-[#e8e8ed]">{value}</span>
                     </div>
                   ))}
                 </div>
@@ -323,11 +328,11 @@ export default function Profile() {
             {/* Usage stats card */}
             <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07]">
-                <span className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Usage</span>
+                <span className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Usage</span>
                 <div className="flex rounded-lg border border-white/[0.07] bg-[#18181f] p-1">
                   {PERIODS.map(p => (
                     <button key={p} onClick={() => setPeriod(p)}
-                      className={`rounded px-2.5 py-1 text-[11px] transition-all ${period === p ? 'bg-[#1e1e27] text-[#e8e8ed]' : 'text-[#6b6b7a] hover:text-[#9898a8]'}`}>
+                      className={`rounded px-2.5 py-1 text-[11px] transition-all ${period === p ? 'bg-[#1e1e27] text-[#e8e8ed]' : 'text-[#9a9aaa] hover:text-[#b4b4c2]'}`}>
                       {p}
                     </button>
                   ))}
@@ -335,15 +340,15 @@ export default function Profile() {
               </div>
               <div className={`p-5 grid grid-cols-2 gap-2.5 transition-opacity duration-200 ${statsLoading ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                 {[
-                  { label: 'Notes generated',  value: stats?.notes ?? '—',         sub: `across ${stats?.courses ?? 0} courses` },
-                  { label: 'Transcriptions',   value: stats?.transcriptions ?? '—', sub: `~${stats?.audio_hours ?? 0} hrs of audio` },
-                  { label: 'Tokens processed', value: stats?.tokens ?? '—',         sub: 'input + output',   small: true },
-                  { label: 'Total spent',      value: `฿ ${stats?.total_spent?.toFixed(0) ?? '—'}`, sub: `since ${new Date(profile?.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`, cyan: true, small: true },
+                  { label: 'Notes generated', value: stats?.notes ?? '—', sub: `across ${stats?.courses ?? 0} courses` },
+                  { label: 'Transcriptions', value: stats?.transcriptions ?? '—', sub: `~${stats?.audio_hours ?? 0} hrs of audio` },
+                  { label: 'Tokens processed', value: stats?.tokens ?? '—', sub: 'input + output', small: true },
+                  { label: 'Total spent', value: `${stats?.total_spent?.toFixed(0) ?? '—'}`, sub: `since ${new Date(profile?.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`, cyan: true, small: true },
                 ].map(({ label, value, sub, cyan, small }) => (
                   <div key={label} className={`rounded-lg border px-4 py-3.5 ${cyan ? 'border-[rgba(0,212,200,0.12)] bg-[rgba(0,212,200,0.04)]' : 'border-white/[0.07] bg-[#18181f]'}`}>
-                    <div className="mb-1.5 text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-60">{label}</div>
-                    <div className={`font-mono font-medium ${small ? 'text-[16px]' : 'text-[20px]'} ${cyan ? 'text-[#00d4c8]' : 'text-[#e8e8ed]'}`}>{value}</div>
-                    <div className="mt-0.5 text-[11px] text-[#6b6b7a]">{sub}</div>
+                    <div className="mb-1.5 text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">{label}</div>
+                    <div className={`flex items-center font-mono font-medium ${small ? 'text-[16px]' : 'text-[20px]'} ${cyan ? 'text-[#00d4c8]' : 'text-[#e8e8ed]'}`}>{value}{label=== 'Total spent' ? <CreditIcon size={14} className='ml-1'/> : ""}</div>
+                    <div className="mt-0.5 text-[11px] text-[#9a9aaa]">{sub}</div>
                   </div>
                 ))}
               </div>
@@ -352,14 +357,14 @@ export default function Profile() {
 
           {/* Balance history */}
           <motion.div variants={itemVariants} className="flex-shrink-0">
-            <div className="mb-2.5 text-[10px] uppercase tracking-[0.1em] text-[#6b6b7a] opacity-50 select-none">Balance history</div>
+            <div className="mb-2.5 text-[10px] uppercase tracking-[0.1em] text-[#9a9aaa] select-none">Balance history</div>
             <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface">
               <div style={{ maxHeight: 280, overflowY: 'auto', overflowX: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
                       {['Type', 'Description', 'Amount', 'Balance after', 'Date', 'Ref Id (Topups)'].map(h => (
-                        <th key={h} className="pl-3.5 py-2.5 text-left text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a] font-normal border-b border-white/[0.07] bg-[#111116] sticky top-0">
+                        <th key={h} className="pl-3.5 py-2.5 text-left text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa] font-normal border-b border-white/[0.07] bg-[#111116] sticky top-0">
                           {h}
                         </th>
                       ))}
@@ -368,27 +373,27 @@ export default function Profile() {
                   <tbody>
                     {history.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-3.5 py-8 text-center text-[12px] text-[#6b6b7a] opacity-50">No transactions yet</td>
+                        <td colSpan={6} className="px-3.5 py-8 text-center text-[12px] text-[#9a9aaa]">No transactions yet</td>
                       </tr>
                     ) : history.map((tx, i) => (
                       <tr key={i} className="border-b border-white/[0.05] last:border-0 hover:bg-white/[0.015] transition-colors">
                         <td className="px-3.5 py-3">
-                          <div className="flex items-center gap-1.5 text-[12px] text-[#9898a8]">
+                          <div className="flex items-center gap-1.5 text-[12px] text-[#b4b4c2]">
                             <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${tx.type === 'topup' || tx.type === 'rebate' ? 'bg-[#22c55e]' : 'bg-[#6b6b7a]'}`} />
                             {tx.type === 'topup' ? 'Top up' : tx.type === 'rebate' ? 'Rebate' : 'Spend'}
                           </div>
                         </td>
-                        <td className="px-3.5 py-3 text-[12.5px] text-[#9898a8]">{tx.description}</td>
+                        <td className="px-3.5 py-3 text-[12.5px] text-[#b4b4c2]">{tx.description}</td>
                         <td className="px-3.5 py-3">
-                          <span className={`font-mono text-[13px] font-medium ${tx.type === 'topup' || tx.type === 'rebate' ? 'text-[#22c55e]' : 'text-[#9898a8]'}`}>
-                            {tx.type === 'rebate' || tx.type === 'topup' ? '+' : '-'} ฿ {Math.abs(tx.charge_amount).toFixed(2)}
+                          <span className={`font-mono flex items-center text-[13px] font-medium ${tx.type === 'topup' || tx.type === 'rebate' ? 'text-[#22c55e]' : 'text-[#b4b4c2]'}`}>
+                            {tx.type === 'rebate' || tx.type === 'topup' ? '+' : '-'} {Math.abs(tx.charge_amount).toFixed(2)} <CreditIcon size={12} className='ml-2' color={tx.type === 'topup' || tx.type === 'rebate'? '#22c55e' : '#9898a8'}/>
                           </span>
                         </td>
-                        <td className="px-3.5 py-3 font-mono text-[12px] text-[#6b6b7a]">฿ {parseFloat(tx.balance_after)?.toFixed(2)}</td>
-                        <td className="px-3.5 py-3 text-[12.5px] text-[#9898a8]">
+                        <td className="px-3.5 py-3 font-mono text-[12px] text-[#b4b4c2]">{parseFloat(tx.balance_after)?.toFixed(2)} <CreditIcon size={12} color='#b4b4c2'/></td>
+                        <td className="px-3.5 py-3 text-[12.5px] text-[#b4b4c2]">
                           {new Date(tx.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
-                        <td className="px-3.5 py-3 font-mono text-[11px] text-[#6b6b7a]">{tx.ref ?? '—'}</td>
+                        <td className="px-3.5 py-3 font-mono text-[11px] text-[#9a9aaa] truncate">{tx.ref ? `${tx.ref.slice(0, 16)}…` : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -399,17 +404,17 @@ export default function Profile() {
 
           {/* Danger zone */}
           <motion.div variants={itemVariants} className="flex-shrink-0">
-            <div className="mb-2.5 text-[10px] uppercase tracking-[0.1em] text-[#6b6b7a] opacity-50 select-none">Danger zone</div>
+            <div className="mb-2.5 text-[10px] uppercase tracking-[0.1em] text-[#9a9aaa] select-none">Danger zone</div>
             <div className="rounded-xl border border-[rgba(239,68,68,0.15)] bg-[#111116] overflow-hidden">
               <div className="px-5 py-3 border-b border-[rgba(239,68,68,0.1)]">
-                <span className="text-[10.5px] uppercase tracking-[0.07em] text-[#ef4444] opacity-70">Irreversible actions</span>
+                <span className="text-[10.5px] uppercase tracking-[0.07em] text-[#ef4444]">Irreversible actions</span>
               </div>
               <div className="flex items-center justify-between gap-6 p-5">
                 <div>
                   <div className="text-[14px] font-medium text-[#e8e8ed] mb-1">Delete account</div>
-                  <p className="text-[12.5px] leading-relaxed text-[#6b6b7a] max-w-lg">
+                  <p className="text-[12.5px] leading-relaxed text-[#9a9aaa] max-w-lg">
                     Permanently deletes your account, all generated notes, transcripts, and activity history. Your remaining balance of{' '}
-                    <span className="font-mono text-[#e8e8ed]">฿ {balanceFormatted}</span> will be forfeited and cannot be refunded.
+                    <span className="font-mono text-[#e8e8ed] ml-1">{balanceFormatted} <CreditIcon size={12} color='#e8e8ed'/> </span> will be forfeited and <span className="text-[#e8e8ed] font-medium">cannot be refunded</span>.
                   </p>
                 </div>
                 <button

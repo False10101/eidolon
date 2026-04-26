@@ -2,7 +2,7 @@ const nextConfig = {
   transpilePackages: ['framer-motion'],
   experimental: {
     serverActions: {
-      bodySizeLimit: '10gb',
+      bodySizeLimit: '512mb',
     },
   },
 };

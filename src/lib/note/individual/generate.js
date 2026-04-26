@@ -41,10 +41,10 @@ export async function generate(noteId, userId, worstCaseCost, targetLanguage) {
         const outputTokens = usage.completion_tokens;
 
         let chargeAmount;
-        if (totalTokens <= 25000) chargeAmount = 3;
-        else if (totalTokens <= 50000) chargeAmount = 6;
-        else if (totalTokens <= 75000) chargeAmount = 10;
-        else chargeAmount = 13;
+        if (totalTokens <= 25000) chargeAmount = 9;
+        else if (totalTokens <= 50000) chargeAmount = 17;
+        else if (totalTokens <= 75000) chargeAmount = 29;
+        else chargeAmount = 37;
 
         const diff = worstCaseCost - chargeAmount;
 

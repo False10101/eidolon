@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CreditIcon from '../CreditIcon';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -28,9 +29,14 @@ function timeAgo(ts) {
   return new Date(str).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-function fmtBaht(n) {
+function fmtCredit(n) {
+  return Number(n ?? 0).toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function fmtFiat(n) {
   return Number(n ?? 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
 function fmtNum(n) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
   if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
@@ -54,49 +60,8 @@ const TYPE_LABEL = {
   rebate: 'Rebate',
 };
 
-// ─── Skeleton cell ─────────────────────────────────────────────────────────────
 function Sk({ w = 'w-16', h = 'h-3' }) {
   return <div className={`skeleton rounded ${h} ${w}`} />;
-}
-
-// ─── Confirm modal ─────────────────────────────────────────────────────────────
-function ConfirmModal({ title, message, confirmLabel, loadingLabel, danger = true, loading, onConfirm, onCancel, children }) {
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
-      onClick={loading ? undefined : onCancel}>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        onClick={e => e.stopPropagation()}
-        className={`mx-4 w-full max-w-sm overflow-hidden rounded-2xl border bg-[#111116] shadow-2xl shadow-black/80 surface
-          ${danger ? 'border-[rgba(239,68,68,0.18)]' : 'border-[rgba(34,197,94,0.18)]'}`}>
-        <div className={`px-6 py-5 border-b border-white/[0.07] ${danger ? 'bg-[rgba(239,68,68,0.04)]' : 'bg-[rgba(34,197,94,0.04)]'}`}>
-          <div className="text-[15px] font-medium text-[#e8e8ed]">{title}</div>
-          <div className="mt-0.5 text-[12px] text-[#6b6b7a]">{message}</div>
-        </div>
-
-        {/* 👇 2. Render the children right here above the buttons! */}
-        {children}
-
-        <div className="flex gap-2 px-6 py-4">
-          <button onClick={onCancel} disabled={loading}
-            className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40">
-            Cancel
-          </button>
-          <button onClick={onConfirm} disabled={loading}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-[13px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed
-              ${danger
-                ? 'border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] text-[#ef4444] hover:bg-[rgba(239,68,68,0.14)]'
-                : 'border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.08)] text-[#22c55e] hover:bg-[rgba(34,197,94,0.14)]'}`}>
-            {loading && <div className={`h-3.5 w-3.5 animate-spin rounded-full border border-transparent ${danger ? 'border-t-[#ef4444]' : 'border-t-[#22c55e]'}`} />}
-            {loading ? (loadingLabel ?? confirmLabel) : confirmLabel}
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
 }
 
 function StatusPill({ status }) {
@@ -151,73 +116,6 @@ function BarChart({ data }) {
   );
 }
 
-function SecureAdminImage({ slipPath }) {
-  const { getAccessTokenSilently } = useAuth0();
-  const [imgUrl, setImgUrl] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    if (!slipPath) return;
-
-    let objectUrl;
-    const fetchImage = async () => {
-      setLoading(true);
-      setError(false);
-      try {
-        const token = await getAccessTokenSilently();
-        const res = await fetch(`/api/admin/topups/slips?path=${encodeURIComponent(slipPath)}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (res.ok) {
-          const blob = await res.blob();
-          objectUrl = URL.createObjectURL(blob);
-          setImgUrl(objectUrl);
-        } else {
-          setError(true);
-        }
-      } catch (err) {
-        console.error("Image fetch error", err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchImage();
-
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [slipPath, getAccessTokenSilently]);
-
-  if (loading) {
-    return (
-      <div className="flex h-[180px] w-full flex-col items-center justify-center gap-2 rounded-lg bg-[#1e1e27]/50 animate-pulse">
-        <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-[#6b6b7a] fill-none stroke-[1.2] animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-      </div>
-    );
-  }
-
-  if (error || !imgUrl) {
-    return (
-      <div className="flex h-[140px] w-full flex-col items-center justify-center gap-2 rounded-lg bg-[rgba(239,68,68,0.04)] border border-[rgba(239,68,68,0.1)]">
-        <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-[#ef4444] fill-none stroke-[1.2] opacity-60"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
-        <span className="text-[10px] text-[#ef4444] opacity-80">Failed to load</span>
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={imgUrl}
-      alt="Payment slip"
-      className="max-h-[180px] rounded-lg object-contain"
-    />
-  );
-}
-
 export default function AdminPage() {
   const router = useRouter();
   const { getAccessTokenSilently, logout } = useAuth0();
@@ -226,26 +124,14 @@ export default function AdminPage() {
   const [period, setPeriod] = useState('30D');
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState(null);
-  const [topups, setTopups] = useState(null);
   const [activity, setActivity] = useState(null);
 
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [topupsLoading, setTopupsLoading] = useState(false);
   const [activityLoading, setActivityLoading] = useState(false);
 
   const [userSearch, setUserSearch] = useState('');
   const [userFilter, setUserFilter] = useState('all');
-  const [topupFilter, setTopupFilter] = useState('all');
-  const [selectedTopup, setSelectedTopup] = useState(null);
-
-  const [confirmApprove, setConfirmApprove] = useState(null);
-  const [confirmReject, setConfirmReject] = useState(null);
-  const [manualAmount, setManualAmount] = useState('');
-  const [approving, setApproving] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
-  const [pendingCount, setPendingCount] = useState(null);
-
 
   const apiFetch = useCallback(async (url, opts = {}) => {
     const token = await getAccessTokenSilently();
@@ -261,7 +147,6 @@ export default function AdminPage() {
       const res = await apiFetch(`/api/admin/overview?period=${period}`);
       const data = await res.json();
       setOverview(data);
-      setPendingCount(data?.metrics?.pendingTopups ?? 0);
     } finally { setOverviewLoading(false); }
   }, [apiFetch, period]);
 
@@ -274,16 +159,6 @@ export default function AdminPage() {
     } finally { setUsersLoading(false); }
   }, [apiFetch, userSearch, userFilter]);
 
-  const loadTopups = useCallback(async () => {
-    setTopupsLoading(true);
-    try {
-      const res = await apiFetch(`/api/admin/topups?status=${topupFilter}`);
-      const data = await res.json();
-      setTopups(data?.topups ?? []);
-      setPendingCount(prev => data?.topups?.filter(t => t.status === 'pending').length ?? prev);
-    } finally { setTopupsLoading(false); }
-  }, [apiFetch, topupFilter]);
-
   const loadActivity = useCallback(async () => {
     setActivityLoading(true);
     try {
@@ -295,46 +170,7 @@ export default function AdminPage() {
 
   useEffect(() => { if (page === 'overview') loadOverview(); }, [page, period]);
   useEffect(() => { if (page === 'users') loadUsers(); }, [page, userSearch, userFilter]);
-  useEffect(() => { if (page === 'topups') loadTopups(); }, [page, topupFilter]);
   useEffect(() => { if (page === 'activity') loadActivity(); }, [page, period]);
-
-  useEffect(() => {
-    apiFetch('/api/admin/topups?status=pending')
-      .then(r => r.json())
-      .then(d => setPendingCount(d?.topups?.length ?? 0))
-      .catch(() => { });
-  }, []);
-
-  const handleApprove = async () => {
-    if (!confirmApprove || approving) return;
-
-    if (confirmApprove.verifiedBy === 'manual' && (!manualAmount || parseFloat(manualAmount) <= 0)) {
-      alert("Please enter a valid top-up amount.");
-      return;
-    }
-
-    setApproving(true);
-    try {
-      await apiFetch('/api/admin/topups/approve', { method: 'POST', body: JSON.stringify({ topupId: confirmApprove.id, manualAmount: manualAmount }) });
-      setConfirmApprove(null);
-      setManualAmount('');
-      setSelectedTopup(null);
-      loadTopups();
-      if (page === 'overview') loadOverview();
-    } finally { setApproving(false); }
-  };
-
-  const handleReject = async () => {
-    if (!confirmReject || rejecting) return;
-    setRejecting(true);
-    try {
-      await apiFetch('/api/admin/topups/reject', { method: 'POST', body: JSON.stringify({ topupId: confirmReject.id }) });
-      setConfirmReject(null);
-      setSelectedTopup(null);
-      loadTopups();
-      if (page === 'overview') loadOverview();
-    } finally { setRejecting(false); }
-  };
 
   const PERIODS = ['7D', '30D', '90D', 'all'];
   const NAV = [
@@ -347,16 +183,11 @@ export default function AdminPage() {
       icon: <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
     },
     {
-      id: 'topups', label: 'Top-ups', badge: pendingCount,
-      icon: <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]"><path d="M12 5v14M5 12l7-7 7 7" /></svg>
-    },
-    {
       id: 'activity', label: 'Activity',
       icon: <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
     },
   ];
 
-  // ── Safe metric values — never touch undefined ──────────────────────────────
   const m = overview?.metrics;
   const metricCards = [
     {
@@ -372,68 +203,21 @@ export default function AdminPage() {
       color: 'text-[#00d4c8]',
     },
     {
-      label: 'Revenue this month',
-      value: m ? `฿ ${fmtBaht(m.revenueThisMonth)}` : null,
-      sub: 'charged to users',
+      label: 'Total Profit', // This is the Revenue - API Costs
+      value: m ? `$${fmtFiat(m.totalProfit)}` : null,
+      sub: 'Net gain after API bills',
       color: 'text-[#22c55e]',
     },
     {
-      label: 'Pending top-ups',
-      value: m ? String(m.pendingTopups) : null,
-      sub: 'awaiting review',
-      color: 'text-[#f59e0b]',
-      action: () => setPage('topups'),
+      label: 'Bank Inflow', // Fresh Stripe Cash
+      value: m ? `$${fmtFiat(m.bankInflow)}` : null,
+      sub: 'Gross cash this month',
+      color: 'text-[#9898a8]',
     },
   ];
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] font-sans text-sm text-[#e8e8ed]">
-
-      <AnimatePresence>
-        {confirmApprove && (
-          <ConfirmModal
-            title={confirmApprove.verifiedBy === 'manual' ? 'Approve manual slip?' : `Approve ฿ ${fmtBaht(confirmApprove.amount)}?`}
-            message={`This will credit the balance for ${confirmApprove.username}. This cannot be undone.`}
-            confirmLabel="Approve" loadingLabel="Approving…"
-            danger={false} loading={approving}
-            onConfirm={handleApprove}
-            onCancel={() => {
-              if (!approving) {
-                setConfirmApprove(null);
-                setManualAmount('');
-              }
-            }}
-          >
-            {/* 🛑 If it's a manual slip, show the input field! */}
-            {confirmApprove.verifiedBy === 'manual' && (
-              <div className="px-6 py-4 border-b border-white/[0.07] bg-[#111116]">
-                <label className="mb-2 block text-[11px] font-medium uppercase tracking-wider text-[#6b6b7a]">
-                  Verified Amount (฿)
-                </label>
-                <input
-                  type="number"
-                  value={manualAmount}
-                  onChange={(e) => setManualAmount(e.target.value)}
-                  placeholder="e.g. 150"
-                  className="w-full rounded-lg border border-white/[0.1] bg-[#18181f] px-3 py-2.5 text-[14px] text-[#e8e8ed] outline-none transition-colors focus:border-[#00d4c8]"
-                  autoFocus
-                />
-              </div>
-            )}
-          </ConfirmModal>
-        )}
-        {confirmReject && (
-          <ConfirmModal
-            title="Reject top-up?"
-            message={`The top-up of ฿ ${fmtBaht(confirmReject.amount)} for ${confirmReject.username} will be rejected.`}
-            confirmLabel="Reject" loadingLabel="Rejecting…"
-            danger loading={rejecting}
-            onConfirm={handleReject}
-            onCancel={() => { if (!rejecting) setConfirmReject(null); }}
-          />
-        )}
-      </AnimatePresence>
-
       {/* Navbar */}
       <nav className="flex h-14 flex-shrink-0 items-center justify-between border-b border-white/[0.05] bg-[#111116] px-8 z-50 nav-surface">
         <div className="flex items-center gap-4 select-none">
@@ -459,7 +243,6 @@ export default function AdminPage() {
       </nav>
 
       <div className="flex flex-1 overflow-hidden">
-
         {/* Sidebar */}
         <aside className="flex w-[200px] flex-shrink-0 flex-col border-r border-white/[0.05] bg-[#111116]">
           <div className="px-4 pt-5 pb-2 text-[10px] uppercase tracking-[0.1em] text-[#6b6b7a] opacity-40 select-none">Admin</div>
@@ -469,20 +252,15 @@ export default function AdminPage() {
                 ${page === n.id ? 'border-[#00d4c8] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]' : 'border-transparent text-[#6b6b7a] hover:bg-white/[0.02] hover:text-[#9898a8]'}`}>
               {n.icon}
               <span className="flex-1 text-left">{n.label}</span>
-              {n.badge > 0 && (
-                <span className="rounded-full bg-[#f59e0b] px-1.5 py-px font-mono text-[10px] font-semibold text-[#0c0c0e]">{n.badge}</span>
-              )}
             </button>
           ))}
         </aside>
 
         <main className="flex flex-1 min-w-0 flex-col overflow-hidden">
-
           {/* ══ OVERVIEW ══ */}
           {page === 'overview' && (
             <motion.div
               key="overview"
-              // Changed to flex flex-col and overflow-hidden to lock container height
               className="flex flex-1 flex-col overflow-hidden px-7 py-5 gap-4"
               variants={containerVariants} initial="hidden" animate="visible"
             >
@@ -509,11 +287,10 @@ export default function AdminPage() {
                 </div>
               </motion.div>
 
-              {/* Metric cards (Shrunk padding) */}
+              {/* Metric cards */}
               <motion.div variants={itemVariants} className="grid grid-cols-4 gap-3 flex-shrink-0">
-                {metricCards.map(({ label, value, sub, color, action }) => (
-                  <div key={label} onClick={action}
-                    className={`relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-3 surface ${action ? 'cursor-pointer hover:border-white/[0.14]' : ''}`}>
+                {metricCards.map(({ label, value, sub, color }) => (
+                  <div key={label} className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-3 surface">
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
                     <div className="mb-1 text-[9.5px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-60">{label}</div>
                     {value != null
@@ -527,10 +304,8 @@ export default function AdminPage() {
                 ))}
               </motion.div>
 
-              {/* Middle row (Shrunk padding & gaps) */}
+              {/* Middle row */}
               <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 flex-shrink-0">
-
-                {/* Service usage */}
                 <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
                   <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07]">
                     <span className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Service usage</span>
@@ -541,7 +316,6 @@ export default function AdminPage() {
                       <div key={i}>
                         <div className="flex items-center justify-between mb-1.5 text-[11.5px]">
                           {s ? <span className="text-[#9898a8]">{s.label}</span> : <Sk w="w-24" />}
-
                           {s ? (
                             <div className="flex items-center gap-1.5 font-mono">
                               <span className="text-[10px] text-[#6b6b7a] opacity-60">{s.detail}</span>
@@ -552,7 +326,6 @@ export default function AdminPage() {
                             <div className="flex items-center gap-2"><Sk w="w-20" h="h-2" /><Sk w="w-10" /></div>
                           )}
                         </div>
-
                         <div className="h-[3px] rounded-full bg-[#1e1e27] overflow-hidden">
                           <div className="h-full rounded-full bg-[#00d4c8] transition-all duration-500"
                             style={{ width: `${s?.pct ?? 0}%`, opacity: s?.pct === 100 ? 1 : 0.6 }} />
@@ -562,43 +335,49 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Revenue breakdown */}
                 <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07]">
-                    <span className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Revenue breakdown</span>
-                    <span className="text-[10px] text-[#6b6b7a] opacity-50">This month</span>
-                  </div>
-                  <div className="px-4 py-3 flex flex-col gap-1.5">
-                    {[
-                      { label: 'Notes charged', val: overview?.revenue?.notes },
-                      { label: 'Transcription', val: overview?.revenue?.transcript },
-                      { label: 'Exam prep', val: overview?.revenue?.examPrep },
-                    ].map(({ label, val }) => (
-                      <div key={label} className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-[#18181f] px-3 py-1.5 text-[11.5px]">
-                        <span className="text-[#6b6b7a]">{label}</span>
-                        {val != null ? <span className="font-mono text-[11.5px] text-[#9898a8]">฿ {fmtBaht(val)}</span> : <Sk w="w-14" />}
-                      </div>
-                    ))}
-                    <div className="h-px bg-white/[0.06] my-0.5" />
-                    {[
-                      { label: 'Total charged', val: overview?.revenue?.total, color: 'text-[#00d4c8]' },
-                      { label: 'Balance in circ.', val: overview?.revenue?.circulation, color: 'text-[#22c55e]' },
-                      { label: 'All-time top-ups', val: overview?.revenue?.allTimeTopups, color: 'text-[#9898a8]' },
-                    ].map(({ label, val, color }) => (
-                      <div key={label} className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-[#18181f] px-3 py-1.5 text-[11.5px]">
-                        <span className="text-[#6b6b7a]">{label}</span>
-                        {val != null ? <span className={`font-mono font-medium text-[11.5px] ${color}`}>฿ {fmtBaht(val)}</span> : <Sk w="w-16" />}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07]">
+    <span className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Service Performance</span>
+    <span className="text-[10px] text-[#6b6b7a] opacity-50">Current Period</span>
+  </div>
+  <div className="px-4 py-3 flex flex-col gap-2">
+    {/* Feature Breakdown Table-style */}
+    <div className="grid grid-cols-4 px-2 mb-1 text-[9px] uppercase tracking-wider text-[#6b6b7a] opacity-50">
+      <div className="col-span-1">Feature</div>
+      <div className="text-right">Revenue</div>
+      <div className="text-right">API Cost</div>
+      <div className="text-right">Profit</div>
+    </div>
+
+    {['note', 'exam', 'transcript'].map((key) => {
+      const data = overview?.revenue?.[key];
+      return (
+        <div key={key} className="grid grid-cols-4 items-center rounded-lg border border-white/[0.06] bg-[#18181f] px-3 py-2 text-[11.5px]">
+          <span className="capitalize text-[#9898a8]">{key === 'exam' ? 'Exam Prep' : key}</span>
+          <span className="text-right font-mono text-[#e8e8ed]">${fmtFiat(data?.rev)}</span>
+          <span className="text-right font-mono text-[#ef4444] opacity-80">-${fmtFiat(data?.cost)}</span>
+          <span className="text-right font-mono text-[#22c55e] font-medium">+${fmtFiat(data?.profit)}</span>
+        </div>
+      );
+    })}
+
+    <div className="h-px bg-white/[0.06] my-1" />
+    
+    <div className="flex items-center justify-between px-3 py-1.5 text-[11.5px]">
+      <span className="text-[#6b6b7a]">Total API Expenditure</span>
+      <span className="font-mono text-[#ef4444] opacity-80">-${fmtFiat(overview?.revenue?.totalCost)}</span>
+    </div>
+    <div className="flex items-center justify-between px-3 py-1.5 text-[11.5px] rounded-lg bg-[#00d4c8]/[0.03] border border-[#00d4c8]/[0.1]">
+      <span className="text-[#00d4c8]">Net Operating Profit</span>
+      <span className="font-mono font-medium text-[#00d4c8]">${fmtFiat(overview?.metrics?.totalProfit)}</span>
+    </div>
+  </div>
+</div>
               </motion.div>
 
-              {/* Bottom row (Flex 1 allows it to take remaining space, overflow handles the rest) */}
-              <motion.div variants={itemVariants} className="grid flex-1 min-h-0 gap-3" style={{ gridTemplateColumns: '1fr 320px' }}>
-
-                {/* Recent activity (Internal scrolling) */}
-                <div className="flex flex-col h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface">
+              {/* Bottom Row - Full width Recent Activity */}
+              <motion.div variants={itemVariants} className="flex flex-1 min-h-0">
+                <div className="flex w-full flex-col h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface">
                   <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07] flex-shrink-0">
                     <span className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Recent activity</span>
                     <button onClick={() => setPage('activity')} className="text-[10.5px] text-[#6b6b7a] hover:text-[#00d4c8] transition-colors">View all →</button>
@@ -629,57 +408,15 @@ export default function AdminPage() {
                               </div>
                             </td>
                             <td className="px-4 py-2.5 font-mono text-[11px] text-[#6b6b7a]">{a.username}</td>
-                            <td className="px-4 py-2.5 font-mono text-[11.5px] text-[#9898a8]">฿ {fmtBaht(a.chargeAmount)}</td>
+                            <td className="px-4 py-2.5 font-mono text-[11.5px] text-[#9898a8] inline-flex items-center gap-1">
+                              {fmtCredit(a.chargeAmount)} <CreditIcon size={10} color="#9898a8"/>
+                            </td>
                             <td className="px-4 py-2.5"><StatusPill status={a.status} /></td>
                             <td className="px-4 py-2.5 text-[11px] text-[#6b6b7a]">{timeAgo(a.createdAt)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                </div>
-
-                {/* Pending queue (Internal scrolling) */}
-                <div className="flex flex-col h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface">
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07] flex-shrink-0">
-                    <span className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Pending top-ups</span>
-                    {(m?.pendingTopups ?? 0) > 0 && (
-                      <span className="text-[10px] text-[#f59e0b] opacity-80">{m.pendingTopups} awaiting</span>
-                    )}
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
-                    {!overview && Array(2).fill(null).map((_, i) => (
-                      <div key={i} className="rounded-xl border border-white/[0.07] bg-[#18181f] p-3.5 flex flex-col gap-2">
-                        <div className="flex justify-between"><Sk w="w-20" /><Sk w="w-12" /></div>
-                        <Sk w="w-full" h="h-2.5" />
-                        <div className="skeleton h-8 w-full rounded-lg" />
-                      </div>
-                    ))}
-                    {overview && (overview.pendingQueue ?? []).length === 0 && (
-                      <div className="py-8 text-center text-[11.5px] text-[#6b6b7a] opacity-40">No pending top-ups</div>
-                    )}
-                    {(overview?.pendingQueue ?? []).map(q => (
-                      <div key={q.id} className="flex-shrink-0 rounded-xl border border-white/[0.07] bg-[#18181f] p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-mono text-[11.5px] text-[#9898a8]">{q.username}</span>
-                          <span className="font-mono text-[13px] font-medium text-[#f59e0b]">฿ {fmtBaht(q.amount)}</span>
-                        </div>
-                        <div className="flex items-center justify-between mb-2.5 text-[10.5px] text-[#6b6b7a]">
-                          <span>{timeAgo(q.createdAt)}</span>
-                          <span className="font-mono opacity-70">#{q.ref}</span>
-                        </div>
-                        <div className="flex gap-1.5">
-                          <button onClick={() => setConfirmApprove(q)}
-                            className="flex-1 rounded-lg border border-[rgba(34,197,94,0.25)] bg-[rgba(34,197,94,0.07)] py-1.5 text-[11.5px] font-medium text-[#22c55e] transition-all hover:bg-[rgba(34,197,94,0.14)]">
-                            Approve
-                          </button>
-                          <button onClick={() => setConfirmReject(q)}
-                            className="flex-1 rounded-lg border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.06)] py-1.5 text-[11.5px] text-[#ef4444] transition-all hover:bg-[rgba(239,68,68,0.12)]">
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </motion.div>
@@ -690,7 +427,6 @@ export default function AdminPage() {
           {page === 'users' && (
             <motion.div
               key="users"
-              // Locked container height, scroll bar on table body
               className="flex flex-1 flex-col overflow-hidden px-7 py-5 gap-4"
               variants={containerVariants} initial="hidden" animate="visible"
             >
@@ -744,8 +480,8 @@ export default function AdminPage() {
                             <div className="text-[13px] font-medium text-[#e8e8ed]">{u.username}</div>
                             <div className="text-[11px] text-[#6b6b7a]">{u.email}</div>
                           </td>
-                          <td className="px-4 py-3.5 font-mono text-[13px] text-[#00d4c8]">฿ {fmtBaht(u.balance)}</td>
-                          <td className="px-4 py-3.5 font-mono text-[12.5px] text-[#9898a8]">฿ {fmtBaht(u.totalSpent)}</td>
+                          <td className="px-4 py-3.5 font-mono text-[13px] text-[#00d4c8]"><span className="inline-flex items-center gap-1.5">{fmtCredit(u.balance)} <CreditIcon size={12} color="#00d4c8"/></span></td>
+                          <td className="px-4 py-3.5 font-mono text-[12.5px] text-[#9898a8]"><span className="inline-flex items-center gap-1.5">{fmtCredit(u.totalSpent)} <CreditIcon size={11} color="#9898a8"/></span></td>
                           <td className="px-4 py-3.5 text-[12.5px] text-[#9898a8]">{u.generations}</td>
                           <td className="px-4 py-3.5 text-[12.5px] text-[#9898a8]">{timeAgo(u.lastLogin)}</td>
                           <td className="px-4 py-3.5">
@@ -764,161 +500,10 @@ export default function AdminPage() {
             </motion.div>
           )}
 
-          {/* ══ TOP-UPS ══ */}
-          {page === 'topups' && (
-            <motion.div
-              key="topups"
-              // Locked container height
-              className="flex flex-1 min-h-0 flex-col overflow-hidden px-7 py-5 gap-4"
-              variants={containerVariants} initial="hidden" animate="visible"
-            >
-              <motion.div variants={itemVariants} className="flex items-center justify-between flex-shrink-0">
-                <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
-                  Top-up <span className="text-[#00d4c8]">requests</span>
-                </h1>
-                <div className="flex rounded-lg border border-white/[0.07] bg-[#18181f] p-1">
-                  {['all', 'pending', 'approved', 'rejected'].map(f => (
-                    <button key={f} onClick={() => setTopupFilter(f)}
-                      className={`rounded px-3 py-1 text-[11px] capitalize transition-all ${topupFilter === f ? 'bg-[#1e1e27] text-[#e8e8ed]' : 'text-[#6b6b7a] hover:text-[#9898a8]'}`}>
-                      {f}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="flex flex-1 min-h-0 gap-4">
-                <div className="flex flex-1 min-w-0 flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface">
-                  <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr>
-                          {['User', 'Amount', 'Reference', 'Verified by', 'Status', 'Date'].map(h => (
-                            <th key={h} className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a] font-normal border-b border-white/[0.07] opacity-50 bg-[#111116] sticky top-0 z-10">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {topupsLoading && Array(5).fill(null).map((_, i) => (
-                          <tr key={i} className="border-b border-white/[0.04]">
-                            {[20, 14, 12, 16, 14, 12].map((w, j) => <td key={j} className="px-4 py-3"><Sk w={`w-${w}`} /></td>)}
-                          </tr>
-                        ))}
-                        {!topupsLoading && (topups ?? []).length === 0 && (
-                          <tr><td colSpan={6} className="px-4 py-10 text-center text-[12px] text-[#6b6b7a] opacity-40">No top-ups found</td></tr>
-                        )}
-                        {(topups ?? []).map(t => (
-                          <tr key={t.id} onClick={() => setSelectedTopup(t)}
-                            className={`border-b border-white/[0.04] last:border-0 cursor-pointer transition-colors
-                              ${selectedTopup?.id === t.id ? 'bg-[rgba(0,212,200,0.04)]' : 'hover:bg-white/[0.015]'}`}>
-                            <td className="px-4 py-3 font-mono text-[11.5px] text-[#6b6b7a]">{t.username}</td>
-                            <td className="px-4 py-3">
-                              <span className={`font-mono text-[13px] font-medium
-                                ${t.status === 'pending' ? 'text-[#f59e0b]' :
-                                  t.status === 'approved' ? 'text-[#22c55e]' : 'text-[#ef4444] line-through'}`}>
-                                ฿ {fmtBaht(t.amount)}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 font-mono text-[11px] text-[#6b6b7a]">#{t.ref}</td>
-                            <td className="px-4 py-3">
-                              <span className={`inline-flex items-center rounded-lg border px-2 py-0.5 text-[10.5px]
-                                ${t.verifiedBy === 'easyslip' ? 'border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]' :
-                                  t.verifiedBy === 'manual' ? 'border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.07)] text-[#f59e0b]' :
-                                    t.verifiedBy === 'system' ? 'border-[rgba(168,85,247,0.2)] bg-[rgba(168,85,247,0.07)] text-[#a855f7]' :
-                                      'border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.07)] text-[#ef4444]'}`}>
-                                {t.verifiedBy === 'easyslip' ? 'EasySlip' :
-                                  t.verifiedBy === 'manual' ? 'Manual' :
-                                    t.verifiedBy === 'system' ? 'System' :
-                                      'Not Yet Verified'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3"><StatusPill status={t.status} /></td>
-                            <td className="px-4 py-3 text-[12px] text-[#6b6b7a]">{timeAgo(t.createdAt)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Slip detail */}
-                <div className="flex w-[340px] flex-shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface">
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07] flex-shrink-0">
-                    <span className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Slip detail</span>
-                    {selectedTopup && <StatusPill status={selectedTopup.status} />}
-                  </div>
-                  {!selectedTopup ? (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center opacity-40">
-                      <svg viewBox="0 0 24 24" className="h-10 w-10 stroke-[#6b6b7a] fill-none stroke-[1.2]">
-                        <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
-                      </svg>
-                      <p className="text-[12.5px] text-[#6b6b7a]">Select a top-up request to view the slip</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 flex-col overflow-y-auto p-4 gap-3.5"
-                      style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
-                      <div className="flex items-center justify-center rounded-xl border border-white/[0.07] bg-[#18181f] p-4 flex-shrink-0">
-                        {selectedTopup.slipImagePath ? (
-                          <SecureAdminImage slipPath={selectedTopup.slipImagePath} />
-                        ) : (
-                          <div className="flex h-[140px] w-[100px] flex-col items-center justify-center gap-2 rounded-lg bg-[#1e1e27]">
-                            <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-[#6b6b7a] fill-none stroke-[1.2] opacity-40">
-                              <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
-                            </svg>
-                            <span className="text-[10px] text-[#6b6b7a] opacity-50">No image</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-1.5 flex-shrink-0">
-                        {[
-                          { label: 'User', val: selectedTopup.username, mono: true },
-                          { label: 'Amount', val: `฿ ${fmtBaht(selectedTopup.amount)}`, color: 'text-[#00d4c8]' },
-                          { label: 'Reference', val: `#${selectedTopup.ref}`, mono: true },
-                          {
-                            label: 'Verified by', val: selectedTopup.verifiedBy === 'easyslip' ? 'EasySlip ✓' : selectedTopup.verifiedBy === 'manual' ? 'Manual' : 'Auto-verify failed',
-                            color: selectedTopup.verifiedBy === 'easyslip' ? 'text-[#00d4c8]' : selectedTopup.verifiedBy === 'manual' ? 'text-[#f59e0b]' : 'text-[#ef4444]'
-                          },
-                          { label: 'Submitted', val: timeAgo(selectedTopup.createdAt) },
-                        ].map(({ label, val, mono, color }) => (
-                          <div key={label} className="flex items-center justify-between rounded-lg border border-white/[0.06] bg-[#18181f] px-3 py-2 text-[11.5px]">
-                            <span className="text-[#6b6b7a]">{label}</span>
-                            <span className={`${mono ? 'font-mono' : ''} ${color ?? 'text-[#9898a8]'}`}>{val}</span>
-                          </div>
-                        ))}
-                      </div>
-                      {selectedTopup.status === 'pending' && (
-                        <div className="flex flex-col gap-2 flex-shrink-0">
-                          <button onClick={() => setConfirmApprove(selectedTopup)}
-                            className="flex items-center justify-center gap-2 rounded-lg border border-[rgba(34,197,94,0.25)] bg-[rgba(34,197,94,0.07)] py-2 text-[12px] font-medium text-[#22c55e] transition-all hover:bg-[rgba(34,197,94,0.14)]">
-                            <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[2.2]"><polyline points="20 6 9 17 4 12" /></svg>
-                            Approve top-up
-                          </button>
-                          <button onClick={() => setConfirmReject(selectedTopup)}
-                            className="flex items-center justify-center gap-2 rounded-lg border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.06)] py-2 text-[12px] text-[#ef4444] transition-all hover:bg-[rgba(239,68,68,0.12)]">
-                            <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[2]"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                      {selectedTopup.status !== 'pending' && (
-                        <div className={`rounded-lg border px-4 py-2.5 text-center text-[11.5px] font-medium flex-shrink-0
-                          ${selectedTopup.status === 'approved'
-                            ? 'border-[rgba(34,197,94,0.2)] bg-[rgba(34,197,94,0.06)] text-[#22c55e]'
-                            : 'border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.06)] text-[#ef4444]'}`}>
-                          {selectedTopup.status === 'approved' ? 'Approved — balance credited' : 'Rejected'}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-
           {/* ══ ACTIVITY ══ */}
           {page === 'activity' && (
             <motion.div
               key="activity"
-              // Locked container height
               className="flex flex-1 flex-col overflow-hidden px-7 py-5 gap-4"
               variants={containerVariants} initial="hidden" animate="visible"
             >
@@ -1003,7 +588,9 @@ export default function AdminPage() {
                             </div>
                           </td>
                           <td className="px-4 py-2.5 font-mono text-[11px] text-[#6b6b7a]">{a.username}</td>
-                          <td className="px-4 py-2.5 font-mono text-[11.5px] text-[#9898a8]">฿ {fmtBaht(a.chargeAmount)}</td>
+                          <td className="px-4 py-2.5 font-mono text-[11.5px] text-[#9898a8] inline-flex items-center gap-1.5">
+                            {fmtCredit(a.chargeAmount)} <CreditIcon size={11} color="#9898a8"/>
+                          </td>
                           <td className="px-4 py-2.5"><StatusPill status={a.status} /></td>
                           <td className="px-4 py-2.5 text-[11px] text-[#6b6b7a]">{timeAgo(a.createdAt)}</td>
                         </tr>

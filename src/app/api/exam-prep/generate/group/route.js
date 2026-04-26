@@ -2,25 +2,16 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
 import { generateExamPrepGroup } from "@/lib/exam-prep/group/generate";
-
-function getGroupTierPrice(totalTokens, groupTier) {
-    const PRICES = {
-        small: [13, 26, 43, 56],
-        study: [23, 45, 75, 98],
-        class: [45, 90, 150, 195],
-        faculty: [60, 120, 200, 260],
-    };
-    const tiers = PRICES[groupTier];
-    if (totalTokens <= 25000) return tiers[0];
-    if (totalTokens <= 50000) return tiers[1];
-    if (totalTokens <= 75000) return tiers[2];
-    return tiers[3];
-}
+import { getGroupTierPrice } from "@/app/api/note/generate/group/route";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req) {
     try {
         const userId = await verifyUserData(req);
         if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+        const limited = await rateLimit(`rl:ep-gen:${userId}`, 10, 60);
+        if (limited) return limited;
 
         // 1. Check if user has anything in progress
         const inProgress = await sql`
@@ -52,8 +43,19 @@ export async function POST(req) {
         const questionTypes = form.getAll('question_types[]');
         const label = form.get('label');
 
+        const VALID_DIFFICULTIES = ['easy', 'normal', 'hard'];
+        const VALID_QUESTION_TYPES = ['tf', 'mcq', 'theory', 'scenario', 'calculation'];
+
         if (!difficulty || questionTypes.length === 0 || label === null || label === "") {
             return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+        }
+
+        if (!VALID_DIFFICULTIES.includes(difficulty)) {
+            return NextResponse.json({ error: 'Invalid difficulty.' }, { status: 400 });
+        }
+
+        if (!questionTypes.every(qt => VALID_QUESTION_TYPES.includes(qt))) {
+            return NextResponse.json({ error: 'Invalid question type.' }, { status: 400 });
         }
 
         if (noteIds.length === 0 && files.length === 0) {
@@ -73,6 +75,9 @@ export async function POST(req) {
         // 4. Process File Sources
         let fileContents = [];
         for (const file of files) {
+            if (file.size > 10 * 1024 * 1024) {
+                return NextResponse.json({ error: `File "${file.name}" is too large. Maximum size is 10MB.` }, { status: 400 });
+            }
             const text = await file.text();
             fileContents.push({ name: file.name, content: text });
         }
@@ -82,13 +87,13 @@ export async function POST(req) {
             ...fileContents.map(f => f.content),
         ].join('').length;
 
-        const estimatedTokens = Math.ceil(totalChars / 4) ; 
+        const estimatedTokens = Math.ceil(totalChars / 4);
         if (estimatedTokens > 65000) { // Approx 65k input tokens
             return NextResponse.json({ error: 'Source material is too large.' }, { status: 400 });
         }
 
-        // 5. Group Economy Math
-        const totalPrice = getGroupTierPrice(estimatedTokens, membership.tier);
+        const maxPriceHold = getGroupTierPrice(Infinity, membership.tier);
+
         const members = await sql`
             SELECT gm.user_id, u.balance
             FROM "group_member" gm
@@ -96,22 +101,27 @@ export async function POST(req) {
             WHERE gm.group_id = ${membership.group_id}
         `;
 
-        const actualSplit = parseFloat((totalPrice / members.length).toFixed(2));
-        const actualGeneratorCharge = parseFloat((actualSplit * 0.5).toFixed(2));
+        const maxSplit = parseFloat((maxPriceHold / members.length).toFixed(2));
+        const maxGeneratorCharge = parseFloat((maxSplit * 0.5).toFixed(2));
 
         // 6. Check everyone's balance
         const broke = members.find(m => {
-            const charge = m.user_id === userId ? actualGeneratorCharge : actualSplit;
+            const charge = m.user_id === userId ? maxGeneratorCharge : maxSplit;
             return parseFloat(m.balance) < charge;
         });
-        if (broke) return NextResponse.json({ error: "A group member has insufficient balance." }, { status: 400 });
+        if (broke) return NextResponse.json({ error: "A group member has insufficient balance to authorize the generation." }, { status: 400 });
 
         const questionTypeStr = questionTypes.join(',');
 
         let examPrepId, publicId;
 
-        // 7. Atomic Database Transaction
         await sql.begin(async (tx) => {
+            for (const member of members) {
+                const charge = member.user_id === userId ? maxGeneratorCharge : maxSplit;
+                const [held] = await tx`UPDATE "user" SET balance = balance - ${charge} WHERE id = ${member.user_id} AND balance >= ${charge} RETURNING id`;
+                if (!held) throw new Error(`Member ${member.user_id} has insufficient balance.`);
+            }
+
             const [row] = await tx`
                 INSERT INTO exam_prep (
                     user_id, group_id, label, question_type, difficulty, 
@@ -119,14 +129,13 @@ export async function POST(req) {
                 )
                 VALUES (
                     ${userId}, ${membership.group_id}, ${label}, ${questionTypeStr}, ${difficulty}, 
-                    'Pending', ${totalPrice}, NOW(), 'group'
+                    'Pending', ${maxPriceHold}, NOW(), 'group'
                 )
                 RETURNING id, public_id
             `;
             examPrepId = row.id;
             publicId = row.public_id;
 
-            // Insert Sources
             for (const note of noteContents) {
                 await tx`
                     INSERT INTO exam_prep_sources (exam_prep_id, source_type, source_note_id)
@@ -141,15 +150,17 @@ export async function POST(req) {
             }
         });
 
-        // 8. Fire Worker
+        // 4. Pass the tier and maxHold to the worker
         generateExamPrepGroup(
             examPrepId,
             publicId,
             userId,
             membership.group_id,
-            totalPrice,
+            membership.tier,
+            maxPriceHold,
             questionTypes,
-            difficulty
+            difficulty,
+            label
         ).catch(err => console.error('Group Exam prep generation error:', err));
 
         return NextResponse.json({ publicId });

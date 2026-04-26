@@ -228,10 +228,6 @@ export default function RootLayout({ children }) {
             redirect_uri: typeof window !== 'undefined' ? window.location.origin : '',
             audience: 'https://eidolon.api',
           }}
-          skipRedirectCallback={
-            typeof window !== 'undefined' &&
-            window.location.search.includes('line=true')
-          }
         >
           <AppLayout>{children}</AppLayout>
         </Auth0Provider>

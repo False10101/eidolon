@@ -54,14 +54,14 @@ function HistoryItem({ item, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 border-l-2 px-4 py-2 text-left transition-all duration-100
+      className={`group flex w-full items-center gap-2.5 border-l-2 px-4 py-2 text-left transition-all duration-100
         ${active
           ? 'border-[#00d4c8] bg-[rgba(0,212,200,0.07)]'
           : 'border-transparent hover:bg-white/[0.03] hover:border-white/[0.07]'
         }`}
     >
       <div className={`h-[5px] w-[5px] flex-shrink-0 rounded-full transition-colors ${active ? 'bg-[#00d4c8]' : 'bg-[#2a2a35]'}`} />
-      <span className={`flex-1 truncate text-[12.5px] transition-colors ${active ? 'text-[#e8e8ed]' : 'text-[#6b6b7a] group-hover:text-[#9898a8]'}`}>
+      <span className={`flex-1 truncate text-[12.5px] transition-colors ${active ? 'text-[#e8e8ed]' : 'text-[#9a9aaa] group-hover:text-[#e8e8ed]'}`}>
         {item.label ?? item.name}
       </span>
     </button>
@@ -71,7 +71,7 @@ function HistoryItem({ item, active, onClick }) {
 // ─── Section label ──────────────────────────────────────────────────────────────
 function SectionLabel({ children }) {
   return (
-    <div className="flex-shrink-0 px-4 py-2.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-[#9898a8] select-none">
+    <div className="flex-shrink-0 px-4 py-2.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-[#b4b4c2] select-none">
       {children}
     </div>
   );
@@ -143,7 +143,7 @@ export default function Sidebar() {
               className={`flex w-full items-center gap-2.5 border-l-2 px-4 py-[7px] text-[13px] transition-all duration-150
                 ${active
                   ? 'border-[#00d4c8] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
-                  : 'border-transparent text-[#6b6b7a] hover:bg-white/[0.03] hover:border-white/[0.07] hover:text-[#9898a8]'
+                  : 'border-transparent text-[#9a9aaa] hover:bg-white/[0.03] hover:border-white/[0.07] hover:text-[#e8e8ed]'
                 }`}
             >
               {item.icon}
@@ -197,7 +197,7 @@ export default function Sidebar() {
               <SectionLabel>Individual</SectionLabel>
               <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
                 {history.length === 0 ? (
-                  <p className="px-4 py-4 text-center text-[12px] text-[#6b6b7a] opacity-50">No history yet</p>
+                  <p className="px-4 py-4 text-center text-[12px] text-[#9a9aaa]">No history yet</p>
                 ) : history.map((item) => (
                   <HistoryItem
                     key={item.public_id}
@@ -213,7 +213,7 @@ export default function Sidebar() {
         ) : (
           <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
             {history.length === 0 ? (
-              <p className="px-4 py-6 text-center text-[12px] text-[#6b6b7a] opacity-50">No history yet</p>
+              <p className="px-4 py-6 text-center text-[12px] text-[#9a9aaa]">No history yet</p>
             ) : (
               <>
                 <SectionLabel>Recent</SectionLabel>

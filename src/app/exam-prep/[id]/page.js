@@ -6,6 +6,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
+import CreditIcon from '@/app/CreditIcon';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(ts) {
@@ -25,7 +26,7 @@ const TYPE_STYLES = {
 };
 
 function TypeTag({ type }) {
-  const s = TYPE_STYLES[type] ?? { label: type, bg: 'bg-[#18181f]', text: 'text-[#6b6b7a]', border: 'border-white/[0.07]' };
+  const s = TYPE_STYLES[type] ?? { label: type, bg: 'bg-[#18181f]', text: 'text-[#9a9aaa]', border: 'border-white/[0.07]' };
   return (
     <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.06em] font-medium mt-0.5 ${s.bg} ${s.text} ${s.border}`}>
       {s.label}
@@ -53,10 +54,10 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
           </svg>
         </div>
         <div className="relative mb-1.5 text-[15px] font-medium text-[#e8e8ed]">Delete exam prep?</div>
-        <p className="relative mb-6 text-[13px] leading-[1.7] text-[#6b6b7a]">{message}</p>
+        <p className="relative mb-6 text-[13px] leading-[1.7] text-[#9a9aaa]">{message}</p>
         <div className="relative flex gap-2">
           <button onClick={onCancel}
-            className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+            className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] text-[#b4b4c2] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
             Cancel
           </button>
           <button onClick={onConfirm}
@@ -83,7 +84,7 @@ function EditLabelModal({ value, onChange, onSave, onClose }) {
       >
         <div className="px-6 py-4 border-b border-white/[0.07] bg-[#18181f]">
           <div className="text-[14px] font-medium text-[#e8e8ed]">Edit label</div>
-          <div className="mt-0.5 text-[12px] text-[#6b6b7a]">This is the title shown on the exam prep.</div>
+          <div className="mt-0.5 text-[12px] text-[#9a9aaa]">This is the title shown on the exam prep.</div>
         </div>
         <div className="px-6 py-4 flex flex-col gap-4">
           <input
@@ -93,7 +94,7 @@ function EditLabelModal({ value, onChange, onSave, onClose }) {
           />
           <div className="flex items-center justify-end gap-2">
             <button onClick={onClose}
-              className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[12.5px] text-[#6b6b7a] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+              className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[12.5px] text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
               Cancel
             </button>
             <button onClick={onSave}
@@ -164,10 +165,10 @@ function QuestionBlock({ q, index, isOpen, onToggle }) {
       {/* Tags */}
       <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
         {q.source_lectures?.map((lec, i) => (
-          <span key={i} className="text-[10px] text-[#6b6b7a] bg-[#111116] border border-white/[0.06] rounded px-2 py-0.5 truncate max-w-[300px]">{lec}</span>
+          <span key={i} className="text-[10px] text-[#9a9aaa] bg-[#111116] border border-white/[0.06] rounded px-2 py-0.5 truncate max-w-[300px]">{lec}</span>
         ))}
         {q.topic && (
-          <span className="text-[10.5px] text-[#4b4b5a] bg-[#18181f] border border-white/[0.05] rounded-md px-2 py-0.5">{q.topic}</span>
+          <span className="text-[10.5px] text-[#7a7a8a] bg-[#18181f] border border-white/[0.05] rounded-md px-2 py-0.5">{q.topic}</span>
         )}
         {q.cross_lecture && (
           <span className="text-[10px] text-[#a78bfa] bg-[rgba(139,92,246,0.08)] border border-[rgba(139,92,246,0.2)] rounded-md px-2 py-0.5 uppercase tracking-[0.05em]">Cross-lecture</span>
@@ -176,7 +177,7 @@ function QuestionBlock({ q, index, isOpen, onToggle }) {
 
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
-        <span className="flex-shrink-0 font-mono text-[11px] text-[#6b6b7a] bg-[#18181f] border border-white/[0.07] rounded-md px-2 py-0.5 mt-0.5">Q{index + 1}</span>
+        <span className="flex-shrink-0 font-mono text-[11px] text-[#9a9aaa] bg-[#18181f] border border-white/[0.07] rounded-md px-2 py-0.5 mt-0.5">Q{index + 1}</span>
         <TypeTag type={q.type} />
         <p className="flex-1 text-[13.5px] leading-[1.75] text-[#e8e8ed]">{q.question}</p>
       </div>
@@ -192,13 +193,13 @@ function QuestionBlock({ q, index, isOpen, onToggle }) {
                 ${isOpen && !isCorrect ? 'border-[rgba(239,68,68,0.15)] bg-[rgba(239,68,68,0.03)]' : ''}
                 ${!isOpen             ? 'border-white/[0.06] bg-[#18181f]'                          : ''}`}>
                 <div className="flex items-start gap-2.5">
-                  <span className="flex-shrink-0 font-mono text-[11px] text-[#6b6b7a] mt-0.5">{letter}.</span>
-                  <span className={`flex-1 ${isOpen && isCorrect ? 'text-[#e8e8ed]' : isOpen ? 'text-[#6b6b7a]' : 'text-[#9898a8]'}`}>{text}</span>
+                  <span className="flex-shrink-0 font-mono text-[11px] text-[#9a9aaa] mt-0.5">{letter}.</span>
+                  <span className={`flex-1 ${isOpen && isCorrect ? 'text-[#e8e8ed]' : isOpen ? 'text-[#9a9aaa]' : 'text-[#b4b4c2]'}`}>{text}</span>
                   {isOpen && isCorrect  && <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[#22c55e] fill-none stroke-[2.5] mt-0.5"><polyline points="20 6 9 17 4 12" /></svg>}
                   {isOpen && !isCorrect && <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[#ef4444] fill-none stroke-[2] mt-0.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
                 </div>
                 {isOpen && q.option_explanations?.[letter] && (
-                  <p className={`mt-1.5 ml-5 text-[11.5px] leading-[1.6] ${isCorrect ? 'text-[#22c55e] opacity-80' : 'text-[#6b6b7a]'}`}>
+                  <p className={`mt-1.5 ml-5 text-[11.5px] leading-[1.6] ${isCorrect ? 'text-[#22c55e] opacity-80' : 'text-[#9a9aaa]'}`}>
                     {q.option_explanations[letter]}
                   </p>
                 )}
@@ -214,8 +215,8 @@ function QuestionBlock({ q, index, isOpen, onToggle }) {
           {['True', 'False'].map(opt => (
             <div key={opt} className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px] transition-all
               ${isOpen && q.answer === opt ? 'border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.06)] text-[#22c55e]'
-                : isOpen ? 'border-[rgba(239,68,68,0.15)] text-[#6b6b7a]'
-                : 'border-white/[0.06] bg-[#18181f] text-[#9898a8]'}`}>
+                : isOpen ? 'border-[rgba(239,68,68,0.15)] text-[#9a9aaa]'
+                : 'border-white/[0.06] bg-[#18181f] text-[#b4b4c2]'}`}>
               {isOpen && q.answer === opt && <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[2.5]"><polyline points="20 6 9 17 4 12" /></svg>}
               {opt}
             </div>
@@ -226,7 +227,7 @@ function QuestionBlock({ q, index, isOpen, onToggle }) {
       {/* Solution toggle */}
       <button onClick={onToggle}
         className={`ml-[70px] flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px] transition-all w-fit
-          ${isOpen ? 'border-[rgba(34,197,94,0.25)] bg-[rgba(34,197,94,0.06)] text-[#22c55e]' : 'border-white/[0.07] bg-[#18181f] text-[#6b6b7a] hover:border-white/[0.14] hover:text-[#9898a8]'}`}>
+          ${isOpen ? 'border-[rgba(34,197,94,0.25)] bg-[rgba(34,197,94,0.06)] text-[#22c55e]' : 'border-white/[0.07] bg-[#18181f] text-[#9a9aaa] hover:border-white/[0.14] hover:text-[#b4b4c2]'}`}>
         <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 stroke-current fill-none stroke-[2] transition-transform ${isOpen ? 'rotate-180' : ''}`}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -236,12 +237,12 @@ function QuestionBlock({ q, index, isOpen, onToggle }) {
       {/* Solution — non-MCQ */}
       {isOpen && q.type !== 'mcq' && (
         <div className="ml-[70px] mt-3 border-l-2 border-[#22c55e] bg-[#18181f] rounded-r-lg px-4 py-3.5">
-          <div className="text-[10px] uppercase tracking-[0.08em] text-[#22c55e] opacity-80 mb-2">Solution</div>
-          <p className="text-[13px] leading-[1.75] text-[#9898a8] whitespace-pre-wrap">{q.answer}</p>
+          <div className="text-[10px] uppercase tracking-[0.08em] text-[#22c55e] mb-2">Solution</div>
+          <p className="text-[13px] leading-[1.75] text-[#b4b4c2] whitespace-pre-wrap">{q.answer}</p>
           {q.answer_steps && (
             <ol className="mt-3 flex flex-col gap-1.5 list-decimal list-inside">
               {q.answer_steps.map((step, i) => (
-                <li key={i} className="text-[12.5px] text-[#9898a8] leading-[1.6]">{step}</li>
+                <li key={i} className="text-[12.5px] text-[#b4b4c2] leading-[1.6]">{step}</li>
               ))}
             </ol>
           )}
@@ -250,7 +251,7 @@ function QuestionBlock({ q, index, isOpen, onToggle }) {
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[#f59e0b] fill-none stroke-[1.8] mt-0.5">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
-              <span className="text-[#6b6b7a]"><span className="text-[#f59e0b]">Common misconception:</span> {q.common_misconception}</span>
+              <span className="text-[#9a9aaa]"><span className="text-[#f59e0b]">Common misconception:</span> {q.common_misconception}</span>
             </div>
           )}
         </div>
@@ -262,7 +263,7 @@ function QuestionBlock({ q, index, isOpen, onToggle }) {
           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[#f59e0b] fill-none stroke-[1.8] mt-0.5">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
-          <span className="text-[#6b6b7a]"><span className="text-[#f59e0b]">Common misconception:</span> {q.common_misconception}</span>
+          <span className="text-[#9a9aaa]"><span className="text-[#f59e0b]">Common misconception:</span> {q.common_misconception}</span>
         </div>
       )}
     </div>
@@ -304,11 +305,11 @@ function ReaderView({ data, onClose }) {
         <div className="flex items-center gap-4 min-w-0 select-none">
           <span className="font-serif text-[18px] text-[#00d4c8]">Eidolon</span>
           <div className="h-4 w-px bg-white/[0.07]" />
-          <span className="text-[13px] text-[#6b6b7a] truncate">{data.label}</span>
+          <span className="text-[13px] text-[#b4b4c2] truncate">{data.label}</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <button onClick={copyAll}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#6b6b7a] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+            className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
               <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
@@ -316,7 +317,7 @@ function ReaderView({ data, onClose }) {
           </button>
           <button onClick={onClose}
             className="group flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f] transition-all hover:border-[rgba(239,68,68,0.3)]">
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[#6b6b7a] fill-none stroke-[2] group-hover:stroke-[#ef4444] transition-colors">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[#9a9aaa] fill-none stroke-[2] group-hover:stroke-[#ef4444] transition-colors">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
@@ -326,13 +327,13 @@ function ReaderView({ data, onClose }) {
       <div className="flex-1 overflow-y-auto flex justify-center px-8 py-12"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
         <div className="w-full max-w-[700px]">
-          <div className="text-[11px] uppercase tracking-[0.1em] text-[#6b6b7a] mb-4 select-none">
+          <div className="text-[11px] uppercase tracking-[0.1em] text-[#9a9aaa] mb-4 select-none">
             Exam Prep · {formatDate(data.created_at)}
           </div>
           <h1 className="font-serif text-[28px] font-normal text-[#e8e8ed] tracking-[-0.02em] mb-2">{data.label}</h1>
-          <div className="flex items-center gap-2 text-[13px] text-[#6b6b7a] mb-10 select-none">
+          <div className="flex items-center gap-2 text-[13px] text-[#9a9aaa] mb-10 select-none">
             <span>{data.questions?.length ?? 0} questions</span>
-            <span className="opacity-30">·</span>
+            <span className="text-[#9a9aaa]">·</span>
             <span className="capitalize">{data.difficulty}</span>
             <div className="flex-1 h-px bg-white/[0.07] ml-2" />
           </div>
@@ -343,7 +344,7 @@ function ReaderView({ data, onClose }) {
         </div>
       </div>
 
-      <div className={`fixed bottom-6 right-6 z-[210] flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#9898a8] transition-all duration-200
+      <div className={`fixed bottom-6 right-6 z-[210] flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#b4b4c2] transition-all duration-200
         ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'}`}>
         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[2.2]">
           <polyline points="20 6 9 17 4 12" />
@@ -503,7 +504,7 @@ export default function ExamPrepViewer() {
                   </h2>
                   <button
                     onClick={() => { setEditLabelValue(data.label); setEditModalOpen(true); }}
-                    className="flex-shrink-0 mt-0.5 text-[#6b6b7a] hover:text-[#00d4c8] transition-colors"
+                    className="flex-shrink-0 mt-0.5 text-[#9a9aaa] hover:text-[#00d4c8] transition-colors"
                   >
                     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -521,17 +522,17 @@ export default function ExamPrepViewer() {
                 style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
 
                 <div className="flex flex-col gap-2">
-                  <div className="text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-50 select-none">Details</div>
+                  <div className="text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa] select-none">Details</div>
                   <div className="rounded-xl border border-[rgba(0,212,200,0.1)] bg-[#111116] overflow-hidden surface-teal">
                     <div className="flex flex-col divide-y divide-white/[0.05]">
                       {[
                         { label: 'Generated', value: formatDate(data.created_at) },
                         { label: 'Questions', value: `${questions.length} questions`, cyan: true },
-                        { label: 'Cost',      value: `฿ ${Number(data.charge_amount).toFixed(2)}`, cyan: true },
+                        { label: 'Cost',      value: `${Number(data.charge_amount).toFixed(2)}`, cyan: true },
                       ].map(({ label, value, cyan }) => (
                         <div key={label} className="flex items-center justify-between px-3.5 py-2.5 text-[12px]">
-                          <span className="text-[#6b6b7a]">{label}</span>
-                          <span className={`font-mono text-[11.5px] ${cyan ? 'text-[#00d4c8]' : 'text-[#9898a8]'}`}>{value}</span>
+                          <span className="text-[#9a9aaa]">{label}</span>
+                          <span className={`font-mono text-[11.5px] ${cyan ? 'text-[#00d4c8]' : 'text-[#e8e8ed]'}`}>{value} {label === 'Cost' ? <CreditIcon size={12}/> : ""}</span>
                         </div>
                       ))}
                     </div>
@@ -539,7 +540,7 @@ export default function ExamPrepViewer() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <div className="text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-50 select-none">Configuration</div>
+                  <div className="text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa] select-none">Configuration</div>
                   <div className="rounded-xl border border-white/[0.07] bg-[#111116] px-3.5 py-3 surface noise">
                     <div className="flex flex-wrap gap-1.5">
                       {typeLabels.map(t => {
@@ -548,14 +549,14 @@ export default function ExamPrepViewer() {
                           <span key={t} className={`rounded-full border px-2.5 py-0.5 text-[11px] ${s.bg} ${s.text} ${s.border}`}>{s.label}</span>
                         ) : null;
                       })}
-                      <span className="rounded-full border border-white/[0.07] bg-[#18181f] px-2.5 py-0.5 text-[11px] text-[#6b6b7a] capitalize">{data.difficulty}</span>
+                      <span className="rounded-full border border-white/[0.07] bg-[#18181f] px-2.5 py-0.5 text-[11px] text-[#9a9aaa] capitalize">{data.difficulty}</span>
                     </div>
                   </div>
                 </div>
 
                 {data.sources?.length > 0 && (
                   <div className="flex flex-col gap-2">
-                    <div className="text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-50 select-none">Sources</div>
+                    <div className="text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa] select-none">Sources</div>
                     <div className="flex flex-col gap-1.5">
                       {data.sources.map((src, i) => (
                         <div key={i}
@@ -564,16 +565,16 @@ export default function ExamPrepViewer() {
                             ${src.source_type === 'note' ? 'cursor-pointer hover:border-[rgba(0,212,200,0.2)] hover:bg-[rgba(0,212,200,0.03)]' : ''}`}
                         >
                           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-[#111116]">
-                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[#6b6b7a] fill-none stroke-[1.8]">
+                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[#9a9aaa] fill-none stroke-[1.8]">
                               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
                             </svg>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="truncate text-[12px] text-[#9898a8]">{src.name}</div>
-                            <div className="text-[10.5px] text-[#6b6b7a] capitalize">{src.source_type === 'note' ? 'Inclass note' : 'Uploaded file'}</div>
+                            <div className="truncate text-[12px] text-[#e8e8ed]">{src.name}</div>
+                            <div className="text-[10.5px] text-[#9a9aaa] capitalize">{src.source_type === 'note' ? 'Inclass note' : 'Uploaded file'}</div>
                           </div>
                           {src.source_type === 'note' && (
-                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[#6b6b7a] fill-none stroke-[1.8]">
+                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[#9a9aaa] fill-none stroke-[1.8]">
                               <polyline points="9 18 15 12 9 6" />
                             </svg>
                           )}
@@ -586,14 +587,14 @@ export default function ExamPrepViewer() {
 
               <div className="flex-shrink-0 px-5 py-4 border-t border-white/[0.07] flex flex-col gap-2">
                 <button onClick={copyAll}
-                  className="flex items-center gap-2 w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[12.5px] text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+                  className="flex items-center gap-2 w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[12.5px] text-[#b4b4c2] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
                     <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
                   Copy all questions
                 </button>
                 <button onClick={() => setConfirmDelete(true)} disabled={deleting}
-                  className="flex items-center gap-2 w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[12.5px] text-[#6b6b7a] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444] disabled:opacity-50">
+                  className="flex items-center gap-2 w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[12.5px] text-[#9a9aaa] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444] disabled:opacity-50">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
                     <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" />
                   </svg>
@@ -608,18 +609,18 @@ export default function ExamPrepViewer() {
                 <div className="flex items-center gap-2">
                   <button onClick={toggleAll}
                     className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[12px] transition-all
-                      ${allOpen ? 'border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.06)] text-[#00d4c8]' : 'border-white/[0.07] bg-[#111116] text-[#6b6b7a] hover:border-white/[0.14]'}`}>
+                      ${allOpen ? 'border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.06)] text-[#00d4c8]' : 'border-white/[0.07] bg-[#111116] text-[#9a9aaa] hover:border-white/[0.14]'}`}>
                     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
                       <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                     </svg>
                     {allOpen ? 'Solutions visible' : 'Solutions hidden'}
                   </button>
-                  <span className="rounded-lg border border-white/[0.07] bg-[#111116] px-3 py-1.5 text-[12px] text-[#6b6b7a]">
+                  <span className="rounded-lg border border-white/[0.07] bg-[#111116] px-3 py-1.5 text-[12px] text-[#9a9aaa]">
                     {questions.length} questions
                   </span>
                 </div>
                 <button onClick={() => setReaderOpen(true)}
-                  className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#111116] px-3 py-1.5 text-[12px] text-[#6b6b7a] transition-all hover:border-[rgba(0,212,200,0.25)] hover:text-[#00d4c8]">
+                  className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#111116] px-3 py-1.5 text-[12px] text-[#9a9aaa] transition-all hover:border-[rgba(0,212,200,0.25)] hover:text-[#00d4c8]">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
                     <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
                   </svg>
@@ -645,7 +646,7 @@ export default function ExamPrepViewer() {
       </div>
 
       {/* Copy toast */}
-      <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#9898a8] transition-all duration-200
+      <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#b4b4c2] transition-all duration-200
         ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'}`}>
         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[2.2]">
           <polyline points="20 6 9 17 4 12" />

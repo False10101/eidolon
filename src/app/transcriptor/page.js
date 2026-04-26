@@ -8,6 +8,7 @@ import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import GeneratingOverlay from '../GeneratingOverlays';
 import ErrorModal from '../ErrorModal';
+import CreditIcon from '../CreditIcon';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const MODELS = [
@@ -15,14 +16,14 @@ const MODELS = [
     value: 'whisper-v3-turbo',
     label: 'Whisper v3 Turbo',
     description: 'Fast & efficient — great for most audio',
-    price: '฿2.5',
+    price: '7',
     badge: null
   },
   {
     value: 'whisper-v3',
     label: 'Whisper v3 Large',
     description: 'Premium accuracy for complex or noisy audio',
-    price: '฿4',
+    price: '11',
     badge: 'Premium'
   },
 ];
@@ -180,7 +181,7 @@ export default function Transcriptor() {
   };
 
   const selectedModelInfo = MODELS.find(m => m.value === model);
-  const estimatedPrice = selectedModelInfo?.price || '฿2.5';
+  const estimatedPrice = selectedModelInfo?.price || '7';
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] font-sans text-sm">
@@ -216,8 +217,8 @@ export default function Transcriptor() {
             <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
               Audio <span className="text-[#00d4c8]">Transcriptor</span>
             </h1>
-            <p className="mt-0.5 text-[12.5px] text-[#6b6b7a]">
-              Upload your lecture audio and get a clean transcript via Whisper.
+            <p className="mt-0.5 text-[12.5px] text-[#9a9aaa]">
+              Upload your lecture audio and get a clean transcript via <span className="text-[#e8e8ed] font-medium">Whisper</span>.
             </p>
           </div>
 
@@ -246,17 +247,17 @@ export default function Transcriptor() {
                       style={{ background: 'radial-gradient(ellipse at 30% 50%, rgba(0,212,200,0.04) 0%, transparent 60%)' }} />
                     <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[10px] border transition-all duration-200
                       ${dragging ? 'border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]' : 'border-white/[0.07] bg-[#18181f]'}`}>
-                      <svg viewBox="0 0 24 24" className={`h-5 w-5 fill-none stroke-[1.6] transition-colors ${dragging ? 'stroke-[#00d4c8]' : 'stroke-[#6b6b7a]'}`}>
+                      <svg viewBox="0 0 24 24" className={`h-5 w-5 fill-none stroke-[1.6] transition-colors ${dragging ? 'stroke-[#00d4c8]' : 'stroke-[#9a9aaa]'}`}>
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <div className="text-[14px] font-medium text-[#9898a8]">Drop your audio file here</div>
-                      <div className="mt-0.5 text-[12px] text-[#6b6b7a]">or click to browse — .mp3, .wav, .m4a</div>
+                      <div className="text-[14px] font-medium text-[#e8e8ed]">Drop your audio file here</div>
+                      <div className="mt-0.5 text-[12px] text-[#9a9aaa]">or click to browse — .mp3, .wav, .m4a, .ogg, .flac, .aac, .webm</div>
                     </div>
                     <div className="flex flex-shrink-0 gap-1.5">
-                      {['.mp3', '.wav', '.m4a'].map(t => (
-                        <span key={t} className="rounded-md border border-white/[0.07] bg-[#18181f] px-2 py-0.5 font-mono text-[10.5px] text-[#6b6b7a]">{t}</span>
+                      {['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.webm'].map(t => (
+                        <span key={t} className="rounded-md border border-white/[0.07] bg-[#18181f] px-2 py-0.5 font-mono text-[10.5px] text-[#9a9aaa]">{t}</span>
                       ))}
                     </div>
                   </div>
@@ -269,16 +270,16 @@ export default function Transcriptor() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="truncate text-[14px] font-medium text-[#e8e8ed]">{file.name}</div>
-                      <div className="mt-0.5 text-[12px] text-[#6b6b7a]">{formatBytes(file.size)} · {file.name.split('.').pop().toUpperCase()}</div>
+                      <div className="mt-0.5 text-[12px] text-[#9a9aaa]">{formatBytes(file.size)} · {file.name.split('.').pop().toUpperCase()}</div>
                     </div>
                     <div className="flex flex-shrink-0 gap-1.5">
                       <button onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#6b6b7a] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+                        className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
                         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
                         Replace
                       </button>
                       <button onClick={removeFile}
-                        className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#6b6b7a] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444]">
+                        className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#9a9aaa] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444]">
                         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         Remove
                       </button>
@@ -287,24 +288,24 @@ export default function Transcriptor() {
                 )}
               </motion.div>
 
-              <input ref={fileInputRef} type="file" accept=".mp3,.wav,.m4a" className="hidden"
+              <input ref={fileInputRef} type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,.webm" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) attachFile(f); }} />
 
               {/* Config cards */}
               <motion.div variants={itemVariants} className="grid flex-shrink-0 grid-cols-2 gap-3.5">
                 <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
+                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">
                     Label <span className="normal-case tracking-normal opacity-60 text-[10px]">(optional)</span>
                   </div>
                   <input type="text" value={label} onChange={(e) => setLabel(e.target.value)}
                     placeholder="e.g., AI Game Week 11"
-                    className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#6b6b7a] placeholder:opacity-50 focus:border-[rgba(0,212,200,0.35)] transition-colors" />
-                  <div className="text-[11px] text-[#6b6b7a] opacity-50">Used as the transcript title.</div>
+                    className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#9a9aaa] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
+                  <div className="text-[11px] text-[#9a9aaa]">Used as the transcript title.</div>
                 </div>
 
                 {/* Model Toggle Card with Pricing */}
                 <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Model</div>
+                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Model</div>
                   <div className="flex gap-2">
                     {MODELS.map(m => (
                       <button
@@ -312,7 +313,7 @@ export default function Transcriptor() {
                         onClick={() => setModel(m.value)}
                         className={`relative flex-1 rounded-lg border px-3 py-2 text-center text-[13px] font-medium transition-all ${model === m.value
                           ? 'border-[rgba(0,212,200,0.35)] bg-[rgba(0,212,200,0.08)] text-[#00d4c8]'
-                          : 'border-white/[0.07] bg-[#18181f] text-[#6b6b7a] hover:border-white/[0.14] hover:text-[#9898a8]'
+                          : 'border-white/[0.07] bg-[#18181f] text-[#9a9aaa] hover:border-white/[0.14] hover:text-[#b4b4c2]'
                           }`}
                       >
                         {m.badge && (
@@ -321,13 +322,13 @@ export default function Transcriptor() {
                           </span>
                         )}
                         <div>{m.label.split(' ').slice(0, 2).join(' ')}</div>
-                        <div className={`text-[10px] mt-0.5 ${model === m.value ? 'text-[#00d4c8]/70' : 'text-[#6b6b7a]/60'}`}>
-                          {m.price}/hr
+                        <div className={`text-[10px] flex justify-center items-center mt-0.5 ${model === m.value ? 'text-[#00d4c8]/90' : 'text-[#9a9aaa]'}`}>
+                          {m.price} <CreditIcon size={8} className='mx-0.5' color={model === m.value ? '#00d4c8' : '#b4b4c2'}/> /hr
                         </div>
                       </button>
                     ))}
                   </div>
-                  <div className="text-[11px] text-[#6b6b7a] opacity-50">
+                  <div className="text-[11px] text-[#9a9aaa]">
                     {selectedModelInfo?.description}
                   </div>
                 </div>
@@ -337,7 +338,7 @@ export default function Transcriptor() {
               <motion.div variants={itemVariants} className="flex-shrink-0">
                 <button
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-2 text-[11px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65 hover:opacity-100 transition-opacity"
+                  className="flex items-center gap-2 text-[11px] uppercase tracking-[0.07em] text-[#9a9aaa] hover:text-[#e8e8ed] transition-colors"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -362,7 +363,7 @@ export default function Transcriptor() {
                     <div className="grid grid-cols-2 gap-3.5 pb-1">
                       {/* Output Format */}
                       <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                        <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Output Format</div>
+                        <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Output Format</div>
                         <select
                           value={outputFormat}
                           onChange={(e) => {
@@ -379,7 +380,7 @@ export default function Transcriptor() {
                             </option>
                           ))}
                         </select>
-                        <div className="text-[11px] text-[#6b6b7a] opacity-50">
+                        <div className="text-[11px] text-[#9a9aaa]">
                           {OUTPUT_FORMATS.find(f => f.value === outputFormat)?.description}
                         </div>
                       </div>
@@ -387,7 +388,7 @@ export default function Transcriptor() {
                       {/* Speaker Diarization - Always visible */}
                       <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
                         <div className="flex items-center justify-between">
-                          <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Speaker Diarization</div>
+                          <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Speaker Diarization</div>
                           <button
                             onClick={() => outputFormat === 'verbose_json' && setDiarization(!diarization)}
                             className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200 ${outputFormat !== 'verbose_json' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
@@ -407,8 +408,8 @@ export default function Transcriptor() {
                           <span className={`text-[13px] ${diarization && outputFormat === 'verbose_json'
                             ? 'text-[#00d4c8]'
                             : outputFormat !== 'verbose_json'
-                              ? 'text-[#6b6b7a]/40'
-                              : 'text-[#6b6b7a]'
+                              ? 'text-[#9a9aaa]/70'
+                              : 'text-[#9a9aaa]'
                             }`}>
                             {outputFormat !== 'verbose_json'
                               ? 'Requires "With Timestamps"'
@@ -417,7 +418,7 @@ export default function Transcriptor() {
                                 : 'Disabled'}
                           </span>
                         </div>
-                        <div className="text-[11px] text-[#6b6b7a] opacity-50">
+                        <div className="text-[11px] text-[#9a9aaa]">
                           {outputFormat !== 'verbose_json'
                             ? "Switch to 'With Timestamps' format to enable speaker identification"
                             : diarization
@@ -448,7 +449,7 @@ export default function Transcriptor() {
                               </div>
                               <div className="flex-1">
                                 <div className="text-[13px] font-medium text-[#f59e0b]">Turbo model may hallucinate speakers</div>
-                                <div className="text-[12px] text-[#9898a8]">Whisper V3 Large provides much more accurate speaker diarization with fewer hallucinations.</div>
+                                <div className="text-[12px] text-[#b4b4c2]"><span className="text-[#e8e8ed] font-medium">Whisper V3 Large</span> provides much more accurate speaker diarization with fewer hallucinations.</div>
                               </div>
                               <button
                                 onClick={() => setModel('whisper-v3')}
@@ -464,7 +465,7 @@ export default function Transcriptor() {
                       {/* VAD Filter Toggle */}
                       <div className="col-span-2 flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
                         <div className="flex items-center justify-between">
-                          <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">VAD Filter</div>
+                          <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">VAD Filter</div>
                           <button
                             onClick={() => setVadEnabled(!vadEnabled)}
                             className="relative h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200"
@@ -477,12 +478,12 @@ export default function Transcriptor() {
                           </button>
                         </div>
                         <div className="flex items-center gap-2 py-[5px]">
-                          <span className={`text-[13px] ${vadEnabled ? 'text-[#00d4c8]' : 'text-[#6b6b7a]'}`}>
+                          <span className={`text-[13px] ${vadEnabled ? 'text-[#00d4c8]' : 'text-[#9a9aaa]'}`}>
                             {vadEnabled ? 'Enabled' : 'Disabled'}
                           </span>
                         </div>
-                        <div className="text-[11px] text-[#6b6b7a] opacity-50">
-                          Removes silence and non-speech audio for cleaner transcripts.
+                        <div className="text-[11px] text-[#9a9aaa]">
+                          Removes <span className="text-[#e8e8ed] font-medium">silence and non-speech</span> audio for cleaner transcripts.
                         </div>
                       </div>
                     </div>
@@ -498,8 +499,8 @@ export default function Transcriptor() {
               className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-3.5 surface shadow-xl shadow-black/40"
             >
               <div className="flex flex-col gap-0.5">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-55">Summary</div>
-                <div className="text-[13px] text-[#9898a8]">
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Summary</div>
+                <div className="text-[13px] text-[#e8e8ed]">
                   {file
                     ? <><span className="text-[#00d4c8]">{label || file.name}</span> · {selectedModelInfo?.label}</>
                     : 'No file selected'}
@@ -507,9 +508,9 @@ export default function Transcriptor() {
               </div>
               <div className="flex flex-shrink-0 items-center gap-4">
                 <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-55">Price per hour</div>
-                  <div className="font-mono text-[15px] font-medium">
-                    <span className="text-[#00d4c8]">{estimatedPrice}</span>
+                  <div className="text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">Price per hour</div>
+                  <div className="font-mono text-[15px] font-medium flex justify-end items-center ">
+                    <span className="text-[#00d4c8]">{estimatedPrice}<CreditIcon size={15.5} className='ml-1'/></span>
                   </div>
                 </div>
                 <button onClick={handleTranscribe} disabled={!file || procStatus === 'processing'}

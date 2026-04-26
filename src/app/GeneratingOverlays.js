@@ -42,7 +42,7 @@ function OdometerNumber({ value }) {
       <span style={{
         fontFamily: 'var(--font-geist-mono, monospace)',
         fontSize: 28, fontWeight: 500,
-        color: 'rgba(0,212,200,0.45)',
+        color: 'rgba(0,212,200,0.65)',
         lineHeight: `${DIGIT_H}px`, marginLeft: 3,
       }}>%</span>
     </div>
@@ -116,7 +116,7 @@ function StagePill({ label }) {
       }} />
       <span style={{
         fontFamily: 'var(--font-geist-mono, monospace)',
-        fontSize: 11, color: '#6b6b7a',
+        fontSize: 11, color: '#b4b4c2',
         textTransform: 'uppercase', letterSpacing: '0.06em',
       }}>
         {label}
@@ -205,7 +205,7 @@ export default function GeneratingOverlay({
               {title?.replace('…', '') ?? 'Complete'}
             </div>
             {doneLabel && (
-              <div style={{ marginTop: 4, fontSize: 13, color: '#6b6b7a' }}>{doneLabel}</div>
+              <div style={{ marginTop: 4, fontSize: 13, color: '#9a9aaa' }}>{doneLabel}</div>
             )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -224,7 +224,7 @@ export default function GeneratingOverlay({
                 display: 'flex', alignItems: 'center', gap: 8,
                 background: '#18181f', borderRadius: 8,
                 padding: '10px 16px', fontSize: 13,
-                color: '#9898a8', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer',
+                color: '#b4b4c2', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer',
               }}>
                 {onResetLabel}
               </button>
@@ -270,7 +270,7 @@ export default function GeneratingOverlay({
           {onCancel && (
             <button
               onClick={onCancel}
-              style={{ fontSize: 12, color: '#4b4b5a', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: 12, color: '#9a9aaa', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               Cancel
             </button>

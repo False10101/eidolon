@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { requireAdmin } from "../_lib/requireAdmin";
 
-// Helper to format large numbers (e.g., 1500000 -> 1.5M)
 function fmtNum(num) {
   if (!num) return '0';
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -10,7 +9,6 @@ function fmtNum(num) {
   return String(num);
 }
 
-// Helper to format seconds into hours/mins
 function fmtDuration(seconds) {
   if (!seconds) return '0 mins';
   const hours = seconds / 3600;
@@ -30,180 +28,73 @@ export async function GET(req) {
   const [
     metricsRows,
     activeRows,
-    revenueRows,
-    pendingCountRows,
+    bankInflowRows,
+    featureRevenueRows,
+    rebateRows,
     usageRows,
-    revBreakdownRows,
-    circulationRows,
-    allTimeRows,
-    recentActivityRows,
-    pendingQueueRows,
-    
-    // Detailed stats queries
-    noteStats, 
-    examPrepStats, 
-    audioConvertStats, 
-    transcriptStats
+    noteTokens,
+    examTokens,
+    transcriptData,
+    recentActivityRows
   ] = await Promise.all([
-
-    sql`
-      SELECT
-        COUNT(*)::int AS total_users,
-        COUNT(*) FILTER (WHERE created_at >= date_trunc('month', NOW()))::int AS new_this_month
-      FROM "user"
-    `,
-
-    sql`
-      SELECT COUNT(DISTINCT user_id)::int AS active_week
-      FROM (
-        SELECT user_id FROM activity WHERE date >= NOW() - INTERVAL '7 days'
-        UNION
-        SELECT user_id FROM audio_converter_logs WHERE created_at >= NOW() - INTERVAL '7 days'
-      ) active_users
-    `,
-
-    sql`
-      SELECT COALESCE(SUM(charge_amount), 0)::numeric AS revenue
-      FROM activity
-      WHERE type != 'topup'
-        AND date >= NOW() - ${interval}::interval
-    `,
-
-    sql`
-      SELECT COUNT(*)::int AS pending
-      FROM pending_topups WHERE status = 'pending'
-    `,
-
-    sql`
-      SELECT type, COUNT(*)::int AS count
-      FROM activity
-      WHERE type IN ('note', 'transcript', 'exam_prep')
-        AND date >= NOW() - ${interval}::interval
-      GROUP BY type
-      UNION ALL
-      SELECT 'audio_convert' AS type, COUNT(*)::int AS count
-      FROM audio_converter_logs
-      WHERE created_at >= NOW() - ${interval}::interval
-    `,
-
-    sql`
-      SELECT type, COALESCE(SUM(charge_amount), 0)::numeric AS total
-      FROM activity
-      WHERE type IN ('note', 'transcript', 'exam_prep')
-        AND date >= date_trunc('month', NOW())
-      GROUP BY type
-    `,
-
-    sql`SELECT COALESCE(SUM(balance), 0)::numeric AS circulation FROM "user"`,
-
-    sql`
-      SELECT COALESCE(SUM(charge_amount), 0)::numeric AS total
-      FROM activity WHERE type = 'topup'
-    `,
-
-    sql`
-      SELECT * FROM (
-        SELECT
-          a.id::text, a.type, a.title, a.charge_amount, a.status, a.date,
-          u.username
-        FROM activity a
-        JOIN "user" u ON u.id = a.user_id
-        
-        UNION ALL
-        
-        SELECT
-          acl.id::text, 'audio_convert' AS type, 'Audio Conversion' AS title, 0 AS charge_amount, 'completed' AS status, acl.created_at AS date,
-          u.username
-        FROM audio_converter_logs acl
-        JOIN "user" u ON u.id = acl.user_id
-      ) combined
-      ORDER BY date DESC
-      LIMIT 10
-    `,
-
-    sql`
-      SELECT
-        pt.id, pt.amount, pt.reference_id, pt.verified_by, pt.created_at,
-        u.id AS user_id, u.username
-      FROM pending_topups pt
-      JOIN "user" u ON u.id = pt.user_id
-      WHERE pt.status = 'pending'
-      ORDER BY pt.created_at DESC
-      LIMIT 5
-    `,
-
-    sql`
-      SELECT 
-        COALESCE(SUM(input_tokens), 0)::int AS in_tok, 
-        COALESCE(SUM(output_tokens), 0)::int AS out_tok 
-      FROM "note" 
-      WHERE created_at >= NOW() - ${interval}::interval
-    `,
-    
-    sql`
-      SELECT 
-        COALESCE(SUM(input_tokens), 0)::int AS in_tok, 
-        COALESCE(SUM(output_tokens), 0)::int AS out_tok 
-      FROM exam_prep 
-      WHERE created_at >= NOW() - ${interval}::interval
-    `,
-    
-    sql`
-      SELECT 
-        COALESCE(SUM(duration_seconds), 0)::int AS seconds 
-      FROM audio_converter_logs 
-      WHERE created_at >= NOW() - ${interval}::interval
-    `,
-    
-    sql`
-      SELECT 
-        COALESCE(SUM(duration), 0)::int AS seconds 
-      FROM transcript 
-      WHERE created_at >= NOW() - ${interval}::interval
-    `,
+    sql`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE created_at >= date_trunc('month', NOW()))::int AS new_month FROM "user"`,
+    sql`SELECT COUNT(DISTINCT user_id)::int AS active_week FROM (SELECT user_id FROM activity WHERE date >= NOW() - INTERVAL '7 days' UNION SELECT user_id FROM audio_converter_logs WHERE created_at >= NOW() - INTERVAL '7 days') a`,
+    sql`SELECT COALESCE(SUM(charge_amount), 0)::numeric AS total FROM activity WHERE type = 'topup' AND date >= date_trunc('month', NOW())`,
+    sql`SELECT type, COALESCE(SUM(charge_amount), 0)::numeric AS total_credits FROM activity WHERE type IN ('note', 'transcript', 'exam_prep') AND date >= NOW() - ${interval}::interval GROUP BY type`,
+    sql`SELECT COALESCE(SUM(charge_amount), 0)::numeric AS total_payouts FROM activity WHERE type = 'rebate' AND date >= date_trunc('month', NOW())`,
+    sql`SELECT type, COUNT(*)::int AS count FROM activity WHERE type IN ('note', 'transcript', 'exam_prep') AND date >= NOW() - ${interval}::interval GROUP BY type UNION ALL SELECT 'audio_convert' AS type, COUNT(*)::int AS count FROM audio_converter_logs WHERE created_at >= NOW() - ${interval}::interval`,
+    sql`SELECT COALESCE(SUM(input_tokens), 0)::numeric AS input, COALESCE(SUM(output_tokens), 0)::numeric AS output FROM "note" WHERE status = 'completed' AND created_at >= NOW() - ${interval}::interval`,
+    sql`SELECT COALESCE(SUM(input_tokens), 0)::numeric AS input, COALESCE(SUM(output_tokens), 0)::numeric AS output FROM exam_prep WHERE status = 'Completed' AND created_at >= NOW() - ${interval}::interval`,
+    sql`SELECT model, COALESCE(SUM(duration), 0)::numeric AS total_seconds FROM transcript WHERE status = 'Completed' AND created_at >= NOW() - ${interval}::interval GROUP BY model`,
+    sql`SELECT a.type, a.charge_amount, a.status, a.date, u.username FROM activity a JOIN "user" u ON u.id = a.user_id ORDER BY a.date DESC LIMIT 15`,
   ]);
 
-  const metrics = metricsRows[0] ?? {};
-  const active  = activeRows[0]  ?? {};
-  const revenue = revenueRows[0] ?? {};
-  const pending = pendingCountRows[0] ?? {};
-  const circ    = circulationRows[0] ?? {};
-  const allTime = allTimeRows[0] ?? {};
+  // --- 1. REVENUE (In USD) ---
+  const revMap = {};
+  featureRevenueRows.forEach(r => { revMap[r.type] = parseFloat(r.total_credits) / 100; });
+  const totalUsageRevenue = (revMap.note ?? 0) + (revMap.transcript ?? 0) + (revMap.exam_prep ?? 0);
 
-  const nStats  = noteStats[0] ?? {};
-  const epStats = examPrepStats[0] ?? {};
-  const acStats = audioConvertStats[0] ?? {};
-  const tStats  = transcriptStats[0] ?? {};
+  // --- 2. COSTS ---
+  const nStats = noteTokens[0] || {input:0, output:0};
+  const epStats = examTokens[0] || {input:0, output:0};
+  const noteCost = ((nStats.input * 0.30) / 1000000) + ((nStats.output * 1.20) / 1000000);
+  const examCost = ((epStats.input * 0.30) / 1000000) + ((epStats.output * 1.20) / 1000000);
+  
+  let transcriptCost = 0;
+  transcriptData.forEach(r => {
+    const rate = r.model?.includes('turbo') ? 0.0009 : 0.0015;
+    transcriptCost += (r.total_seconds / 60) * rate;
+  });
 
+  // --- 3. REBATE PROFIT (The 30% Platform Tax) ---
+  const totalPayoutsSent = parseFloat(rebateRows[0]?.total_payouts || 0);
+  const platformTaxCredits = (totalPayoutsSent / 0.7) * 0.3;
+  const platformTaxUSD = platformTaxCredits / 100;
+
+  // --- 4. FINAL PROFIT ---
+  const totalProfit = (totalUsageRevenue - (noteCost + examCost + transcriptCost)) + platformTaxUSD;
+
+  // --- 5. SERVICE USAGE DATA (THE FIX) ---
   const usageMap = {};
   usageRows.forEach(r => { usageMap[r.type] = Number(r.count); });
   const maxUsage = Math.max(...Object.values(usageMap), 1);
-
-  const revMap = {};
-  revBreakdownRows.forEach(r => { revMap[r.type] = parseFloat(r.total); });
-
-  const SERVICE_LABELS = {
-    note:          'Inclass Notes',
-    transcript:    'Transcriptor',
-    exam_prep:     'Exam Prep',
-    audio_convert: 'Audio Converter',
-  };
-
+  const SERVICE_LABELS = { note: 'Inclass Notes', transcript: 'Transcriptor', exam_prep: 'Exam Prep', audio_convert: 'Audio Converter' };
   const detailsMap = {
-    note:          `${fmtNum(nStats.in_tok)} in / ${fmtNum(nStats.out_tok)} out`,
-    exam_prep:     `${fmtNum(epStats.in_tok)} in / ${fmtNum(epStats.out_tok)} out`,
-    audio_convert: `${fmtDuration(acStats.seconds)} processed`,
-    transcript:    `${fmtDuration(tStats.seconds)} transcribed`,
+    note: `${fmtNum(nStats.input)} in / ${fmtNum(nStats.output)} out`,
+    exam_prep: `${fmtNum(epStats.input)} in / ${fmtNum(epStats.output)} out`,
+    audio_convert: `Converter active`, // Placeholder
+    transcript: `Processing audio`, // Placeholder
   };
 
   return NextResponse.json({
     metrics: {
-      totalUsers:       metrics.total_users    ?? 0,
-      newThisMonth:     metrics.new_this_month ?? 0,
-      activeThisWeek:   active.active_week     ?? 0,
-      revenueThisMonth: parseFloat(revenue.revenue ?? 0),
-      pendingTopups:    pending.pending         ?? 0,
+      totalUsers: metricsRows[0].total,
+      newThisMonth: metricsRows[0].new_month,
+      activeThisWeek: activeRows[0].active_week,
+      bankInflow: parseFloat(bankInflowRows[0].total) / 100,
+      totalProfit: totalProfit,
     },
+    // RESTORED THIS KEY:
     serviceUsage: ['note', 'transcript', 'exam_prep', 'audio_convert'].map(type => ({
       service: type,
       label:   SERVICE_LABELS[type],
@@ -212,30 +103,18 @@ export async function GET(req) {
       detail:  detailsMap[type] ?? '',
     })),
     revenue: {
-      notes:         revMap.note       ?? 0,
-      transcript:    revMap.transcript  ?? 0,
-      examPrep:      revMap.exam_prep   ?? 0,
-      total:         parseFloat(revenue.revenue ?? 0),
-      circulation:   parseFloat(circ.circulation ?? 0),
-      allTimeTopups: parseFloat(allTime.total ?? 0),
+      note: { rev: revMap.note ?? 0, cost: noteCost, profit: (revMap.note ?? 0) - noteCost },
+      exam: { rev: revMap.exam_prep ?? 0, cost: examCost, profit: (revMap.exam_prep ?? 0) - examCost },
+      transcript: { rev: revMap.transcript ?? 0, cost: transcriptCost, profit: (revMap.transcript ?? 0) - transcriptCost },
+      platformTax: platformTaxUSD,
+      totalCost: noteCost + examCost + transcriptCost,
     },
     recentActivity: recentActivityRows.map(a => ({
-      id:           a.id,
-      type:         a.type,
-      title:        a.title,
-      username:     a.username,
-      chargeAmount: parseFloat(a.charge_amount ?? 0),
-      status:       a.status,
-      createdAt:    a.date,
-    })),
-    pendingQueue: pendingQueueRows.map(pt => ({
-      id:        pt.id,
-      userId:    pt.user_id,
-      username:  pt.username,
-      amount:    parseFloat(pt.amount),
-      ref:       pt.reference_id,
-      verifiedBy: pt.verified_by,
-      createdAt: pt.created_at,
-    })),
+      type: a.type,
+      username: a.username,
+      chargeAmount: parseFloat(a.charge_amount),
+      status: a.status,
+      createdAt: a.date
+    }))
   });
 }

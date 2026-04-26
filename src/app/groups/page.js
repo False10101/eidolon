@@ -67,7 +67,7 @@ function EditNameModal({ value, onChange, onSave, onClose, loading }) {
       >
         <div className="px-6 py-4 border-b border-white/[0.07] bg-[#18181f]">
           <div className="text-[14px] font-medium text-[#e8e8ed]">Rename group</div>
-          <div className="mt-0.5 text-[12px] text-[#6b6b7a]">This name is visible to all members.</div>
+          <div className="mt-0.5 text-[12px] text-[#9a9aaa]">This name is visible to all members.</div>
         </div>
         <div className="px-6 py-4 flex flex-col gap-4">
           <input
@@ -75,11 +75,11 @@ function EditNameModal({ value, onChange, onSave, onClose, loading }) {
             onKeyDown={(e) => { if (e.key === 'Enter') onSave(); if (e.key === 'Escape' && !loading) onClose(); }}
             disabled={loading}
             placeholder="Enter group name…"
-            className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2.5 text-[13px] text-[#e8e8ed] outline-none focus:border-[rgba(0,212,200,0.35)] transition-colors placeholder:text-[#6b6b7a] disabled:opacity-50"
+            className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2.5 text-[13px] text-[#e8e8ed] outline-none focus:border-[rgba(0,212,200,0.35)] transition-colors placeholder:text-[#9a9aaa] disabled:opacity-50"
           />
           <div className="flex items-center justify-end gap-2">
             <button onClick={onClose} disabled={loading}
-              className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[12.5px] text-[#6b6b7a] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40 disabled:cursor-not-allowed">
+              className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[12.5px] text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40 disabled:cursor-not-allowed">
               Cancel
             </button>
             <button onClick={onSave} disabled={loading}
@@ -352,7 +352,7 @@ export default function Groups() {
               <div className="w-full max-w-[500px]">
                 <button
                   onClick={() => { if (!creating) { setIsCreating(false); setError(null); } }}
-                  className="mb-6 flex items-center gap-1.5 text-[12px] text-[#6b6b7a] transition-colors hover:text-[#e8e8ed] disabled:opacity-40"
+                  className="mb-6 flex items-center gap-1.5 text-[12px] text-[#9a9aaa] transition-colors hover:text-[#e8e8ed] disabled:opacity-40"
                   disabled={creating}
                 >
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current stroke-2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
@@ -364,7 +364,7 @@ export default function Groups() {
 
                 <div className="flex flex-col gap-5 rounded-2xl border border-white/[0.07] bg-[#111116] p-6 surface noise">
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
+                    <label className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">
                       Group name <span className="text-[#ef4444]">*</span>
                     </label>
                     <input
@@ -373,12 +373,12 @@ export default function Groups() {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
                       disabled={creating}
                       placeholder="e.g. CS Year 3 Study Group"
-                      className="rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2.5 text-[13px] text-[#e8e8ed] outline-none transition-colors placeholder:text-[#6b6b7a] focus:border-[rgba(0,212,200,0.35)] disabled:opacity-50"
+                      className="rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2.5 text-[13px] text-[#e8e8ed] outline-none transition-colors placeholder:text-[#9a9aaa] focus:border-[rgba(0,212,200,0.35)] disabled:opacity-50"
                     />
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Group size</label>
+                    <label className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Group size</label>
                     <div className="grid grid-cols-2 gap-2">
                       {GROUP_TIERS.map((tier) => (
                         <button key={tier.id} onClick={() => { if (!creating) setSelectedTier(tier.id); }}
@@ -388,7 +388,7 @@ export default function Groups() {
                               ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.06)]'
                               : 'border-white/[0.07] bg-[#18181f] hover:border-white/[0.14]'}`}>
                           <div className={`text-[14px] font-medium transition-colors ${selectedTier === tier.id ? 'text-[#00d4c8]' : 'text-[#e8e8ed]'}`}>{tier.label}</div>
-                          <div className="text-[11.5px] text-[#6b6b7a]">Up to {tier.seats} members</div>
+                          <div className="text-[11.5px] text-[#9a9aaa]">Up to {tier.seats} members</div>
                           <div className="mt-0.5 text-[10.5px] text-[#22c55e]">{tier.discount} off per member</div>
                         </button>
                       ))}
@@ -425,7 +425,7 @@ export default function Groups() {
                 <h1 className="font-serif text-[26px] font-normal tracking-[-0.02em] text-[#e8e8ed] mb-2">
                   Study <span className="text-[#00d4c8]">together</span>
                 </h1>
-                <p className="text-[13px] text-[#6b6b7a] max-w-sm mx-auto leading-relaxed">
+                <p className="text-[13px] text-[#9a9aaa] max-w-sm mx-auto leading-relaxed">
                   Join a group to automatically split generation costs, or create your own and earn the generator discount.
                 </p>
               </motion.div>
@@ -444,8 +444,8 @@ export default function Groups() {
                     </svg>
                   </div>
                   <h3 className="text-[15px] font-medium text-[#e8e8ed] mb-2 group-hover:text-[#00d4c8] transition-colors">Create a group</h3>
-                  <p className="text-[12.5px] leading-relaxed text-[#6b6b7a] mb-6">
-                    Start a new study pool. You'll be admin, manage invites, and earn the 50% discount when you generate notes for the group.
+                  <p className="text-[12.5px] leading-relaxed text-[#9a9aaa] mb-6">
+                    Start a new study pool. You'll be admin, manage invites, and earn the <span className="text-[#e8e8ed] font-medium">50% discount</span> when you generate notes for the group.
                   </p>
                   <div className="flex items-center gap-1.5 text-[13px] font-medium text-[#00d4c8]">
                     Get started
@@ -457,12 +457,12 @@ export default function Groups() {
                 <div className="flex-1 rounded-2xl border border-white/[0.07] bg-[#111116] p-8 flex flex-col justify-between surface noise">
                   <div>
                     <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#18181f] border border-white/[0.07]">
-                      <svg viewBox="0 0 24 24" className="h-5 w-5 stroke-[#9898a8] fill-none stroke-2">
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 stroke-[#b4b4c2] fill-none stroke-2">
                         <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><polyline points="10 17 15 12 10 7" /><line x1="15" y1="12" x2="3" y2="12" />
                       </svg>
                     </div>
                     <h3 className="text-[15px] font-medium text-[#e8e8ed] mb-2">Join existing</h3>
-                    <p className="text-[12.5px] leading-relaxed text-[#6b6b7a] mb-5">
+                    <p className="text-[12.5px] leading-relaxed text-[#9a9aaa] mb-5">
                       Enter an invite code from your group admin to link your balance to the shared pool.
                     </p>
                   </div>
@@ -472,7 +472,7 @@ export default function Groups() {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleJoin(); }}
                       disabled={joining}
                       placeholder="e.g. A8X2KPQ"
-                      className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2.5 font-mono text-[13px] text-[#e8e8ed] outline-none transition-colors placeholder:text-[#6b6b7a] placeholder:opacity-50 focus:border-[rgba(0,212,200,0.35)] disabled:opacity-50"
+                      className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2.5 font-mono text-[13px] text-[#e8e8ed] outline-none transition-colors placeholder:text-[#9a9aaa] focus:border-[rgba(0,212,200,0.35)] disabled:opacity-50"
                     />
                     <button onClick={handleJoin} disabled={!joinCode.trim() || joining}
                       className="flex items-center gap-2 rounded-lg bg-[#00d4c8] px-5 py-2.5 text-[13px] font-medium text-[#0c0c0e] transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap">
@@ -499,7 +499,7 @@ export default function Groups() {
               {/* Header */}
               <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-[#111116] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a]">
+                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-[#111116] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#00d4c8]" />
                     {activeGroup.tier} tier
                   </div>
@@ -510,7 +510,7 @@ export default function Groups() {
                     {myRole === 'owner' && (
                       <button
                         onClick={() => { setEditedName(activeGroup.name); setIsEditingName(true); }}
-                        className="text-[#6b6b7a] hover:text-[#00d4c8] transition-colors mt-0.5"
+                        className="text-[#9a9aaa] hover:text-[#00d4c8] transition-colors mt-0.5"
                       >
                         <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -523,7 +523,7 @@ export default function Groups() {
 
                 <div className="flex items-center gap-3">
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-60 select-none">Invite code</span>
+                    <span className="text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa] select-none">Invite code</span>
                     <button
                       onClick={() => { navigator.clipboard.writeText(activeGroup.invite_code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
                       className="flex items-center gap-1.5 font-mono text-[13px] text-[#e8e8ed] hover:text-[#00d4c8] transition-colors"
@@ -551,8 +551,8 @@ export default function Groups() {
               {/* Member list */}
               <motion.div variants={itemVariants} className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
-                  <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-60 select-none">Members</div>
-                  <div className="text-[11px] text-[#6b6b7a]">{activeGroup.members.length} / {activeGroup.capacity} slots filled</div>
+                  <div className="text-[10.5px] uppercase tracking-[0.08em] text-[#9a9aaa] select-none">Members</div>
+                  <div className="text-[11px] text-[#9a9aaa]">{activeGroup.members.length} / {activeGroup.capacity} slots filled</div>
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface">
@@ -580,14 +580,14 @@ export default function Groups() {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-[#6b6b7a] mt-0.5">Joined {formatDate(member.joined_at)}</span>
+                          <span className="text-[11px] text-[#9a9aaa] mt-0.5">Joined {formatDate(member.joined_at)}</span>
                         </div>
                       </div>
 
                       {myRole === 'owner' && !member.isMe && (
                         <button
                           onClick={() => setKickTarget({ id: member.id, name: member.name })}
-                          className="text-[11px] text-[#6b6b7a] hover:text-[#ef4444] transition-colors uppercase tracking-[0.05em]"
+                          className="text-[11px] text-[#9a9aaa] hover:text-[#ef4444] transition-colors uppercase tracking-[0.05em]"
                         >
                           Kick
                         </button>
@@ -607,8 +607,8 @@ export default function Groups() {
                 </svg>
                 <div>
                   <div className="text-[13px] font-medium text-[#e8e8ed] mb-1">Billing active</div>
-                  <p className="text-[12.5px] leading-relaxed text-[#6b6b7a]">
-                    Generation costs are split equally among all members. Whoever clicks Generate receives a 50% discount on their share for managing the run.
+                  <p className="text-[12.5px] leading-relaxed text-[#9a9aaa]">
+                    Generation costs are split equally among all members. Whoever clicks Generate receives a <span className="text-[#e8e8ed] font-medium">50% discount</span> on their share for managing the run.
                   </p>
                 </div>
               </motion.div>

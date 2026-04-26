@@ -20,10 +20,10 @@ export default function ConfirmModal({ title, message, confirmLabel = 'Confirm',
           </svg>
         </div>
         <div className="relative mb-1.5 text-[15px] font-medium text-[#e8e8ed]">{title}</div>
-        <p className="relative mb-6 text-[13px] leading-[1.7] text-[#6b6b7a]">{message}</p>
+        <p className="relative mb-6 text-[13px] leading-[1.7] text-[#9a9aaa]">{message}</p>
         <div className="relative flex gap-2">
           <button onClick={onCancel} disabled={loading}
-            className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40 disabled:cursor-not-allowed">
+            className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40 disabled:cursor-not-allowed">
             Cancel
           </button>
           <button onClick={onConfirm} disabled={loading}

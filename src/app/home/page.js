@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth0 } from '@auth0/auth0-react';
 import Navbar from '../navbar';
+import CreditIcon from '../CreditIcon';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatLastLogin(dateString) {
@@ -50,7 +51,7 @@ const pipeline = [
   },
   {
     step: 'Step 02', name: 'Transcriptor', href: '/transcriptor',
-    desc: 'MP3 → clean Whisper transcript', price: '฿2–6 / session', isNew: true,
+    desc: 'MP3 → clean Whisper transcript', price: '7 or 11 / hour', isNew: true,
     icon: (
       <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
@@ -60,7 +61,7 @@ const pipeline = [
   },
   {
     step: 'Step 03', name: 'Inclass Notes', href: '/note',
-    desc: 'Transcript → comprehensive lecture notes', price: '฿6–10 / note', isNew: false,
+    desc: 'Transcript → comprehensive lecture notes', price: '9 - 17 / note', isNew: false,
     icon: (
       <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -70,7 +71,7 @@ const pipeline = [
   },
   {
     step: 'Step 04', name: 'Exam Prep', href: '/exam-prep',
-    desc: 'Notes → practice questions + solutions', price: '฿12–15 / subject', isNew: true,
+    desc: 'Notes → practice questions + solutions', price: '17 – 37 / subject', isNew: true,
     icon: (
       <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
         <path d="M9 11l3 3L22 4" />
@@ -84,6 +85,8 @@ const typeDisplayMap = {
   note:       'Inclass Notes',
   transcript: 'Transcription',
   exam_prep:  'Exam Prep',
+  topup: 'Topup',
+  rebate: 'Rebate'
 };
 
 const routeMap = {
@@ -110,7 +113,6 @@ const itemVariants = {
 };
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
-// Mirrors the exact layout of the real page so there's zero layout shift on load.
 function HomeSkeleton() {
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden p-6 md:p-8 min-w-0">
@@ -278,8 +280,8 @@ export default function Home() {
                 <h1 className="font-serif text-[26px] font-normal tracking-[-0.02em] text-[#e8e8ed] mb-1">
                   Welcome back, <span className="text-[#00d4c8]">{userData.username}</span>
                 </h1>
-                <p className="text-[12px] text-[#6b6b7a]">
-                  Last login: {formatLastLogin(userData.last_login)}
+                <p className="text-[12px] text-[#9a9aaa]">
+                  Last login: <span className="text-[#b4b4c2]">{formatLastLogin(userData.last_login)}</span>
                 </p>
               </div>
               <button
@@ -290,7 +292,7 @@ export default function Home() {
                   <line x1="12" y1="1" x2="12" y2="23" />
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
-                <span className="text-[12px] text-[#9898a8]">View pricing</span>
+                <span className="text-[12px] text-[#e8e8ed]">View pricing</span>
               </button>
             </motion.div>
 
@@ -298,13 +300,24 @@ export default function Home() {
             <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <MetricCard label="Notes generated"   value={String(noteCount)}              change={userData.weeklyComparison?.tokenSent?.change} />
               <MetricCard label="Tokens processed"  value={formatNumber(totalTokens)}      change={userData.weeklyComparison?.tokenReceived?.change} />
-              <MetricCard label="This month spent"  value={`฿ ${userData.totalCost ?? 0}`} change={userData.weeklyComparison?.cost?.change} cyan />
-              <MetricCard label="Balance remaining" value={`฿ ${userData.balance ?? '—'}`} sub={`~${estimatedGens} generations left`} cyan />
+              {/* Passed the icon layout directly into the value string here! */}
+              <MetricCard 
+                label="This month spent"  
+                value={<span className="inline-flex items-center gap-1.5"><CreditIcon size={20} color="#00d4c8" />{userData.totalCost ?? 0}</span>} 
+                change={userData.weeklyComparison?.cost?.change} 
+                cyan 
+              />
+              <MetricCard 
+                label="Balance remaining" 
+                value={<span className="inline-flex items-center gap-1.5"><CreditIcon size={20} color="#00d4c8" />{userData.balance ?? '—'}</span>} 
+                sub={`~${estimatedGens} generations left`} 
+                cyan 
+              />
             </motion.div>
 
             {/* ── Pipeline ── */}
             <motion.div variants={itemVariants}>
-              <div className="mb-3.5 text-[11px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-60">Your pipeline</div>
+              <div className="mb-3.5 text-[11px] uppercase tracking-[0.08em] text-[#9a9aaa]">Your pipeline</div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                 {pipeline.map((p) => (
                   <PipelineCard key={p.href} {...p} onClick={() => router.push(p.href)} />
@@ -318,14 +331,14 @@ export default function Home() {
               {/* Activity table */}
               <div className="flex flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface">
                 <div className="flex items-center justify-between border-b border-white/[0.07] bg-[#18181f] px-4 py-3.5">
-                  <span className="text-[12px] font-medium tracking-[0.02em] text-[#9898a8]">Recent activity</span>
+                  <span className="text-[12px] font-medium tracking-[0.02em] text-[#b4b4c2]">Recent activity</span>
                 </div>
                 <div className="flex-1 overflow-auto min-h-0" style={{ scrollbarWidth: 'thin', scrollbarColor: '#18181f transparent' }}>
                   <table className="w-full border-collapse">
                     <thead>
                       <tr>
                         {['Title', 'Type', 'Status', 'Date', ''].map((h) => (
-                          <th key={h} className="border-b border-white/[0.07] px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-50 font-normal whitespace-nowrap">
+                          <th key={h} className="border-b border-white/[0.07] px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa] font-normal whitespace-nowrap">
                             {h}
                           </th>
                         ))}
@@ -380,27 +393,27 @@ function ActivityRow({ activity, index, onView }) {
     >
       <td className="max-w-[180px] truncate px-4 py-2.5 text-[13px] text-[#e8e8ed]">{activity.title}</td>
       <td className="px-4 py-2.5">
-        <span className="rounded border border-white/[0.07] bg-[#18181f] px-1.5 py-0.5 font-mono text-[10px] text-[#6b6b7a] whitespace-nowrap">
+        <span className="rounded border border-white/[0.07] bg-[#18181f] px-1.5 py-0.5 capitalize font-mono text-[10px] text-[#b4b4c2] whitespace-nowrap">
           {typeDisplayMap[activity.type] ?? activity.type}
         </span>
       </td>
       <td className="px-4 py-2.5">
-        <span className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 font-mono text-[10px] font-medium ${statusStyle}`}>
+        <span className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 font-mono text-[10px] capitalize font-medium ${statusStyle}`}>
           <span className="h-[5px] w-[5px] flex-shrink-0 rounded-full bg-current" />
           {activity.status}
         </span>
       </td>
-      <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[11px] text-[#6b6b7a]">
+      <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[11px] text-[#9a9aaa]">
         {new Date(activity.date).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
         {' '}
-        <span className="text-[#4b4b5a]">
+        <span className="text-[#7a7a8a]">
           {new Date(activity.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
       </td>
       <td className="px-4 py-2.5">
         <button
           onClick={onView}
-          className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-[#00d4c8] opacity-60 transition-opacity hover:opacity-100"
+          className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-[#00d4c8] opacity-80 transition-opacity hover:opacity-100"
         >
           <EyeIcon className="h-3.5 w-3.5" /> View
         </button>
@@ -420,8 +433,8 @@ function MonthlyUsage({ data }) {
   return (
     <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] flex flex-col h-full surface">
       <div className="border-b border-white/[0.07] bg-[#18181f] px-4 py-3 flex items-center justify-between">
-        <span className="text-[12px] font-medium tracking-[0.02em] text-[#9898a8]">Monthly usage</span>
-        <span className="text-[10px] text-[#6b6b7a] font-mono">
+        <span className="text-[12px] font-medium tracking-[0.02em] text-[#b4b4c2]">Monthly usage</span>
+        <span className="text-[10px] text-[#9a9aaa] font-mono">
           {new Date().toLocaleString('en-GB', { month: 'long', timeZone: 'Asia/Bangkok' })}
         </span>
       </div>
@@ -431,8 +444,8 @@ function MonthlyUsage({ data }) {
           return (
             <div key={t.key} className="flex flex-col gap-2 px-3">
               <div className="flex justify-between text-[11px]">
-                <span className="text-[#9898a8]">{t.label}</span>
-                <span className="font-mono text-[#6b6b7a]">{t.count} calls</span>
+                <span className="text-[#b4b4c2]">{t.label}</span>
+                <span className="font-mono text-[#b4b4c2]"><span className="text-[#e8e8ed]">{t.count}</span> calls</span>
               </div>
               <div className="h-[3px] w-full overflow-hidden rounded-full bg-[#18181f]">
                 <div
@@ -446,7 +459,7 @@ function MonthlyUsage({ data }) {
         <div className="mt-auto pt-4 border-t border-white/[0.07] grid grid-cols-3 gap-2">
           {counts.map(({ key, label, count }) => (
             <div key={key} className="flex flex-col gap-1 rounded-lg border border-white/[0.07] bg-[#18181f] px-2.5 py-2">
-              <div className="text-[10px] text-[#6b6b7a] opacity-60 truncate">{label}</div>
+              <div className="text-[10px] text-[#9a9aaa] truncate">{label}</div>
               <div className="font-mono text-[13px] text-[#e8e8ed]">{count}</div>
             </div>
           ))}
@@ -478,7 +491,7 @@ function MetricCard({ label, value, change, cyan, sub }) {
       />
  
       <div className="relative">
-        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-70">{label}</div>
+        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa]">{label}</div>
         <div className={`mb-1.5 font-mono text-[22px] font-medium leading-none ${cyan ? 'text-[#00d4c8]' : 'text-[#e8e8ed]'}`}>
           {value}
         </div>
@@ -493,7 +506,7 @@ function MetricCard({ label, value, change, cyan, sub }) {
             {Math.abs(change)}% vs last week
           </div>
         ) : sub ? (
-          <div className="text-[11px] text-[#6b6b7a]">{sub}</div>
+          <div className="text-[11px] text-[#b4b4c2]">{sub}</div>
         ) : null}
       </div>
     </div>
@@ -517,10 +530,13 @@ function PipelineCard({ step, name, desc, price, isNew, icon, onClick }) {
       <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f] transition-colors group-hover:border-[rgba(0,212,200,0.3)]">
         {icon}
       </div>
-      <div className="relative z-10 mb-1 text-[9px] uppercase tracking-[0.1em] text-[#6b6b7a] opacity-60">{step}</div>
+      <div className="relative z-10 mb-1 text-[9px] uppercase tracking-[0.1em] text-[#9a9aaa]">{step}</div>
       <div className="relative z-10 mb-1 text-[13px] font-medium text-[#e8e8ed]">{name}</div>
-      <div className="relative z-10 mb-2.5 text-[11px] leading-snug text-[#6b6b7a]">{desc}</div>
-      <span className="relative z-10 inline-block rounded bg-[rgba(0,212,200,0.08)] px-1.5 py-0.5 font-mono text-[10px] text-[#00d4c8]">
+      <div className="relative z-10 mb-2.5 text-[11px] leading-snug text-[#b4b4c2]">{desc}</div>
+      
+      {/* Changed to inline-flex items-center and conditionally rendering the icon! */}
+      <span className="relative z-10 inline-flex items-center gap-1 rounded bg-[rgba(0,212,200,0.08)] px-1.5 py-0.5 font-mono text-[10px] text-[#00d4c8]">
+        {price !== 'free' && <CreditIcon size={12} color="#00d4c8" />}
         {price}
       </span>
     </button>

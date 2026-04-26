@@ -8,6 +8,7 @@ import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
 import GeneratingOverlay from '../../GeneratingOverlays';
 import ErrorModal from '@/app/ErrorModal';
+import CreditIcon from '@/app/CreditIcon';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const STEPS = ['Validating balance', 'Reading source material', 'Generating questions', 'Writing solutions', 'Saving result'];
@@ -207,8 +208,8 @@ export default function NewExamPrepPage() {
             <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
               New <span className="text-[#00d4c8]">Exam Prep</span>
             </h1>
-            <p className="mt-0.5 text-[12.5px] text-[#6b6b7a]">
-              Select notes and/or upload transcript files to generate practice questions.
+            <p className="mt-0.5 text-[12.5px] text-[#9a9aaa]">
+              Select notes and/or upload transcript files to generate <span className="text-[#e8e8ed] font-medium">practice questions</span>.
             </p>
           </div>
 
@@ -229,14 +230,14 @@ export default function NewExamPrepPage() {
                 {/* LEFT — notes picker */}
                 <div className="flex flex-col gap-3 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
                   <div className="flex items-center justify-between flex-shrink-0">
-                    <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">From notes</div>
+                    <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">From notes</div>
                     {selectedNotes.length > 0 && (
                       <div className="flex items-center gap-2">
                         <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#00d4c8] font-mono text-[10px] font-medium text-[#0c0c0e]">
                           {selectedNotes.length}
                         </span>
                         <button onClick={() => setSelectedNotes([])}
-                          className="text-[11px] text-[#6b6b7a] hover:text-[#ef4444] transition-colors">
+                          className="text-[11px] text-[#9a9aaa] hover:text-[#ef4444] transition-colors">
                           Clear
                         </button>
                       </div>
@@ -245,12 +246,12 @@ export default function NewExamPrepPage() {
 
                   {/* Search */}
                   <div className="relative flex-shrink-0">
-                    <svg viewBox="0 0 24 24" className="absolute left-2.5 top-1/2 -translate-y-1/2 stroke-[#6b6b7a] fill-none stroke-[1.8]" style={{ width: 13, height: 13 }}>
+                    <svg viewBox="0 0 24 24" className="absolute left-2.5 top-1/2 -translate-y-1/2 stroke-[#9a9aaa] fill-none stroke-[1.8]" style={{ width: 13, height: 13 }}>
                       <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                     </svg>
                     <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search notes…"
-                      className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] py-2 pl-8 pr-3 text-[12px] text-[#e8e8ed] outline-none placeholder:text-[#6b6b7a] focus:border-[rgba(0,212,200,0.3)] transition-colors"
+                      className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] py-2 pl-8 pr-3 text-[12px] text-[#e8e8ed] outline-none placeholder:text-[#9a9aaa] focus:border-[rgba(0,212,200,0.3)] transition-colors"
                     />
                   </div>
 
@@ -258,12 +259,12 @@ export default function NewExamPrepPage() {
                   <div className="flex flex-col gap-1.5 overflow-y-auto"
                     style={{ maxHeight: 150, scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
                     {notesLoading ? (
-                      <div className="flex items-center justify-center gap-2 py-4 text-[12px] text-[#6b6b7a]">
+                      <div className="flex items-center justify-center gap-2 py-4 text-[12px] text-[#9a9aaa]">
                         <div className="h-3 w-3 animate-spin rounded-full border border-transparent border-t-[#00d4c8]" />
                         Loading…
                       </div>
                     ) : filteredNotes.length === 0 ? (
-                      <p className="text-center py-4 text-[12px] text-[#6b6b7a] opacity-60">
+                      <p className="text-center py-4 text-[12px] text-[#9a9aaa]">
                         {notes.length === 0 ? 'No notes yet.' : 'No results.'}
                       </p>
                     ) : filteredNotes.map(note => {
@@ -282,10 +283,10 @@ export default function NewExamPrepPage() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className={`truncate text-[12px] font-medium transition-colors ${selected ? 'text-[#e8e8ed]' : 'text-[#9898a8]'}`}>
+                            <div className={`truncate text-[12px] font-medium transition-colors ${selected ? 'text-[#e8e8ed]' : 'text-[#b4b4c2]'}`}>
                               {note.name}
                             </div>
-                            <div className="text-[10.5px] text-[#6b6b7a] capitalize">
+                            <div className="text-[10.5px] text-[#9a9aaa] capitalize">
                               {note.style ?? 'Standard'} · {formatDate(note.created_at)}
                             </div>
                           </div>
@@ -297,7 +298,7 @@ export default function NewExamPrepPage() {
 
                 {/* RIGHT — file upload */}
                 <div className="flex flex-col gap-3 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65 flex-shrink-0">Upload files</div>
+                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa] flex-shrink-0">Upload files</div>
 
                   <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -309,15 +310,15 @@ export default function NewExamPrepPage() {
                   >
                     <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border transition-all
                       ${isDragging ? 'border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]' : 'border-white/[0.07] bg-[#18181f]'}`}>
-                      <svg viewBox="0 0 24 24" className={`h-[17px] w-[17px] fill-none stroke-[1.6] transition-colors ${isDragging ? 'stroke-[#00d4c8]' : 'stroke-[#6b6b7a]'}`}>
+                      <svg viewBox="0 0 24 24" className={`h-[17px] w-[17px] fill-none stroke-[1.6] transition-colors ${isDragging ? 'stroke-[#00d4c8]' : 'stroke-[#9a9aaa]'}`}>
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12.5px] font-medium text-[#9898a8]">Drop .txt files here</div>
-                      <div className="text-[11.5px] text-[#6b6b7a]">or click to browse · multiple allowed</div>
+                      <div className="text-[12.5px] font-medium text-[#e8e8ed]">Drop .txt files here</div>
+                      <div className="text-[11.5px] text-[#9a9aaa]">or click to browse · multiple allowed</div>
                     </div>
-                    <span className="flex-shrink-0 rounded-md border border-white/[0.07] bg-[#18181f] px-2 py-0.5 font-mono text-[10.5px] text-[#6b6b7a] uppercase">.txt</span>
+                    <span className="flex-shrink-0 rounded-md border border-white/[0.07] bg-[#18181f] px-2 py-0.5 font-mono text-[10.5px] text-[#9a9aaa] uppercase">.txt</span>
                   </div>
                   <input ref={fileInputRef} type="file" accept=".txt" multiple className="hidden"
                     onChange={(e) => { if (e.target.files) handleFiles(e.target.files); }} />
@@ -330,10 +331,10 @@ export default function NewExamPrepPage() {
                           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[#00d4c8] fill-none stroke-[1.8]">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
                           </svg>
-                          <span className="flex-1 min-w-0 truncate text-[11.5px] text-[#9898a8]">{f.name}</span>
-                          <span className="flex-shrink-0 text-[10.5px] text-[#6b6b7a]">{(f.size / 1024).toFixed(0)} KB</span>
+                          <span className="flex-1 min-w-0 truncate text-[11.5px] text-[#b4b4c2]">{f.name}</span>
+                          <span className="flex-shrink-0 text-[10.5px] text-[#9a9aaa]">{(f.size / 1024).toFixed(0)} KB</span>
                           <button onClick={() => removeFile(f.name)}
-                            className="flex-shrink-0 text-[#6b6b7a] hover:text-[#ef4444] transition-colors">
+                            className="flex-shrink-0 text-[#9a9aaa] hover:text-[#ef4444] transition-colors">
                             <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[2]">
                               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
@@ -350,7 +351,7 @@ export default function NewExamPrepPage() {
 
                 {/* Question types */}
                 <div className="flex flex-col gap-3 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
+                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">
                     Question types <span className="normal-case tracking-normal opacity-60">(select all that apply)</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -375,11 +376,11 @@ export default function NewExamPrepPage() {
                                 </svg>
                               )}
                             </div>
-                            <span className={`text-[12.5px] font-medium transition-colors ${on ? 'text-[#e8e8ed]' : 'text-[#9898a8]'}`}>
+                            <span className={`text-[12.5px] font-medium transition-colors ${on ? 'text-[#e8e8ed]' : 'text-[#b4b4c2]'}`}>
                               {label}
                             </span>
                           </div>
-                          <p className={`text-[11px] leading-[1.6] ${on ? 'text-[#6b6b7a]' : 'text-[#6b6b7a] opacity-60'}`}>{desc}</p>
+                          <p className={`text-[11px] leading-[1.6] ${on ? 'text-[#9a9aaa]' : 'text-[#9a9aaa]'}`}>{desc}</p>
                         </button>
                       );
                     })}
@@ -391,29 +392,29 @@ export default function NewExamPrepPage() {
 
                   {/* Difficulty */}
                   <div className="flex flex-1 flex-col gap-3 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                    <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Difficulty</div>
+                    <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Difficulty</div>
                     <div className="flex rounded-lg border border-white/[0.07] bg-[#18181f] p-1">
                       {DIFFICULTY_OPTS.map(opt => (
                         <button key={opt.key} onClick={() => setDifficulty(opt.key)}
                           className={`flex-1 rounded-md py-1.5 text-[11.5px] transition-all
-                            ${difficulty === opt.key ? 'bg-[#1e1e27] text-[#e8e8ed]' : 'text-[#6b6b7a] hover:text-[#9898a8]'}`}>
+                            ${difficulty === opt.key ? 'bg-[#1e1e27] text-[#e8e8ed]' : 'text-[#9a9aaa] hover:text-[#b4b4c2]'}`}>
                           {opt.label}
                         </button>
                       ))}
                     </div>
-                    <div className="text-[11px] text-[#6b6b7a] opacity-70 leading-[1.6]">
+                    <div className="text-[11px] text-[#9a9aaa] leading-[1.6]">
                       {DIFFICULTY_OPTS.find(o => o.key === difficulty)?.desc}
                     </div>
                   </div>
 
                   {/* Label */}
                   <div className="flex flex-1 flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                    <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
-                      Label <span className="normal-case tracking-normal opacity-60 text-[10px]">(optional)</span>
+                    <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">
+                      Label <span className="text-[#ef4444]">*</span>
                     </div>
                     <input type="text" value={label} onChange={(e) => setLabel(e.target.value)}
                       placeholder="e.g., CSC531 Midterm Prep"
-                      className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#6b6b7a] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
+                      className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#9a9aaa] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
                   </div>
 
                 </div>
@@ -425,8 +426,8 @@ export default function NewExamPrepPage() {
             <div className="flex-shrink-0 px-8 pb-6 pt-3">
               <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-3.5 surface shadow-xl shadow-black/40">
                 <div className="flex flex-col gap-0.5">
-                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-55">Summary</div>
-                  <div className="text-[13px] text-[#9898a8]">
+                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Summary</div>
+                  <div className="text-[13px] text-[#e8e8ed]">
                     {isReady
                       ? <><span className="text-[#00d4c8]">{totalSources} source{totalSources > 1 ? 's' : ''}</span> · {activeTypeLabels.join(', ')} · {difficulty}</>
                       : 'Select at least one note or upload a file to continue.'
@@ -435,11 +436,11 @@ export default function NewExamPrepPage() {
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-3">
                   <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-55">Est. cost</div>
-                    <div className="font-mono text-[13px] text-[#00d4c8]">฿ 12 – ฿ 18</div>
+                    <div className="text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">Est. cost</div>
+                    <div className="font-mono text-[13px] text-[#00d4c8] flex items-center">17 - 37 <CreditIcon size={14} className='ml-1'/></div>
                   </div>
                   <button onClick={() => handleGenerate('group')} disabled={!isReady || procStatus === 'processing'}
-                    className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#18181f] px-5 py-2.5 text-[13px] font-medium text-[#9898a8] transition-all hover:border-[rgba(0,212,200,0.25)] hover:text-[#00d4c8] disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap">
+                    className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#18181f] px-5 py-2.5 text-[13px] font-medium text-[#b4b4c2] transition-all hover:border-[rgba(0,212,200,0.25)] hover:text-[#00d4c8] disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap">
                     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                       <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
