@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
 import { generateExamPrep } from "@/lib/exam-prep/individual/generate";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req) {
     const userId = await verifyUserData(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const limited = await rateLimit(`rl:ep-gen:${userId}`, 10, 60);
+    if (limited) return limited;
 
     const inProgress = await sql`
         SELECT 1 FROM note
@@ -44,8 +48,19 @@ export async function POST(req) {
     const questionTypes = form.getAll('question_types[]');
     const label = form.get('label');
 
+    const VALID_DIFFICULTIES = ['easy', 'normal', 'hard'];
+    const VALID_QUESTION_TYPES = ['tf', 'mcq', 'theory', 'scenario', 'calculation'];
+
     if (!difficulty || questionTypes.length === 0 || label === null || label === "") {
         return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+    }
+
+    if (!VALID_DIFFICULTIES.includes(difficulty)) {
+        return NextResponse.json({ error: 'Invalid difficulty.' }, { status: 400 });
+    }
+
+    if (!questionTypes.every(qt => VALID_QUESTION_TYPES.includes(qt))) {
+        return NextResponse.json({ error: 'Invalid question type.' }, { status: 400 });
     }
 
     if (noteIds.length === 0 && files.length === 0) {
@@ -66,6 +81,9 @@ export async function POST(req) {
 
     let fileContents = [];
     for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) {
+            return NextResponse.json({ error: `File "${file.name}" is too large. Maximum size is 10MB.` }, { status: 400 });
+        }
         const text = await file.text();
         fileContents.push({ name: file.name, content: text });
     }
@@ -81,45 +99,48 @@ export async function POST(req) {
         return NextResponse.json({ error: 'Source material is too large. Please reduce the number of notes or files.' }, { status: 400 });
     }
 
-    const estimatedCost = estimatedTokens < 25000 ? 3
-        : estimatedTokens < 50000 ? 6
-            : estimatedTokens < 75000 ? 10
-                : 13;
+    const worstCaseCost = 37;
 
     const [user] = await sql`SELECT balance FROM "user" WHERE id = ${userId}`;
-    if (!user || Number(user.balance) < estimatedCost) {
+    if (!user || Number(user.balance) < worstCaseCost) {
         return NextResponse.json({ error: 'Insufficient balance.' }, { status: 402 });
     }
 
-    await sql`UPDATE "user" SET balance = balance - ${estimatedCost} WHERE id = ${userId}`;
-
     const questionTypeStr = questionTypes.join(',');
-
     let examPrepId, publicId;
 
-    await sql.begin(async (tx) => {
-        const [row] = await tx`
-            INSERT INTO exam_prep (user_id, label, question_type, difficulty, status, charge_amount, created_at, generation_type)
-            VALUES (${userId}, ${label}, ${questionTypeStr}, ${difficulty}, 'Pending', ${estimatedCost}, NOW(), 'individual')
-            RETURNING id, public_id
-        `;
-        examPrepId = row.id;
-        publicId = row.public_id;
+    try {
+        await sql.begin(async (tx) => {
+            const [held] = await tx`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId} AND balance >= ${worstCaseCost} RETURNING id`;
+            if (!held) throw new Error('Insufficient balance.');
 
-        for (const note of noteContents) {
-            await tx`
-                INSERT INTO exam_prep_sources (exam_prep_id, source_type, source_note_id, file_name, file_content)
-                VALUES (${examPrepId}, 'note', ${note.id}, NULL, NULL)
-            `;
-        }
+            const [row] = await tx`
+                INSERT INTO exam_prep (user_id, label, question_type, difficulty, status, charge_amount, created_at, generation_type)
+                VALUES (${userId}, ${label}, ${questionTypeStr}, ${difficulty}, 'Pending', ${worstCaseCost}, NOW(), 'individual')
+                RETURNING id, public_id
+            `; 
+            
+            examPrepId = row.id;
+            publicId = row.public_id;
 
-        for (const file of fileContents) {
-            await tx`
-                INSERT INTO exam_prep_sources (exam_prep_id, source_type, source_note_id, file_name, file_content)
-                VALUES (${examPrepId}, 'file', NULL, ${file.name}, ${file.content})
-            `;
-        }
-    });
+            for (const note of noteContents) {
+                await tx`
+                    INSERT INTO exam_prep_sources (exam_prep_id, source_type, source_note_id, file_name, file_content)
+                    VALUES (${examPrepId}, 'note', ${note.id}, NULL, NULL)
+                `;
+            }
+
+            for (const file of fileContents) {
+                await tx`
+                    INSERT INTO exam_prep_sources (exam_prep_id, source_type, source_note_id, file_name, file_content)
+                    VALUES (${examPrepId}, 'file', NULL, ${file.name}, ${file.content})
+                `;
+            }
+        });
+    } catch (error) {
+        console.error("Endpoint DB Setup Failed:", error);
+        return NextResponse.json({ error: 'Failed to initiate generation. You have not been charged.' }, { status: 500 });
+    }
 
     generateExamPrep({
         examPrepId,
@@ -129,7 +150,8 @@ export async function POST(req) {
         fileContents,
         questionTypes,
         difficulty,
-        estimatedCost,
+        worstCaseCost,
+        label
     }).catch(err => console.error('Exam prep generation error:', err));
 
     return NextResponse.json({ publicId });

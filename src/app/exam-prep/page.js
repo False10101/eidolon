@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import ErrorModal from '../ErrorModal';
+import CreditIcon from '../CreditIcon';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const TYPE_STYLES = {
@@ -55,64 +56,70 @@ const itemVariants = {
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 function ExamPrepSkeleton() {
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-5 flex flex-col gap-7">
-      {/* Group skeleton */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2.5">
+    <div className="flex-1 overflow-hidden px-8 py-5 flex flex-col gap-4">
+      {/* Group skeleton — 40% */}
+      <div className="flex flex-col gap-2 min-h-0" style={{ flex: '40 40 0%' }}>
+        <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="skeleton h-2.5 w-12 rounded" />
           <div className="flex-1 h-px bg-white/[0.05]" />
           <div className="skeleton h-2.5 w-16 rounded" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-white/[0.07] bg-[#111116] p-5 flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <div className="skeleton h-9 w-9 rounded-lg" />
-                <div className="flex-1 flex flex-col gap-2">
-                  <div className="skeleton h-3.5 w-36 rounded" />
-                  <div className="flex gap-1">
-                    {[32, 40, 36].map((w, j) => <div key={j} className="skeleton h-4 rounded-full" style={{ width: w }} />)}
+        <div className="skeleton h-8 w-full rounded-lg flex-shrink-0" />
+        <div className="flex-1 overflow-hidden">
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-white/[0.07] bg-[#111116] p-5 flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="skeleton h-9 w-9 rounded-lg" />
+                  <div className="flex-1 flex flex-col gap-2">
+                    <div className="skeleton h-3.5 w-36 rounded" />
+                    <div className="flex gap-1">
+                      {[32, 40, 36].map((w, j) => <div key={j} className="skeleton h-4 rounded-full" style={{ width: w }} />)}
+                    </div>
                   </div>
+                  <div className="skeleton h-5 w-14 rounded-full" />
                 </div>
-                <div className="skeleton h-5 w-14 rounded-full" />
+                <div className="flex justify-between">
+                  <div className="skeleton h-2.5 w-20 rounded" />
+                  <div className="skeleton h-2.5 w-12 rounded" />
+                </div>
               </div>
-              <div className="flex justify-between">
-                <div className="skeleton h-2.5 w-20 rounded" />
-                <div className="skeleton h-2.5 w-12 rounded" />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Individual skeleton */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2.5">
+      {/* Individual skeleton — 60% */}
+      <div className="flex flex-col gap-2 min-h-0" style={{ flex: '60 60 0%' }}>
+        <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="skeleton h-2.5 w-16 rounded" />
           <div className="flex-1 h-px bg-white/[0.05]" />
           <div className="skeleton h-2.5 w-16 rounded" />
         </div>
-        <div className="flex items-center gap-4 px-5">
+        <div className="skeleton h-8 w-full rounded-lg flex-shrink-0" />
+        <div className="flex items-center gap-4 px-5 flex-shrink-0">
           {[36, 120, 80, 40, 64, 112].map((w, i) => (
             <div key={i} className="skeleton h-2 rounded flex-shrink-0" style={{ width: w }} />
           ))}
         </div>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-4">
-            <div className="skeleton h-9 w-9 rounded-lg flex-shrink-0" />
-            <div className="flex-1 flex flex-col gap-2">
-              <div className="skeleton h-3.5 rounded" style={{ width: `${120 + (i % 3) * 40}px` }} />
-              <div className="flex gap-1">
-                {[32, 40].map((w, j) => <div key={j} className="skeleton h-4 rounded-full" style={{ width: w }} />)}
+        <div className="flex-1 overflow-hidden flex flex-col gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-4 flex-shrink-0">
+              <div className="skeleton h-9 w-9 rounded-lg flex-shrink-0" />
+              <div className="flex-1 flex flex-col gap-2">
+                <div className="skeleton h-3.5 rounded" style={{ width: `${120 + (i % 3) * 40}px` }} />
+                <div className="flex gap-1">
+                  {[32, 40].map((w, j) => <div key={j} className="skeleton h-4 rounded-full" style={{ width: w }} />)}
+                </div>
               </div>
+              <div className="skeleton h-5 w-20 rounded-full flex-shrink-0" />
+              <div className="skeleton h-3 w-10 rounded flex-shrink-0" />
+              <div className="skeleton h-3 w-16 rounded flex-shrink-0" />
+              <div className="skeleton h-3 w-28 rounded flex-shrink-0" />
+              <div className="skeleton h-3.5 w-3.5 rounded flex-shrink-0" />
             </div>
-            <div className="skeleton h-5 w-20 rounded-full flex-shrink-0" />
-            <div className="skeleton h-3 w-10 rounded flex-shrink-0" />
-            <div className="skeleton h-3 w-16 rounded flex-shrink-0" />
-            <div className="skeleton h-3 w-28 rounded flex-shrink-0" />
-            <div className="skeleton h-3.5 w-3.5 rounded flex-shrink-0" />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -140,11 +147,11 @@ function EmptyState({ message }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 text-center">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-[#18181f] mb-3">
-        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#6b6b7a] fill-none stroke-[1.6]">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#9a9aaa] fill-none stroke-[1.6]">
           <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
       </div>
-      <p className="text-[12px] text-[#6b6b7a]">{message}</p>
+      <p className="text-[12px] text-[#9a9aaa]">{message}</p>
     </div>
   );
 }
@@ -152,10 +159,10 @@ function EmptyState({ message }) {
 function SectionDivider({ label, count, unit = 'items' }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="text-[11px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-60 select-none">{label}</span>
+      <span className="text-[11px] uppercase tracking-[0.08em] text-[#9a9aaa] select-none">{label}</span>
       <div className="flex-1 h-px bg-white/[0.05]" />
       {count != null && (
-        <span className="text-[11px] text-[#6b6b7a] opacity-40 select-none">
+        <span className="text-[11px] text-[#9a9aaa] select-none">
           {count} {count === 1 ? unit.replace(/s$/, '') : unit}
         </span>
       )}
@@ -170,7 +177,7 @@ function IndividualRow({ ep, onClick }) {
       className="group flex w-full items-center gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-4 text-left transition-colors duration-150 hover:border-white/[0.12] hover:bg-[#14141a] surface noise"
     >
       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f] transition-colors group-hover:border-[rgba(0,212,200,0.2)] group-hover:bg-[rgba(0,212,200,0.05)]">
-        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#6b6b7a] fill-none stroke-[1.6] transition-colors group-hover:stroke-[#00d4c8]">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#9a9aaa] fill-none stroke-[1.6] transition-colors group-hover:stroke-[#00d4c8]">
           <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
       </div>
@@ -180,26 +187,26 @@ function IndividualRow({ ep, onClick }) {
         <div className="mt-1"><TypeChips questionType={ep.question_type} /></div>
       </div>
 
-      <span className={`w-20 text-center flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.05em] capitalize ${difficultyColors[ep.difficulty] ?? 'border-white/[0.07] text-[#6b6b7a]'}`}>
+      <span className={`w-20 text-center flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.05em] capitalize ${difficultyColors[ep.difficulty] ?? 'border-white/[0.07] text-[#9a9aaa]'}`}>
         {ep.difficulty}
       </span>
 
-      <span className="w-10 text-center flex-shrink-0 font-mono text-[11px] text-[#6b6b7a]">
+      <span className="w-10 text-center flex-shrink-0 font-mono text-[11px] text-[#9a9aaa]">
         {getTier(ep.total_tokens)}
       </span>
 
       {ep.charge_amount != null && (
         <span className="w-16 text-center flex-shrink-0 font-mono text-[12px] text-[#00d4c8]">
-          ฿ {ep.charge_amount}
+          {ep.charge_amount} <CreditIcon size={12}/> 
         </span>
       )}
 
-      <span className="w-28 text-center flex-shrink-0 text-[11.5px] text-[#6b6b7a]">
+      <span className="w-28 text-center flex-shrink-0 text-[11.5px] text-[#9a9aaa]">
         {formatDate(ep.created_at)}
       </span>
 
       <svg viewBox="0 0 24 24"
-        className="h-3.5 w-3.5 flex-shrink-0 stroke-[#6b6b7a] fill-none stroke-[1.8] opacity-0 group-hover:opacity-100 transition-all duration-150 -translate-x-1 group-hover:translate-x-0">
+        className="h-3.5 w-3.5 flex-shrink-0 stroke-[#9a9aaa] fill-none stroke-[1.8] opacity-0 group-hover:opacity-100 transition-all duration-150 -translate-x-1 group-hover:translate-x-0">
         <polyline points="9 18 15 12 9 6" />
       </svg>
     </button>
@@ -215,21 +222,21 @@ function GroupCard({ ep, locked, onUnlock, unlocking }) {
         <div className="pointer-events-none absolute inset-0 rounded-xl bg-[#0c0c0e]/50 backdrop-blur-[1px]" />
         <div className="relative flex items-start gap-3">
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f]">
-            <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#6b6b7a] fill-none stroke-[1.6]">
+            <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#9a9aaa] fill-none stroke-[1.6]">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="truncate text-[13px] font-medium text-[#6b6b7a]">{ep.label}</div>
-            <div className="mt-1 opacity-40"><TypeChips questionType={ep.question_type} /></div>
+            <div className="truncate text-[13px] font-medium text-[#9a9aaa]">{ep.label}</div>
+            <div className="mt-1 opacity-70"><TypeChips questionType={ep.question_type} /></div>
           </div>
-          <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.05em] capitalize opacity-40 ${difficultyColors[ep.difficulty] ?? 'border-white/[0.07] text-[#6b6b7a]'}`}>
+          <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.05em] capitalize opacity-40 ${difficultyColors[ep.difficulty] ?? 'border-white/[0.07] text-[#9a9aaa]'}`}>
             {ep.difficulty}
           </span>
         </div>
         <div className="relative flex items-center justify-between gap-3">
-          <div className="text-[11.5px] text-[#4a4a57]">Group exam prep · {formatDate(ep.created_at)}</div>
+          <div className="text-[11.5px] text-[#7a7a8a]">Group exam prep · {formatDate(ep.created_at)}</div>
           <button
             onClick={() => onUnlock(ep)}
             disabled={unlocking}
@@ -246,7 +253,7 @@ function GroupCard({ ep, locked, onUnlock, unlocking }) {
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                   <path d="M7 11V7a5 5 0 0 1 9.9-1" />
                 </svg>
-                Unlock · ฿ {ep.unlock_price}
+                Unlock · {ep.unlock_price} <CreditIcon size={12}/>
               </>
             )}
           </button>
@@ -273,14 +280,14 @@ function GroupCard({ ep, locked, onUnlock, unlocking }) {
           <div className="truncate text-[13px] font-medium text-[#e8e8ed] group-hover:text-[#00d4c8] transition-colors">{ep.label}</div>
           <div className="mt-1"><TypeChips questionType={ep.question_type} /></div>
         </div>
-        <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.05em] capitalize ${difficultyColors[ep.difficulty] ?? 'border-white/[0.07] text-[#6b6b7a]'}`}>
+        <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.05em] capitalize ${difficultyColors[ep.difficulty] ?? 'border-white/[0.07] text-[#9a9aaa]'}`}>
           {ep.difficulty}
         </span>
       </div>
       <div className="flex items-center justify-between">
-        <div className="text-[11.5px] text-[#6b6b7a]">{formatDate(ep.created_at)}</div>
+        <div className="text-[11.5px] text-[#9a9aaa]">{formatDate(ep.created_at)}</div>
         {ep.charge_amount != null && (
-          <span className="font-mono text-[12px] text-[#00d4c8]">฿ {ep.charge_amount}</span>
+          <span className="font-mono text-[12px] text-[#00d4c8]">{ep.charge_amount} <CreditIcon size={12}/> </span>
         )}
       </div>
     </button>
@@ -298,6 +305,8 @@ export default function ExamPrepListPage() {
   const [loading, setLoading]         = useState(true);
   const [unlockingId, setUnlockingId] = useState(null);
   const [unlockError, setUnlockError] = useState(null);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [individualSearch, setIndividualSearch] = useState('');
 
   useEffect(() => {
     const fetchList = async () => {
@@ -341,6 +350,13 @@ export default function ExamPrepListPage() {
 
   const hasGroup = group.length > 0 || lockedGroup.length > 0;
 
+  const gq = groupSearch.toLowerCase();
+  const filteredGroup = group.filter(ep => ep.label?.toLowerCase().includes(gq) || ep.difficulty?.toLowerCase().includes(gq));
+  const filteredLockedGroup = lockedGroup.filter(ep => ep.label?.toLowerCase().includes(gq) || ep.difficulty?.toLowerCase().includes(gq));
+
+  const iq = individualSearch.toLowerCase();
+  const filteredIndividual = individual.filter(ep => ep.label?.toLowerCase().includes(iq) || ep.difficulty?.toLowerCase().includes(iq));
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] font-sans text-sm">
 
@@ -361,7 +377,7 @@ export default function ExamPrepListPage() {
               <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
                 Exam <span className="text-[#00d4c8]">Prep</span>
               </h1>
-              <p className="mt-0.5 text-[12.5px] text-[#6b6b7a]">Your generated practice questions and group library.</p>
+              <p className="mt-0.5 text-[12.5px] text-[#9a9aaa]">Your generated <span className="text-[#e8e8ed] font-medium">practice questions</span> and group library.</p>
             </div>
             <button
               onClick={() => router.push('/exam-prep/new')}
@@ -378,44 +394,69 @@ export default function ExamPrepListPage() {
             <ExamPrepSkeleton />
           ) : (
             <motion.div
-              className="flex-1 overflow-y-auto px-8 py-5 flex flex-col gap-7"
-              style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+              className="flex-1 overflow-hidden px-8 py-5 flex flex-col gap-4"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              {/* Group section */}
+              {/* Group section — 40% height */}
               {hasGroup && (
-                <motion.section variants={itemVariants} className="flex flex-col gap-3">
+                <motion.section variants={itemVariants} className="flex flex-col gap-2 min-h-0" style={{ flex: '40 40 0%' }}>
                   <SectionDivider label="Group" count={group.length + lockedGroup.length} unit="exam preps" />
-                  <div className="grid grid-cols-2 gap-3">
-                    {group.map(ep => <GroupCard key={ep.public_id} ep={ep} locked={false} />)}
-                    {lockedGroup.map(ep => (
-                      <GroupCard key={ep.public_id} ep={ep} locked onUnlock={handleUnlock} unlocking={unlockingId === ep.public_id} />
-                    ))}
+                  <div className="relative flex-shrink-0">
+                    <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 stroke-[#9a9aaa] fill-none stroke-[2]">
+                      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input
+                      value={groupSearch}
+                      onChange={e => setGroupSearch(e.target.value)}
+                      placeholder="Search group exam preps…"
+                      className="w-full rounded-lg border border-white/[0.07] bg-[#111116] pl-8 pr-3 py-1.5 text-[12px] text-[#e8e8ed] placeholder-[#6b6b7a] outline-none focus:border-white/[0.15] transition-colors"
+                    />
+                  </div>
+                  <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
+                    <div className="grid grid-cols-2 gap-3">
+                      {filteredGroup.map(ep => <GroupCard key={ep.public_id} ep={ep} locked={false} />)}
+                      {filteredLockedGroup.map(ep => (
+                        <GroupCard key={ep.public_id} ep={ep} locked onUnlock={handleUnlock} unlocking={unlockingId === ep.public_id} />
+                      ))}
+                    </div>
                   </div>
                 </motion.section>
               )}
 
-              {/* Individual section */}
-              <motion.section variants={itemVariants} className="flex flex-col gap-3">
+              {/* Individual section — 60% height */}
+              <motion.section variants={itemVariants} className="flex flex-col gap-2 min-h-0" style={{ flex: hasGroup ? '60 60 0%' : '1 1 0%' }}>
                 <SectionDivider label="Individual" count={individual.length} unit="exam preps" />
+                <div className="relative flex-shrink-0">
+                  <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 stroke-[#9a9aaa] fill-none stroke-[2]">
+                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    value={individualSearch}
+                    onChange={e => setIndividualSearch(e.target.value)}
+                    placeholder="Search individual exam preps…"
+                    className="w-full rounded-lg border border-white/[0.07] bg-[#111116] pl-8 pr-3 py-1.5 text-[12px] text-[#e8e8ed] placeholder-[#6b6b7a] outline-none focus:border-white/[0.15] transition-colors"
+                  />
+                </div>
                 {individual.length === 0 ? (
                   <EmptyState message="No individual exam preps yet. Generate one to get started." />
                 ) : (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-4 px-5 text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-50 select-none">
-                      <div className="w-9 flex-shrink-0" />
-                      <div className="flex-1">Label</div>
-                      <div className="w-20 text-center flex-shrink-0">Difficulty</div>
-                      <div className="w-10 text-center flex-shrink-0">Tier</div>
-                      <div className="w-16 text-center flex-shrink-0">Cost</div>
-                      <div className="w-28 text-center flex-shrink-0">Date</div>
-                      <div className="w-3.5 flex-shrink-0" />
+                  <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-4 px-5 text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
+                        <div className="w-9 flex-shrink-0" />
+                        <div className="flex-1">Label</div>
+                        <div className="w-20 text-center flex-shrink-0">Difficulty</div>
+                        <div className="w-10 text-center flex-shrink-0">Tier</div>
+                        <div className="w-16 text-center flex-shrink-0">Cost</div>
+                        <div className="w-28 text-center flex-shrink-0">Date</div>
+                        <div className="w-3.5 flex-shrink-0" />
+                      </div>
+                      {filteredIndividual.map(ep => (
+                        <IndividualRow key={ep.public_id} ep={ep} onClick={() => router.push(`/exam-prep/${ep.public_id}`)} />
+                      ))}
                     </div>
-                    {individual.map(ep => (
-                      <IndividualRow key={ep.public_id} ep={ep} onClick={() => router.push(`/exam-prep/${ep.public_id}`)} />
-                    ))}
                   </div>
                 )}
               </motion.section>

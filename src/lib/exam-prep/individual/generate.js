@@ -1,5 +1,5 @@
 import { sql } from "@/lib/storage/db";
-import {textClient} from "@/lib/openai";
+import { textClient } from "@/lib/openai";
 import { buildExamPrepPrompt } from "../buildUserPrompt";
 import { jsonrepair } from 'jsonrepair';
 
@@ -27,7 +27,8 @@ export async function generateExamPrep({
     fileContents,
     questionTypes,
     difficulty,
-    estimatedCost,
+    worstCaseCost,
+    label
 }) {
     try {
         await sql`UPDATE exam_prep SET status = 'Reading' WHERE id = ${examPrepId}`;
@@ -64,12 +65,12 @@ export async function generateExamPrep({
         const outputTokens = usage.completion_tokens;
 
         let chargeAmount;
-        if (totalTokens < 25000) chargeAmount = 3;
-        else if (totalTokens < 50000) chargeAmount = 6;
-        else if (totalTokens < 75000) chargeAmount = 10;
-        else chargeAmount = 13;
+        if (totalTokens < 25000) chargeAmount = 9;
+        else if (totalTokens < 50000) chargeAmount = 17;
+        else if (totalTokens < 75000) chargeAmount = 29;
+        else chargeAmount = 37;
 
-        const refund = estimatedCost - chargeAmount;
+        const refund = worstCaseCost - chargeAmount;
 
         await sql`UPDATE exam_prep SET status = 'Saving' WHERE id = ${examPrepId}`;
 
@@ -103,7 +104,7 @@ export async function generateExamPrep({
 
             await tx`
                 INSERT INTO "activity" (type, title, status, user_id, respective_table_id, date, charge_amount, balance_after)
-                VALUES ('exam_prep', ${`Exam Prep · ${difficulty}`}, 'completed', ${userId}, ${examPrepId}, NOW(), ${chargeAmount}, ${updated.balance})
+                VALUES ('exam_prep', ${label}, 'completed', ${userId}, ${examPrepId}, NOW(), ${chargeAmount}, ${updated.balance})
             `;
         });
 
@@ -111,7 +112,7 @@ export async function generateExamPrep({
 
     } catch (err) {
         await sql`UPDATE exam_prep SET status = 'Failed', charge_amount = 0 WHERE id = ${examPrepId}`;
-        await sql`UPDATE "user" SET balance = balance + ${estimatedCost} WHERE id = ${userId}`;
+        await sql`UPDATE "user" SET balance = balance + ${worstCaseCost} WHERE id = ${userId}`;
         console.error('Exam prep generation failed:', err);
         throw err;
     }

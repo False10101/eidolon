@@ -2,6 +2,7 @@ import { sql } from "@/lib/storage/db";
 import { buildExamPrepPrompt } from "../buildUserPrompt";
 import {textClient} from "@/lib/openai";
 import { jsonrepair } from 'jsonrepair';
+import { getGroupTierPrice } from "@/app/api/note/generate/group/route";
 
 async function collectStreamContent(stream) {
     let fullContent = '';
@@ -20,7 +21,7 @@ async function collectStreamContent(stream) {
     return { content: fullContent, usage };
 }
 
-export async function generateExamPrepGroup(examPrepId, publicId, userId, groupId, totalPrice, questionTypes, difficulty) {
+export async function generateExamPrepGroup(examPrepId, publicId, userId, groupId, groupTier, maxPriceHold, questionTypes, difficulty, label) {
     try {
         await sql`UPDATE exam_prep SET status = 'Reading' WHERE id = ${examPrepId}`;
 
@@ -80,19 +81,22 @@ export async function generateExamPrepGroup(examPrepId, publicId, userId, groupI
 
         await sql`UPDATE exam_prep SET status = 'Saving' WHERE id = ${examPrepId}`;
 
+        const finalPrice = getGroupTierPrice(totalTokens, groupTier);
+
         await sql.begin(async (tx) => {
             await tx`SELECT id FROM "student_group" WHERE id = ${groupId} FOR UPDATE`;
             await tx`SELECT user_id FROM "group_member" WHERE group_id = ${groupId} FOR UPDATE`;
 
-            const members = await tx`
-                SELECT user_id FROM "group_member" WHERE group_id = ${groupId}
-            `;
-
+            const members = await tx`SELECT user_id FROM "group_member" WHERE group_id = ${groupId}`;
             const [group] = await tx`SELECT max_members FROM "student_group" WHERE id = ${groupId}`;
-            const unlockPrice = parseFloat((totalPrice / group.max_members).toFixed(2));
+            
+            const unlockPrice = parseFloat((finalPrice / group.max_members).toFixed(2));
 
-            const actualSplit = parseFloat((totalPrice / members.length).toFixed(2));
-            const actualGeneratorCharge = parseFloat((actualSplit * 0.5).toFixed(2));
+            const maxSplit = parseFloat((maxPriceHold / members.length).toFixed(2));
+            const maxGeneratorCharge = parseFloat((maxSplit * 0.5).toFixed(2));
+
+            const finalSplit = parseFloat((finalPrice / members.length).toFixed(2));
+            const finalGeneratorCharge = parseFloat((finalSplit * 0.5).toFixed(2));
 
             await tx`
                 UPDATE exam_prep
@@ -101,7 +105,7 @@ export async function generateExamPrepGroup(examPrepId, publicId, userId, groupI
                     total_tokens = ${totalTokens},
                     input_tokens = ${inputTokens},
                     output_tokens = ${outputTokens},
-                    charge_amount = ${totalPrice}
+                    charge_amount = ${finalPrice}
                 WHERE id = ${examPrepId}
             `;
 
@@ -109,22 +113,25 @@ export async function generateExamPrepGroup(examPrepId, publicId, userId, groupI
 
             for (const member of members) {
                 const isGenerator = member.user_id === userId;
-                const charge = isGenerator ? actualGeneratorCharge : actualSplit;
+                
+                const holdCharge = isGenerator ? maxGeneratorCharge : maxSplit;
+                const actualCharge = isGenerator ? finalGeneratorCharge : finalSplit;
+                const refundAmount = parseFloat((holdCharge - actualCharge).toFixed(2));
 
                 const [updated] = await tx`
-                    UPDATE "user" SET balance = balance - ${charge}
+                    UPDATE "user" SET balance = balance + ${refundAmount}
                     WHERE id = ${member.user_id}
                     RETURNING balance
                 `;
 
                 await tx`
                     INSERT INTO exam_prep_access (exam_prep_id, user_id, paid_amount, is_original, unlock_price)
-                    VALUES (${examPrepId}, ${member.user_id}, ${charge}, 1, ${unlockPrice})
+                    VALUES (${examPrepId}, ${member.user_id}, ${actualCharge}, 1, ${unlockPrice})
                 `;
 
                 await tx`
                     INSERT INTO "activity" (type, title, status, user_id, respective_table_id, date, charge_amount, balance_after)
-                    VALUES ('exam_prep', ${`Exam Prep · ${difficulty}`}, 'completed', ${member.user_id}, ${examPrepId}, NOW(), ${charge}, ${updated.balance})
+                    VALUES ('exam_prep', ${label}, 'completed', ${member.user_id}, ${examPrepId}, NOW(), ${actualCharge}, ${updated.balance})
                 `;
             }
         });
@@ -133,7 +140,19 @@ export async function generateExamPrepGroup(examPrepId, publicId, userId, groupI
 
     } catch (err) {
         console.error('Group exam prep generation failed:', err);
-        await sql`UPDATE exam_prep SET status = 'Failed' WHERE id = ${examPrepId}`;
+        
+        await sql.begin(async (tx) => {
+            const members = await tx`SELECT user_id FROM "group_member" WHERE group_id = ${groupId}`;
+            const maxSplit = parseFloat((maxPriceHold / members.length).toFixed(2));
+            const maxGeneratorCharge = parseFloat((maxSplit * 0.5).toFixed(2));
+
+            for (const member of members) {
+                const holdCharge = member.user_id === userId ? maxGeneratorCharge : maxSplit;
+                await tx`UPDATE "user" SET balance = balance + ${holdCharge} WHERE id = ${member.user_id}`;
+            }
+            await tx`UPDATE exam_prep SET status = 'Failed' WHERE id = ${examPrepId}`;
+        }).catch(e => console.error("CRITICAL: Failed to process refund during worker error block", e));
+
         throw err;
     }
 }

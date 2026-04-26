@@ -78,7 +78,7 @@ export default function Login() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center gap-3 bg-[#0c0c0e]">
         <div className="h-5 w-5 animate-spin rounded-full border border-transparent border-t-[#00d4c8]" />
-        <span className="font-mono text-[11px] tracking-[0.1em] text-[#6b6b7a] opacity-60 uppercase">
+        <span className="font-mono text-[11px] tracking-[0.1em] text-[#9a9aaa] uppercase">
           Syncing identity…
         </span>
       </div>
@@ -116,8 +116,8 @@ export default function Login() {
             Eidolon
             <sup className="text-[15px] font-sans font-medium tracking-normal opacity-75 ml-0.5">v2</sup>
           </div>
-          <p className="max-w-[280px] text-[13px] leading-relaxed text-[#6b6b7a]">
-            AI-powered lecture notes for students who actually want to learn, not just survive.
+          <p className="max-w-[280px] text-[13px] leading-relaxed text-[#9a9aaa]">
+            AI-powered lecture notes for students who actually want to <span className="text-[#e8e8ed] font-medium">learn</span>, not just survive.
           </p>
         </div>
 
@@ -130,14 +130,14 @@ export default function Login() {
               </div>
               <div>
                 <div className="text-[13px] font-medium text-[#e8e8ed]">{f.title}</div>
-                <div className="text-[12px] leading-relaxed text-[#6b6b7a]">{f.sub}</div>
+                <div className="text-[12px] leading-relaxed text-[#b4b4c2]">{f.sub}</div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Version */}
-        <div className="relative z-10 font-mono text-[11px] text-[#6b6b7a] opacity-40 select-none">
+        <div className="relative z-10 font-mono text-[11px] text-[#9a9aaa] select-none">
           v2.0 — Academic Suite
         </div>
       </div>
@@ -158,8 +158,8 @@ export default function Login() {
                 Eidolon<sup className="text-[13px] font-sans font-medium tracking-normal opacity-75 ml-0.5">v2</sup>
               </span>
             </h1>
-            <p className="text-[13px] leading-relaxed text-[#6b6b7a]">
-              Use your university Google account to get started. No password needed.
+            <p className="text-[13px] leading-relaxed text-[#9a9aaa]">
+              Use your university Google account to get started. <span className="text-[#e8e8ed] font-medium">No password needed.</span>
             </p>
           </motion.div>
 
@@ -203,7 +203,7 @@ export default function Login() {
           {/* Divider */}
           <motion.div variants={itemVariants} className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-white/[0.07]" />
-            <span className="text-[11px] text-[#6b6b7a] opacity-50 select-none">Access is invite-only</span>
+            <span className="text-[11px] text-[#9a9aaa] select-none">Access is invite-only</span>
             <div className="h-px flex-1 bg-white/[0.07]" />
           </motion.div>
 
@@ -212,25 +212,25 @@ export default function Login() {
             variants={itemVariants}
             className="flex items-start gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] p-4 surface"
           >
-            <svg viewBox="0 0 24 24" className="mt-px h-3.5 w-3.5 flex-shrink-0 stroke-[#6b6b7a] fill-none stroke-[1.8]">
+            <svg viewBox="0 0 24 24" className="mt-px h-3.5 w-3.5 flex-shrink-0 stroke-[#9a9aaa] fill-none stroke-[1.8]">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <p className="text-[12px] leading-relaxed text-[#6b6b7a]">
+            <p className="text-[12px] leading-relaxed text-[#9a9aaa]">
               Eidolon is currently available to{' '}
-              <strong className="font-medium text-[#9898a8]">students</strong> with an approved
-              account. Sign in with your Google account — if you have access, you'll be redirected automatically.
+              <strong className="font-medium text-[#e8e8ed]">students</strong> with an approved
+              account. Sign in with your Google account — if you have access, you'll be <span className="text-[#e8e8ed] font-medium">redirected automatically</span>.
             </p>
           </motion.div>
 
           {/* Footer */}
           <motion.p
             variants={itemVariants}
-            className="mt-7 text-center text-[11.5px] leading-relaxed text-[#6b6b7a] opacity-50 select-none"
+            className="mt-7 text-center text-[11.5px] leading-relaxed text-[#9a9aaa] select-none"
           >
             By signing in you agree to fair use of the service.<br />
-            Balance is non-refundable once consumed.
+            <span className="text-[#b4b4c2] font-medium">Balance is non-refundable</span> once consumed.
           </motion.p>
         </motion.div>
       </div>

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import ErrorModal from '../ErrorModal';
+import CreditIcon from '../CreditIcon';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const styleLabels = { exam: 'Exam', standard: 'Standard', textbook: 'Textbook' };
@@ -46,62 +47,66 @@ const itemVariants = {
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 function NoteListSkeleton() {
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-5 flex flex-col gap-7">
-      {/* Group skeleton */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2.5">
+    <div className="flex-1 overflow-hidden px-8 py-5 flex flex-col gap-4">
+      {/* Group skeleton — 40% */}
+      <div className="flex flex-col gap-2 min-h-0" style={{ flex: '40 40 0%' }}>
+        <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="skeleton h-2.5 w-12 rounded" />
           <div className="flex-1 h-px bg-white/[0.05]" />
           <div className="skeleton h-2.5 w-10 rounded" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-white/[0.07] bg-[#111116] p-5 flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <div className="skeleton h-9 w-9 rounded-lg" />
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <div className="skeleton h-3.5 w-40 rounded" />
-                  <div className="skeleton h-2.5 w-24 rounded" />
+        <div className="skeleton h-8 w-full rounded-lg flex-shrink-0" />
+        <div className="flex-1 overflow-hidden">
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-white/[0.07] bg-[#111116] p-5 flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="skeleton h-9 w-9 rounded-lg" />
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <div className="skeleton h-3.5 w-40 rounded" />
+                    <div className="skeleton h-2.5 w-24 rounded" />
+                  </div>
+                  <div className="skeleton h-5 w-16 rounded-full" />
                 </div>
-                <div className="skeleton h-5 w-16 rounded-full" />
+                <div className="flex justify-between">
+                  <div className="skeleton h-2.5 w-20 rounded" />
+                  <div className="skeleton h-2.5 w-12 rounded" />
+                </div>
               </div>
-              <div className="flex justify-between">
-                <div className="skeleton h-2.5 w-20 rounded" />
-                <div className="skeleton h-2.5 w-12 rounded" />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Individual skeleton */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2.5">
+      {/* Individual skeleton — 60% */}
+      <div className="flex flex-col gap-2 min-h-0" style={{ flex: '60 60 0%' }}>
+        <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="skeleton h-2.5 w-16 rounded" />
           <div className="flex-1 h-px bg-white/[0.05]" />
           <div className="skeleton h-2.5 w-10 rounded" />
         </div>
-        {/* Column header */}
-        <div className="flex items-center gap-4 px-5">
+        <div className="skeleton h-8 w-full rounded-lg flex-shrink-0" />
+        <div className="flex items-center gap-4 px-5 flex-shrink-0">
           {[36, 120, 96, 40, 64, 112].map((w, i) => (
             <div key={i} className="skeleton h-2 rounded flex-shrink-0" style={{ width: w }} />
           ))}
         </div>
-        {/* Rows */}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-4">
-            <div className="skeleton h-9 w-9 rounded-lg flex-shrink-0" />
-            <div className="flex-1 flex flex-col gap-1.5">
-              <div className="skeleton h-3.5 rounded" style={{ width: `${140 + (i % 3) * 40}px` }} />
-              <div className="skeleton h-2.5 w-24 rounded" />
+        <div className="flex-1 overflow-hidden flex flex-col gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-4 flex-shrink-0">
+              <div className="skeleton h-9 w-9 rounded-lg flex-shrink-0" />
+              <div className="flex-1 flex flex-col gap-1.5">
+                <div className="skeleton h-3.5 rounded" style={{ width: `${140 + (i % 3) * 40}px` }} />
+                <div className="skeleton h-2.5 w-24 rounded" />
+              </div>
+              <div className="skeleton h-5 w-24 rounded-full flex-shrink-0" />
+              <div className="skeleton h-3 w-10 rounded flex-shrink-0" />
+              <div className="skeleton h-3 w-16 rounded flex-shrink-0" />
+              <div className="skeleton h-3 w-28 rounded flex-shrink-0" />
+              <div className="skeleton h-3.5 w-3.5 rounded flex-shrink-0" />
             </div>
-            <div className="skeleton h-5 w-24 rounded-full flex-shrink-0" />
-            <div className="skeleton h-3 w-10 rounded flex-shrink-0" />
-            <div className="skeleton h-3 w-16 rounded flex-shrink-0" />
-            <div className="skeleton h-3 w-28 rounded flex-shrink-0" />
-            <div className="skeleton h-3.5 w-3.5 rounded flex-shrink-0" />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -112,12 +117,12 @@ function EmptyState({ message }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 text-center">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-[#18181f] mb-3">
-        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#6b6b7a] fill-none stroke-[1.6]">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#9a9aaa] fill-none stroke-[1.6]">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>
       </div>
-      <p className="text-[12px] text-[#6b6b7a]">{message}</p>
+      <p className="text-[12px] text-[#9a9aaa]">{message}</p>
     </div>
   );
 }
@@ -126,10 +131,10 @@ function EmptyState({ message }) {
 function SectionDivider({ label, count }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="text-[11px] uppercase tracking-[0.08em] text-[#6b6b7a] opacity-60 select-none">{label}</span>
+      <span className="text-[11px] uppercase tracking-[0.08em] text-[#9a9aaa] select-none">{label}</span>
       <div className="flex-1 h-px bg-white/[0.05]" />
       {count != null && (
-        <span className="text-[11px] text-[#6b6b7a] opacity-60 select-none">{count} {count === 1 ? 'note' : 'notes'}</span>
+        <span className="text-[11px] text-[#9a9aaa] select-none">{count} {count === 1 ? 'note' : 'notes'}</span>
       )}
     </div>
   );
@@ -143,7 +148,7 @@ function IndividualRow({ note, onClick }) {
       className="group flex w-full items-center gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-4 text-left transition-colors duration-150 hover:border-white/[0.12] hover:bg-[#14141a] surface noise"
     >
       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f] transition-colors group-hover:border-[rgba(0,212,200,0.2)] group-hover:bg-[rgba(0,212,200,0.05)]">
-        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#6b6b7a] fill-none stroke-[1.6] transition-colors group-hover:stroke-[#00d4c8]">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#9a9aaa] fill-none stroke-[1.6] transition-colors group-hover:stroke-[#00d4c8]">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <line x1="16" y1="13" x2="8" y2="13" />
@@ -155,30 +160,30 @@ function IndividualRow({ note, onClick }) {
         <div className="truncate text-[13.5px] font-medium text-[#e8e8ed] group-hover:text-[rgba(0,212,200)]">{note.name}</div>
       </div>
 
-      <span className={`w-24 text-center flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.05em] ${styleBadgeColors[note.style] ?? 'border-white/[0.07] text-[#6b6b7a]'}`}>
+      <span className={`w-24 text-center flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.05em] ${styleBadgeColors[note.style] ?? 'border-white/[0.07] text-[#9a9aaa]'}`}>
         {styleLabels[note.style] ?? note.style}
       </span>
 
       {getTier(note.total_tokens) && (
-        <span className="w-10 text-center flex-shrink-0 font-mono text-[11px] text-[#6b6b7a]">
+        <span className="w-10 text-center flex-shrink-0 font-mono text-[11px] text-[#9a9aaa]">
           {getTier(note.total_tokens)}
         </span>
       )}
 
       {note.charge_amount != null && (
         <span className="w-16 text-center flex-shrink-0 font-mono text-[12px] text-[#00d4c8]">
-          ฿ {note.charge_amount}
+          {note.charge_amount} <CreditIcon size={12}/>
         </span>
       )}
 
-      <span className="w-28 text-center flex-shrink-0 text-[11.5px] text-[#6b6b7a]">
+      <span className="w-28 text-center flex-shrink-0 text-[11.5px] text-[#9a9aaa]">
         {formatDate(note.created_at)}
       </span>
 
       {/* Arrow — only translate, no conflict with transition-colors on parent */}
       <svg
         viewBox="0 0 24 24"
-        className="h-3.5 w-3.5 flex-shrink-0 stroke-[#6b6b7a] fill-none stroke-[1.8] opacity-0 group-hover:opacity-100 transition-all duration-150 -translate-x-1 group-hover:translate-x-0"
+        className="h-3.5 w-3.5 flex-shrink-0 stroke-[#9a9aaa] fill-none stroke-[1.8] opacity-0 group-hover:opacity-100 transition-all duration-150 -translate-x-1 group-hover:translate-x-0"
       >
         <polyline points="9 18 15 12 9 6" />
       </svg>
@@ -198,24 +203,24 @@ function GroupCard({ note, locked, onUnlock, unlocking }) {
 
         <div className="relative flex items-start gap-3">
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f]">
-            <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#6b6b7a] fill-none stroke-[1.6]">
+            <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#9a9aaa] fill-none stroke-[1.6]">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="truncate text-[13px] font-medium text-[#6b6b7a]">{note.name}</div>
+            <div className="truncate text-[13px] font-medium text-[#9a9aaa]">{note.name}</div>
             {note.lecture_topic && (
-              <div className="mt-0.5 truncate text-[11px] text-[#4a4a57]">{note.lecture_topic}</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#7a7a8a]">{note.lecture_topic}</div>
             )}
           </div>
-          <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.05em] opacity-40 ${styleBadgeColors[note.style] ?? 'border-white/[0.07] text-[#6b6b7a]'}`}>
+          <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.05em] opacity-60 ${styleBadgeColors[note.style] ?? 'border-white/[0.07] text-[#9a9aaa]'}`}>
             {styleLabels[note.style] ?? note.style}
           </span>
         </div>
 
         <div className="relative flex items-center justify-between gap-3">
-          <div className="text-[11.5px] text-[#4a4a57]">
+          <div className="text-[11.5px] text-[#7a7a8a]">
             Group note · {formatDate(note.created_at)}
           </div>
           <button
@@ -234,7 +239,7 @@ function GroupCard({ note, locked, onUnlock, unlocking }) {
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                   <path d="M7 11V7a5 5 0 0 1 9.9-1" />
                 </svg>
-                Unlock · ฿ {note.unlock_price}
+                Unlock · {note.unlock_price} <CreditIcon size={12}/>
               </>
             )}
           </button>
@@ -265,13 +270,13 @@ function GroupCard({ note, locked, onUnlock, unlocking }) {
         <div className="truncate text-[13px] font-medium text-[#e8e8ed] group-hover:text-[#00d4c8] transition-colors mt-auto">
           {note.name}
         </div>
-        <span className={`flex-shrink-0 rounded-full border px-2 text-[10px] uppercase tracking-[0.05em] mb-1.5 ${styleBadgeColors[note.style] ?? 'border-white/[0.07] text-[#6b6b7a]'}`}>
+        <span className={`flex-shrink-0 rounded-full border px-2 text-[10px] uppercase tracking-[0.05em] mb-1.5 ${styleBadgeColors[note.style] ?? 'border-white/[0.07] text-[#9a9aaa]'}`}>
           {styleLabels[note.style] ?? note.style}
         </span>
 
-        <div className="text-[11.5px] text-[#6b6b7a] mb-auto">{formatDate(note.created_at)}</div>
+        <div className="text-[11.5px] text-[#9a9aaa] mb-auto">{formatDate(note.created_at)}</div>
         {note.charge_amount != null
-          ? <span className="font-mono text-[12px] text-[#00d4c8] justify-self-end mt-1.5 mr-3">฿ {note.charge_amount}</span>
+          ? <span className="font-mono text-[12px] text-[#00d4c8] justify-self-end mt-1.5 mr-3">{note.charge_amount} <CreditIcon size={12}/></span>
           : <span />
         }
       </div>
@@ -290,6 +295,8 @@ export default function NoteListPage() {
   const [loading, setLoading] = useState(true);
   const [unlockingId, setUnlockingId] = useState(null);
   const [unlockError, setUnlockError] = useState(null);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [individualSearch, setIndividualSearch] = useState('');
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -336,6 +343,13 @@ export default function NoteListPage() {
 
   const hasGroup = group.length > 0 || lockedGroup.length > 0;
 
+  const gq = groupSearch.toLowerCase();
+  const filteredGroup = group.filter(n => n.name?.toLowerCase().includes(gq) || n.lecture_topic?.toLowerCase().includes(gq));
+  const filteredLockedGroup = lockedGroup.filter(n => n.name?.toLowerCase().includes(gq) || n.lecture_topic?.toLowerCase().includes(gq));
+
+  const iq = individualSearch.toLowerCase();
+  const filteredIndividual = individual.filter(n => n.name?.toLowerCase().includes(iq) || n.lecture_topic?.toLowerCase().includes(iq));
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] font-sans text-sm">
 
@@ -356,7 +370,7 @@ export default function NoteListPage() {
               <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
                 Inclass <span className="text-[#00d4c8]">Notes</span>
               </h1>
-              <p className="mt-0.5 text-[12.5px] text-[#6b6b7a]">Your generated notes and group library.</p>
+              <p className="mt-0.5 text-[12.5px] text-[#9a9aaa]">Your generated notes and group library.</p>
             </div>
             <button
               onClick={() => router.push('/note/new')}
@@ -373,58 +387,82 @@ export default function NoteListPage() {
             <NoteListSkeleton />
           ) : (
             <motion.div
-              className="flex-1 overflow-y-auto px-8 py-5 flex flex-col gap-7"
-              style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+              className="flex-1 overflow-hidden px-8 py-5 flex flex-col gap-4"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              {/* Group section */}
+              {/* Group section — 40% height */}
               {hasGroup && (
-                <motion.section variants={itemVariants} className="flex flex-col gap-3">
+                <motion.section variants={itemVariants} className="flex flex-col gap-2 min-h-0" style={{ flex: '40 40 0%' }}>
                   <SectionDivider label="Group" count={group.length + lockedGroup.length} />
-                  <div className="grid grid-cols-2 gap-3">
-                    {group.map(note => (
-                      <GroupCard key={note.public_id} note={note} locked={false} />
-                    ))}
-                    {lockedGroup.map(note => (
-                      <GroupCard
-                        key={note.public_id}
-                        note={note}
-                        locked
-                        onUnlock={handleUnlock}
-                        unlocking={unlockingId === note.public_id}
-                      />
-                    ))}
+                  <div className="relative flex-shrink-0">
+                    <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 stroke-[#9a9aaa] fill-none stroke-[2]">
+                      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input
+                      value={groupSearch}
+                      onChange={e => setGroupSearch(e.target.value)}
+                      placeholder="Search group notes…"
+                      className="w-full rounded-lg border border-white/[0.07] bg-[#111116] pl-8 pr-3 py-1.5 text-[12px] text-[#e8e8ed] placeholder-[#6b6b7a] outline-none focus:border-white/[0.15] transition-colors"
+                    />
+                  </div>
+                  <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
+                    <div className="grid grid-cols-2 gap-3">
+                      {filteredGroup.map(note => (
+                        <GroupCard key={note.public_id} note={note} locked={false} />
+                      ))}
+                      {filteredLockedGroup.map(note => (
+                        <GroupCard
+                          key={note.public_id}
+                          note={note}
+                          locked
+                          onUnlock={handleUnlock}
+                          unlocking={unlockingId === note.public_id}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </motion.section>
               )}
 
-              {/* Individual section */}
-              <motion.section variants={itemVariants} className="flex flex-col gap-3">
+              {/* Individual section — 60% height */}
+              <motion.section variants={itemVariants} className="flex flex-col gap-2 min-h-0" style={{ flex: hasGroup ? '60 60 0%' : '1 1 0%' }}>
                 <SectionDivider label="Individual" count={individual.length} />
+                <div className="relative flex-shrink-0">
+                  <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 stroke-[#9a9aaa] fill-none stroke-[2]">
+                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    value={individualSearch}
+                    onChange={e => setIndividualSearch(e.target.value)}
+                    placeholder="Search individual notes…"
+                    className="w-full rounded-lg border border-white/[0.07] bg-[#111116] pl-8 pr-3 py-1.5 text-[12px] text-[#e8e8ed] placeholder-[#6b6b7a] outline-none focus:border-white/[0.15] transition-colors"
+                  />
+                </div>
 
                 {individual.length === 0 ? (
                   <EmptyState message="No individual notes yet. Generate one to get started." />
                 ) : (
-                  <div className="flex flex-col gap-2">
-                    {/* Column headers */}
-                    <div className="flex items-center gap-4 px-5 text-[10px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-50 select-none">
-                      <div className="w-9 flex-shrink-0" />
-                      <div className="flex-1">Name</div>
-                      <div className="w-24 text-center flex-shrink-0">Style</div>
-                      <div className="w-10 text-center flex-shrink-0">Tier</div>
-                      <div className="w-16 text-center flex-shrink-0">Cost</div>
-                      <div className="w-28 text-center flex-shrink-0">Date</div>
-                      <div className="w-3.5 flex-shrink-0" />
+                  <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-4 px-5 text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
+                        <div className="w-9 flex-shrink-0" />
+                        <div className="flex-1">Name</div>
+                        <div className="w-24 text-center flex-shrink-0">Style</div>
+                        <div className="w-10 text-center flex-shrink-0">Tier</div>
+                        <div className="w-16 text-center flex-shrink-0">Cost</div>
+                        <div className="w-28 text-center flex-shrink-0">Date</div>
+                        <div className="w-3.5 flex-shrink-0" />
+                      </div>
+                      {filteredIndividual.map(note => (
+                        <IndividualRow
+                          key={note.public_id}
+                          note={note}
+                          onClick={() => router.push(`/note/${note.public_id}`)}
+                        />
+                      ))}
                     </div>
-                    {individual.map(note => (
-                      <IndividualRow
-                        key={note.public_id}
-                        note={note}
-                        onClick={() => router.push(`/note/${note.public_id}`)}
-                      />
-                    ))}
                   </div>
                 )}
               </motion.section>

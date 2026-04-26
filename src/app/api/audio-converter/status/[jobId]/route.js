@@ -36,6 +36,7 @@ export async function GET(req, { params }) {
     return NextResponse.json({
         state,
         progress,
-        queuePosition
+        queuePosition,
+        transcriptJobId: job.returnvalue?.transcriptJobId || null,
     });
 }

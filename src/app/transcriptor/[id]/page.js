@@ -8,6 +8,7 @@ import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
 import ConfirmModal from '@/app/ConfirmModal';
 import ErrorModal from '@/app/ErrorModal';
+import CreditIcon from '@/app/CreditIcon';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatCreatedAt(ts) {
@@ -67,7 +68,7 @@ function ActionBtn({ children, onClick, icon, danger, disabled }) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40 disabled:cursor-not-allowed
+      className={`flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed] disabled:opacity-40 disabled:cursor-not-allowed
         ${danger ? 'hover:!border-[rgba(239,68,68,0.3)] hover:!text-[#ef4444]' : ''}`}
     >
       {icon}{children}
@@ -79,8 +80,8 @@ function ActionBtn({ children, onClick, icon, danger, disabled }) {
 function DetailRow({ label, value }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">{label}</div>
-      <div className="rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#9898a8]">
+      <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">{label}</div>
+      <div className="rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed]">
         {value}
       </div>
     </div>
@@ -220,9 +221,9 @@ export default function TranscriptViewer({ params }) {
           <main className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <div className="mb-2 text-[14px] font-medium text-[#e8e8ed]">Failed to load transcript</div>
-              <div className="mb-4 text-[12px] text-[#6b6b7a]">{error}</div>
+              <div className="mb-4 text-[12px] text-[#9a9aaa]">{error}</div>
               <button onClick={() => router.push('/transcriptor')}
-                className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[13px] text-[#9898a8] transition-all hover:text-[#e8e8ed]">
+                className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[13px] text-[#b4b4c2] transition-all hover:text-[#e8e8ed]">
                 Back to transcriptor
               </button>
             </div>
@@ -249,7 +250,7 @@ export default function TranscriptViewer({ params }) {
                 <div className="font-serif text-[19px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
                   Transcript <span className="text-[#00d4c8]">details</span>
                 </div>
-                <div className="mt-0.5 text-[12px] text-[#6b6b7a]">Source file and transcription info.</div>
+                <div className="mt-0.5 text-[12px] text-[#9a9aaa]">Source file and transcription info.</div>
               </div>
 
               {/* Details */}
@@ -265,7 +266,7 @@ export default function TranscriptViewer({ params }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-[13px] font-medium text-[#e8e8ed]">{tx.filename}</div>
-                    <div className="mt-0.5 text-[11px] text-[#6b6b7a]">
+                    <div className="mt-0.5 text-[11px] text-[#9a9aaa]">
                       {tx.filename?.split('.').pop().toUpperCase()} · {formatDuration(tx.duration)}
                     </div>
                   </div>
@@ -279,21 +280,21 @@ export default function TranscriptViewer({ params }) {
 
                 {/* Cost breakdown */}
                 <div className="flex flex-col gap-1.5 rounded-xl border border-[rgba(0,212,200,0.1)] bg-[#111116] px-4 py-3.5 mt-2 surface-teal">
-                  <div className="pb-1 text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Cost breakdown</div>
+                  <div className="pb-1 text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Cost breakdown</div>
                   <div className="flex justify-between text-[12.5px]">
-                    <span className="text-[#6b6b7a]">Duration</span>
-                    <span className="font-mono text-[12px] text-[#9898a8]">{formatDuration(tx.duration)}</span>
+                    <span className="text-[#9a9aaa]">Duration</span>
+                    <span className="font-mono text-[12px] text-[#e8e8ed]">{formatDuration(tx.duration)}</span>
                   </div>
                   <div className="flex justify-between text-[12.5px]">
-                    <span className="text-[#6b6b7a]">Rate</span>
-                    <span className="font-mono text-[12px] text-[#9898a8]">
-                      {tx.model === 'whisper-v3-turbo' ? '฿ 2.5/hr' : '฿ 4/hr'}
+                    <span className="text-[#9a9aaa]">Rate</span>
+                    <span className="font-mono text-[12px] text-[#e8e8ed]">
+                      <CreditIcon size={12} className='mr-1' color='#b4b4c2'/>{tx.model === 'whisper-v3-turbo' ? '7/hr' : '11/hr'}
                     </span>
                   </div>
                   <div className="h-px bg-white/[0.07]" />
                   <div className="flex items-center justify-between">
-                    <span className="text-[12.5px] font-medium text-[#9898a8]">Total charged</span>
-                    <span className="font-mono text-[16px] font-medium text-[#00d4c8]">฿ {tx.charge_amount}</span>
+                    <span className="text-[12.5px] font-medium text-[#b4b4c2]">Total charged</span>
+                    <span className="font-mono text-[16px] font-medium text-[#00d4c8]">{tx.charge_amount} <CreditIcon size={16} className='mr-1'/></span>
                   </div>
                 </div>
               </div>
@@ -305,7 +306,7 @@ export default function TranscriptViewer({ params }) {
               {/* Viewer header */}
               <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] px-[22px] py-4 bg-[#111116] nav-surface">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="truncate text-[13px] font-medium text-[#9898a8]">{tx.label}</span>
+                  <span className="truncate text-[13px] font-medium text-[#e8e8ed]">{tx.label}</span>
                   <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-[rgba(34,197,94,0.1)] px-2 py-0.5 text-[11px] font-medium text-[#22c55e]">
                     <div className="h-[5px] w-[5px] rounded-full bg-current flex-shrink-0" />
                     Completed
@@ -352,7 +353,7 @@ export default function TranscriptViewer({ params }) {
                       icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="15" y2="18" /></svg>,
                     },
                   ].map((m, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-[#6b6b7a]">
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-[#9a9aaa]">
                       {m.icon}{m.label}
                     </div>
                   ))}
@@ -385,7 +386,7 @@ export default function TranscriptViewer({ params }) {
       </AnimatePresence>
 
       {/* Copy toast */}
-      <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#9898a8] transition-all duration-200
+      <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#b4b4c2] transition-all duration-200
         ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'}`}>
         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[2.2]">
           <polyline points="20 6 9 17 4 12" />

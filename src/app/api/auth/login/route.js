@@ -1,5 +1,6 @@
 import { sql } from '@/lib/storage/db';
 import { jwtVerify, createRemoteJWKSet } from 'jose';
+import { rateLimit } from '@/lib/rateLimit';
 
 // Ensures https:// is present
 const domain = process.env.AUTH0_DOMAIN.startsWith('http') ? process.env.AUTH0_DOMAIN : `https://${process.env.AUTH0_DOMAIN}`;
@@ -18,6 +19,8 @@ export async function GET(req) {
     });
 
     const googleId = payload.sub;
+    const limited = await rateLimit(`rl:auth:${googleId}`, 20, 60);
+    if (limited) return limited;
 
     // 🚨 THE FIX: Access tokens don't have emails. We MUST fetch it manually from Auth0! 🚨
     const userInfoRes = await fetch(`${domain}/userinfo`, {
@@ -25,22 +28,21 @@ export async function GET(req) {
     });
     const userInfo = await userInfoRes.json();
     
-    const email = userInfo.email; 
+    const email = userInfo.email;
+    const emailVerified = userInfo.email_verified === true;
     const username = userInfo.nickname || userInfo.name || 'User';
     const picture = userInfo.picture || '';
 
     // 1. Try finding by google_id
-    // Postgres.js returns an array directly, so we don't need [rows] destructuring
     let rows = await sql`SELECT * FROM "user" WHERE google_id = ${googleId}`;
     let user = rows[0];
 
-    // 2. AUTO-LINK FIX: Now that we ACTUALLY have the email, link it!
-    if (!user && email) {
+    // 2. Auto-link only when the IdP has confirmed the email address
+    if (!user && email && emailVerified) {
         const emailRows = await sql`SELECT * FROM "user" WHERE email = ${email}`;
         user = emailRows[0];
 
         if (user) {
-            // Found your old account! Link the Google ID permanently
             await sql`UPDATE "user" SET google_id = ${googleId} WHERE id = ${user.id}`;
         }
     }

@@ -12,7 +12,7 @@ export async function GET(req) {
         `;
 
         const individual = await sql`
-            SELECT name, public_id, style, lecture_topic, created_at, charge_amount, total_tokens
+            SELECT name, public_id, style, created_at, charge_amount, total_tokens
             FROM "note"
             WHERE user_id = ${userId}
             AND generation_type = 'individual'
@@ -23,7 +23,7 @@ export async function GET(req) {
         if (membership) {
             group = await sql`
                 SELECT 
-                    n.name, n.public_id, n.style, n.lecture_topic,
+                    n.name, n.public_id, n.style,
                     n.created_at, n.unlock_price, n.charge_amount, n.total_tokens,
                     (
                         n.user_id = ${userId} OR

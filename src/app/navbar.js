@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CreditIcon from './CreditIcon';
 
 // ─── Route display names ────────────────────────────────────────────────────────
 const ROUTE_LABELS = {
@@ -40,17 +41,17 @@ function LogoutModal({ onConfirm, onCancel }) {
         className="relative mx-4 w-full max-w-sm overflow-hidden rounded-2xl border border-white/[0.1] bg-[#111116] p-7 surface"
       >
         <div className="relative mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.07] bg-[#18181f]">
-          <svg viewBox="0 0 24 24" className="h-5 w-5 stroke-[#9898a8] fill-none stroke-[1.8]">
+          <svg viewBox="0 0 24 24" className="h-5 w-5 stroke-[#b4b4c2] fill-none stroke-[1.8]">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
           </svg>
         </div>
         <div className="relative mb-1.5 text-[15px] font-medium text-[#e8e8ed]">Sign out?</div>
-        <p className="relative mb-6 text-[13px] leading-[1.7] text-[#6b6b7a]">
-          You'll be returned to the login page. Any unsaved changes will be lost.
+        <p className="relative mb-6 text-[13px] leading-[1.7] text-[#9a9aaa]">
+          You'll be returned to the login page. <span className="text-[#e8e8ed] font-medium">Any unsaved changes will be lost.</span>
         </p>
         <div className="relative flex gap-2">
           <button onClick={onCancel}
-            className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] text-[#9898a8] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+            className="flex-1 rounded-lg border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] text-[#b4b4c2] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
             Cancel
           </button>
           <button onClick={onConfirm}
@@ -133,7 +134,7 @@ export default function Navbar() {
             <sup className="text-[11px] font-sans font-medium tracking-normal opacity-75 ml-0.5">v2</sup>
           </span>
           <div className="h-4 w-px bg-white/[0.07]" />
-          <span className="text-[11px] uppercase tracking-[0.08em] text-[#6b6b7a]">
+          <span className="text-[11px] uppercase tracking-[0.08em] text-[#b4b4c2]">
             {getRouteLabel(pathname)}
           </span>
         </div>
@@ -142,14 +143,14 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
 
           {/* Balance pill */}
-          <div className="flex items-center gap-2 rounded-full border border-white/[0.07] bg-[#18181f] px-3.5 py-1.5 text-[12px] text-[#9898a8] surface select-none">
+          <div className="flex items-center gap-2 rounded-full align-middle border border-white/[0.07] bg-[#18181f] px-3.5 py-1.5 text-[12px] text-[#b4b4c2] surface select-none">
             Balance:
             <span className="font-mono text-[13px] font-medium text-[#00d4c8]">
-              ฿ {balance ?? '—'}
+             {balance ?? '—'} <CreditIcon size={13} />
             </span>
             <button
               onClick={() => router.push('/topup')}
-              className="border-l border-white/[0.07] pl-2 text-[11px] text-[#6b6b7a] transition-colors hover:text-[#00d4c8]"
+              className="border-l border-white/[0.07] pl-2 text-[11px] text-[#b4b4c2] transition-colors hover:text-[#00d4c8]"
             >
               + Top up
             </button>
@@ -157,7 +158,7 @@ export default function Navbar() {
 
           {/* Groups */}
           <NavIconBtn onClick={() => router.push('/groups')} title="Groups">
-            <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[#6b6b7a] fill-none stroke-[1.8] transition-colors group-hover:stroke-[#00d4c8]">
+            <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[#9a9aaa] fill-none stroke-[1.8] transition-colors group-hover:stroke-[#00d4c8]">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
@@ -165,14 +166,14 @@ export default function Navbar() {
 
           {/* Profile */}
           <NavIconBtn onClick={() => router.push('/profile')} title="Profile">
-            <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[#6b6b7a] fill-none stroke-[1.8] transition-colors group-hover:stroke-[#00d4c8]">
+            <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[#9a9aaa] fill-none stroke-[1.8] transition-colors group-hover:stroke-[#00d4c8]">
               <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
           </NavIconBtn>
 
           {/* Logout */}
           <NavIconBtn onClick={() => setLogoutModal(true)} title="Sign out">
-            <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[#6b6b7a] fill-none stroke-[1.8] transition-colors group-hover:stroke-[#ef4444]">
+            <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[#9a9aaa] fill-none stroke-[1.8] transition-colors group-hover:stroke-[#ef4444]">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
             </svg>
           </NavIconBtn>

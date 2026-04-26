@@ -63,6 +63,7 @@
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.0.1",
     "react-switch": "^7.1.0",
+    "stripe": "^22.1.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

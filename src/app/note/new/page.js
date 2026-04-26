@@ -9,6 +9,7 @@ import Sidebar from '../../sidebar';
 import GeneratingOverlay from '../../GeneratingOverlays';
 import TranscriptSourcePicker from '@/app/TranscriptSourcePicker';
 import ErrorModal from '@/app/ErrorModal';
+import CreditIcon from '@/app/CreditIcon';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const COMPACTNESS_OPTIONS = [
@@ -33,9 +34,9 @@ const COMPACTNESS_OPTIONS = [
 ];
 
 const costMap = {
-  exam: '฿ 3',
-  standard: '฿ 3 – 6',
-  textbook: '฿ 6 – 10',
+  exam: '9',
+  standard: '9 – 17',
+  textbook: '9 – 29',
 };
 
 const LANGUAGE_OPTIONS = [
@@ -200,8 +201,8 @@ export default function NewNotePage() {
             <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
               New <span className="text-[#00d4c8]">Inclass Note</span>
             </h1>
-            <p className="mt-0.5 text-[12.5px] text-[#6b6b7a]">
-              Generate structured study notes from your lecture transcripts.
+            <p className="mt-0.5 text-[12.5px] text-[#9a9aaa]">
+              Generate <span className="text-[#e8e8ed] font-medium">structured study notes</span> from your lecture transcripts.
             </p>
           </div>
 
@@ -227,17 +228,17 @@ export default function NewNotePage() {
 
               {/* Course Name */}
               <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">
                   Course name <span className="text-[#ef4444]">*</span>
                 </div>
                 <input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value)}
                   placeholder="e.g., CSC531 Data Mining"
-                  className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#6b6b7a] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
+                  className="w-full rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-2 text-[13px] text-[#e8e8ed] outline-none placeholder:text-[#9a9aaa] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
               </div>
 
               {/* Output Language */}
               <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">
                   Output Language
                 </div>
                 <div className="relative">
@@ -253,7 +254,7 @@ export default function NewNotePage() {
                     ))}
                   </select>
                   {/* Custom SVG arrow for the select box to match dark mode theme */}
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#6b6b7a]">
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#9a9aaa]">
                     <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-current fill-none stroke-2">
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
@@ -265,7 +266,7 @@ export default function NewNotePage() {
 
             {/* Note style */}
             <motion.div variants={itemVariants} className="flex-shrink-0 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-              <div className="mb-3 text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-65">Note style</div>
+              <div className="mb-3 text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Note style</div>
               <div className="grid grid-cols-3 gap-2.5">
                 {COMPACTNESS_OPTIONS.map((opt) => {
                   const active = compactness === opt.value;
@@ -276,18 +277,18 @@ export default function NewNotePage() {
                           ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.06)]'
                           : 'border-white/[0.07] bg-[#18181f] hover:border-white/[0.14]'}`}>
                       <div className="flex items-center justify-between">
-                        <span className={`text-[13px] font-medium transition-colors ${active ? 'text-[#00d4c8]' : 'text-[#9898a8]'}`}>
+                        <span className={`text-[13px] font-medium transition-colors ${active ? 'text-[#00d4c8]' : 'text-[#b4b4c2]'}`}>
                           {opt.label}
                         </span>
                         <span className={`rounded-full border px-2 py-0.5 text-[9.5px] uppercase tracking-[0.06em] transition-colors
-                          ${active ? 'border-[rgba(0,212,200,0.3)] text-[#00d4c8]' : 'border-white/[0.07] text-[#6b6b7a]'}`}>
+                          ${active ? 'border-[rgba(0,212,200,0.3)] text-[#00d4c8]' : 'border-white/[0.07] text-[#9a9aaa]'}`}>
                           {opt.badge}
                         </span>
                       </div>
-                      <p className="flex-1 text-[11.5px] leading-[1.6] text-[#6b6b7a]">{opt.description}</p>
+                      <p className="flex-1 text-[11.5px] leading-[1.6] text-[#9a9aaa]">{opt.description}</p>
                       <div className="mt-1 flex items-center justify-between">
-                        <span className={`text-[11px] font-mono transition-colors ${active ? 'text-[#00d4c8]' : 'text-[#6b6b7a]'}`}>
-                          {costMap[opt.value]}
+                        <span className={`text-[11px] font-mono transition-colors ${active ? 'text-[#00d4c8]' : 'text-[#9a9aaa]'}`}>
+                          {costMap[opt.value]} <CreditIcon size={12}/>
                         </span>
 
                         <span
@@ -296,7 +297,7 @@ export default function NewNotePage() {
                             e.stopPropagation();
                             router.push(`/note/sample?style=${opt.value}`);
                           }}
-                          className={`flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.05em] transition-colors hover:text-[#00ebd9] cursor-pointer ${active ? 'text-[#00a89f]' : 'text-[#6b6b7a]'}`}
+                          className={`flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.05em] transition-colors hover:text-[#00ebd9] cursor-pointer ${active ? 'text-[#00a89f]' : 'text-[#9a9aaa]'}`}
                         >
                           See example
                           <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2">
@@ -318,14 +319,14 @@ export default function NewNotePage() {
               className="flex flex-shrink-0 items-center justify-between gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-3.5 surface shadow-xl shadow-black/40"
             >
               <div className="flex flex-col gap-0.5">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#6b6b7a] opacity-55">Estimated cost</div>
-                <span className="font-mono text-[20px] font-semibold text-[#00d4c8]">{costMap[compactness]}</span>
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Estimated cost</div>
+                <span className="font-mono text-[20px] font-semibold text-[#00d4c8]">{costMap[compactness]} <CreditIcon size={20}/></span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleGenerate('group')}
                   disabled={!isReady || procStatus === 'processing'}
-                  className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#18181f] px-5 py-2.5 text-[13px] font-medium text-[#9898a8] transition-all hover:border-[rgba(0,212,200,0.25)] hover:text-[#00d4c8] disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap"
+                  className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#18181f] px-5 py-2.5 text-[13px] font-medium text-[#b4b4c2] transition-all hover:border-[rgba(0,212,200,0.25)] hover:text-[#00d4c8] disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap"
                 >
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />

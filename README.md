@@ -24,18 +24,18 @@ Eidolon v2 is a full rewrite of the original platform. Every major subsystem has
 
 ### Breaking Changes from v1
 - **Database:** MySQL (PlanetScale) → **self-hosted PostgreSQL** on Hetzner VPS
-- **Authentication:** Custom JWT/bcrypt → **NextAuth with Google OAuth only**
+- **Authentication:** Custom JWT/bcrypt → **Auth0 with Google OAuth only**
 - **Queue infrastructure:** Upstash Redis → **self-hosted Redis** (BullMQ, same Hetzner box)
-- **Storage:** Local filesystem → **Cloudflare R2** for all media and slip files
+- **Storage:** Local filesystem → **Cloudflare R2** for all media files
 - **Removed:** PDF export (Puppeteer), document generator, textbook explainer, BYOK
 
 ### New in v2
 - **Exam Prep Generator** — structured practice questions from notes or transcripts, individual and group
 - **Group Workspace System** — shared generation with cost splitting; membership snapshotted at generation time
-- **Top-Up System** — credit-based balance with EasySlip auto-verification and LINE notify
-- **Admin Dashboard** — user management, activity logs, top-up approval queue, slip viewer
-- **Transcriptor** — chunked audio splitting for large files, async BullMQ processing, history and detail views
-- **Audio Converter** — MP4→MP3 extraction via FFmpeg, ephemeral by design (no DB persistence)
+- **Top-Up System** — credit-based balance with Stripe card payments (auto-credited instantly)
+- **Admin Dashboard** — user management, activity logs, balance overview
+- **Transcriptor** — async BullMQ processing via Fireworks Whisper, history and detail views
+- **Audio Converter** — multi-format extraction via FFmpeg, ephemeral by design (no DB persistence)
 - **Profile & Activity History** — per-user usage stats, token consumption, charge breakdown, balance history
 
 ---
@@ -64,7 +64,9 @@ The generated note is rendered as structured Markdown with a detail sidebar, ful
 
 ### Transcriptor
 
-Uploads audio files (chunked for large inputs), queues async transcription jobs via Groq Whisper V3 Turbo, and stores results with full history. Supports files well beyond standard serverless limits.
+Uploads audio files and queues async transcription jobs via Fireworks Whisper V3 / V3 Turbo. Supports files up to 500 MB and 10 hours of audio. Stores results with full history, timestamps, and optional speaker diarization.
+
+Accepted formats: `.mp3`, `.wav`, `.m4a`, `.ogg`, `.flac`, `.aac`, `.webm`
 
 ![Transcriptor Upload — File drop zone and language picker](docs/images/transcriptor-upload.png)
 
@@ -74,7 +76,10 @@ Uploads audio files (chunked for large inputs), queues async transcription jobs 
 
 ### Audio Converter
 
-Stream-based MP4-to-MP3 extraction using FFmpeg. Jobs are queued via BullMQ, processed asynchronously, and cleaned up automatically. No data is persisted to the database.
+Stream-based audio extraction from video files using FFmpeg. Jobs are queued via BullMQ, processed asynchronously, and cleaned up automatically. No data is persisted to the database.
+
+Accepted input: `.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`  
+Output formats: `MP3`, `WAV`, `M4A` — configurable bitrate and optional trim.
 
 ![Audio Converter](docs/images/audio-converter.png)
 
@@ -88,9 +93,9 @@ Generates structured practice material from existing notes or transcripts. Fully
 
 ![Exam Prep List — Group and individual entries with question type badges](docs/images/exam-prep-list.png)
 
-The viewer presents questions in a two-panel layout — filter by question type on the left, read and reveal answers on the right.
+The viewer presents questions with a metadata sidebar on the left (details, configuration, sources) and a question panel on the right with individual solution reveal or global show/hide toggle.
 
-![Exam Prep Viewer — Two-panel layout with type filter sidebar and questions](docs/images/exam-prep-viewer.png)
+![Exam Prep Viewer — Two-panel layout with metadata sidebar and questions](docs/images/exam-prep-viewer.png)
 
 ![Exam Prep Viewer — Fullscreen mode](docs/images/exam-prep-fullscreen.png)
 
@@ -98,7 +103,7 @@ The viewer presents questions in a two-panel layout — filter by question type 
 
 ### Group Workspaces
 
-Users can create and join groups with fixed-tier pricing (small / study / class / faculty). Costs are split across `max_members` at generation time, with the generator receiving a platform-subsidized discount. Membership is snapshotted at the time of generation.
+Users can create and join groups with fixed-tier pricing (small / study / class / faculty). Costs are split across all members at generation time, with the generator receiving a 50% discount on their share. Membership is snapshotted at the time of generation.
 
 ![Groups](docs/images/groups.png)
 
@@ -106,15 +111,15 @@ Users can create and join groups with fixed-tier pricing (small / study / class 
 
 ### Top-Up & Billing
 
-Credit-based system. Users upload bank transfer slips which are auto-verified via EasySlip API. Failed or unverified slips fall through to admin manual review. LINE messaging integration notifies users of approval status.
+Credit-based system. Users top up via Stripe card payment — credits are added instantly after payment confirmation. Packages available from $1.50 to $25, with a custom amount option.
 
-![Top-Up — Slip upload and balance view](docs/images/topup.png)
+![Top-Up — Package selector and Stripe checkout](docs/images/topup.png)
 
 ---
 
 ### Admin Dashboard
 
-Full visibility into platform activity: user list, per-user balance and usage, pending top-up queue with slip viewer, and approve/reject controls.
+Full visibility into platform activity: user list, per-user balance and usage, and activity logs.
 
 ![Admin Dashboard](docs/images/admin.png)
 
@@ -132,17 +137,20 @@ Full visibility into platform activity: user list, per-user balance and usage, p
 - **API:** Next.js API Routes
 - **Database:** PostgreSQL (self-hosted, Hetzner CX22) via postgres.js
 - **Queue:** BullMQ + self-hosted Redis
-- **Storage:** Cloudflare R2 (media files, bank slips)
-- **Auth:** NextAuth.js (Google OAuth)
+- **Storage:** Cloudflare R2 (converted audio files)
+- **Auth:** Auth0 (Google OAuth)
 
 ### AI / ML
-- **Notes generation:** OpenRouter
-- **Exam prep generation:** OpenRouter
-- **Transcription:** Groq Whisper V3 Turbo
+- **Notes generation:** Fireworks AI (model configurable via `NOTE_MODEL`)
+- **Exam prep generation:** Fireworks AI (model configurable via `EXAM_MODEL`)
+- **Transcription:** Fireworks AI — Whisper V3 Turbo (fast) and Whisper V3 Large (premium)
+
+### Payments
+- **Stripe** — card payments, webhook-verified, idempotent credit crediting
 
 ### Infrastructure
 - **VPS:** Hetzner (built-in DDoS protection, outbound-only bandwidth)
-- **Web Server:** Nginx (reverse proxy, 10GB upload limit)
+- **Web Server:** Nginx (reverse proxy, upload limit)
 - **Process Manager:** PM2
 - **Backups:** `pg_dump` cron → Cloudflare R2 (7-day retention)
 
@@ -154,41 +162,57 @@ Full visibility into platform activity: user list, per-user balance and usage, p
 Nginx (TLS termination, upload limit)
     └── Next.js App (port 3000)
             ├── API Routes (note, transcript, exam-prep, topup, admin, group)
+            ├── Stripe Webhook Handler (instant credit crediting)
             └── BullMQ Producers
-                    ├── audio-worker          (FFmpeg conversion)
-                    ├── transcriptor-worker   (Groq Whisper, chunked)
-                    └── topup-worker          (EasySlip verification, LINE notify)
+                    ├── audio-worker        (FFmpeg conversion, R2 upload)
+                    └── transcriptor-worker (Fireworks Whisper, cleanup)
 
 Self-hosted Redis  ←→  BullMQ Workers
 PostgreSQL (postgres.js)
-Cloudflare R2 (audio dumps, bank slips)
+Cloudflare R2 (converted audio dumps)
 ```
 
 ---
 
 ## Database Schema
 
-Tables: `user`, `note`, `note_access`, `transcript`, `exam_prep`, `pending_topups`, `activity`
+Tables: `user`, `note`, `note_access`, `transcript`, `exam_prep`, `exam_prep_access`, `student_group`, `group_member`, `pending_topups`, `activity`, `audio_converter_logs`
 
 Key design decisions:
 - `activity` tracks token consumption, model used, charge amount, and `balance_after` for a full audit trail
-- `note_access` snapshots group membership at generation time — changes to group size after the fact do not affect past cost splits
-- `pending_topups` stores slip R2 keys and EasySlip `transRef` for deduplication
+- `note_access` and `exam_prep_access` snapshot group membership at generation time — changes to group size after the fact do not affect past cost splits
+- `student_group` + `group_member` manage group tiers and membership; the generator's 50% discount is calculated at charge time
 
 ---
 
 ## Pricing
 
-| Feature | Tier | Price |
+### Individual — Inclass Notes
+
+| Tier | Token range | Credits |
 |---|---|---|
-| Notes | < 25k tokens | ฿3 |
-| Notes | 25k–50k tokens | ฿6 |
-| Notes | 50k–75k tokens | ฿10 |
-| Notes | 100k+ tokens | ฿13 |
-| Transcription | < 1 hour | ฿2 |
-| Transcription | 1–2 hours | ฿4 |
-| Transcription | 2–3 hours | ฿6 |
-| Transcription | 3+ hours | hours × 1.40 × 1.2 (rounded) |
+| Tier 1 | < 25k tokens | 9 |
+| Tier 2 | 25k – 50k tokens | 17 |
+| Tier 3 | 50k – 75k tokens | 29 |
+| Tier 4 | 75k – 100k tokens | 37 |
+
+### Individual — Transcription
+
+| Tier | Duration | Turbo | Premium |
+|---|---|---|---|
+| Tier 1 | < 1 hour | 7 | 11 |
+| Tier 2 | 1 – 2 hours | 14 | 22 |
+| Tier 3 | 2 – 3 hours | 21 | 33 |
+| Tier 4 | 3+ hours | 7 / hr | 11 / hr |
+
+### Credit Packages
+
+| Price | Credits |
+|---|---|
+| $1.50 | 120 |
+| $5.00 | 500 |
+| $10.00 | 1,100 (+100 bonus) |
+| $25.00 | 3,000 (+500 bonus) |
 
 ---
 

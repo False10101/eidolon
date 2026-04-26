@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
+import { rateLimit } from "@/lib/rateLimit";
  
 export async function POST(req) {
     try {
         const userId = await verifyUserData(req);
         if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
- 
+
+        const limited = await rateLimit(`rl:unlock:${userId}`, 15, 60);
+        if (limited) return limited;
+
         const { publicId } = await req.json();
         if (!publicId) return NextResponse.json({ error: 'Missing publicId.' }, { status: 400 });
  
@@ -28,11 +32,13 @@ export async function POST(req) {
         const [accessRow] = await sql`
             SELECT unlock_price FROM exam_prep_access
             WHERE exam_prep_id = ${examPrep.id}
+            ORDER BY id ASC
             LIMIT 1
         `;
         if (!accessRow) return NextResponse.json({ error: 'This exam prep is not a group exam prep.' }, { status: 400 });
- 
-        const unlockPrice = accessRow.unlock_price;
+
+        const unlockPrice = parseFloat(accessRow.unlock_price);
+        if (!(unlockPrice > 0)) return NextResponse.json({ error: 'Invalid unlock price.' }, { status: 400 });
  
         const [membership] = await sql`
             SELECT gm1.group_id FROM "group_member" gm1

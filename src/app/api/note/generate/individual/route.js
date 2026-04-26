@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { generate } from "@/lib/note/individual/generate";
 import { franc } from "franc-min";
 import languageMap from "@/lib/languageMap";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req) {
     const userId = await verifyUserData(req);
@@ -12,6 +13,9 @@ export async function POST(req) {
     if (userId === null) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const limited = await rateLimit(`rl:note-gen:${userId}`, 10, 60);
+    if (limited) return limited;
 
     const inProgress = await sql`
         SELECT 1 FROM note
@@ -75,6 +79,9 @@ export async function POST(req) {
         transcriptDbId = rows[0].id;
         sourceContent = rows[0].content;
     } else {
+        if (file.size > 10 * 1024 * 1024) {
+            return NextResponse.json({ error: 'File is too large. Maximum size is 10MB.' }, { status: 400 });
+        }
         sourceContent = await file.text();
         uploadedFilename = file.name;
     }
@@ -92,15 +99,16 @@ export async function POST(req) {
         return NextResponse.json({ error: "Transcript is too long. Maximum input is ~65,000 tokens." }, { status: 400 });
     }
 
-    const worstCaseCost = 13;
+    const worstCaseCost = 37;
 
     if (balance < worstCaseCost) {
         return NextResponse.json({
-            error: `Insufficient balance. This generation may cost up to ฿${worstCaseCost}. Your balance is ฿${balance}.`
+            error: `Insufficient balance. This generation may cost up to ${worstCaseCost} credits. Your balance is ${balance} credits.`
         }, { status: 400 });
     }
 
-    await sql`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId}`;
+    const [held] = await sql`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId} AND balance >= ${worstCaseCost} RETURNING id`;
+    if (!held) return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
 
     const result = await sql`
         INSERT INTO "note" (name, created_at, user_id, status, public_id, style, transcript_id, uploaded_filename, source_content, generation_type, language)

@@ -3,24 +3,15 @@ import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
 import { generate } from "@/lib/note/individual/generate";
 import { generateGroup } from "@/lib/note/group/generate";
-
-function getGroupTierPrice(totalTokens, groupTier) {
-    const PRICES = {
-        small: [13, 26, 43, 56],
-        study: [23, 45, 75, 98],
-        class: [45, 90, 150, 195],
-        faculty: [60, 120, 200, 260],
-    };
-    const tiers = PRICES[groupTier];
-    if (totalTokens <= 25000) return tiers[0];
-    if (totalTokens <= 50000) return tiers[1];
-    if (totalTokens <= 75000) return tiers[2];
-    return tiers[3];
-}
+import { getGroupTierPrice } from "../generate/group/route";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req) {
     const userId = await verifyUserData(req);
     if (userId === null) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const limited = await rateLimit(`rl:note-gen:${userId}`, 10, 60);
+    if (limited) return limited;
 
     const inProgress = await sql`
         SELECT 1 FROM note
@@ -56,7 +47,6 @@ export async function POST(req) {
     const noteRows = await sql`SELECT * FROM "note" WHERE public_id = ${publicId} AND user_id = ${userId}`;
     const note = noteRows[0];
 
-
     if (!note) return NextResponse.json({ error: "Note not found" }, { status: 404 });
 
     if (note.generation_type === "group") {
@@ -82,8 +72,8 @@ export async function POST(req) {
                 return NextResponse.json({ error: "Transcript is too long. Maximum input is ~65,000 tokens." }, { status: 400 });
             }
 
-            const estimatedTokens = estimatedInputTokens * 2.5;
-            const totalPrice = getGroupTierPrice(estimatedTokens, membership.tier);
+            // 1. Calculate the MAXIMUM possible tier price for the hold
+            const maxPriceHold = getGroupTierPrice(Infinity, membership.tier);
 
             const members = await sql`
                 SELECT gm.user_id, u.balance
@@ -92,22 +82,33 @@ export async function POST(req) {
                 WHERE gm.group_id = ${membership.group_id}
             `;
 
-            const actualSplit = parseFloat((totalPrice / members.length).toFixed(2));
-            const actualGeneratorCharge = parseFloat((actualSplit * 0.5).toFixed(2));
+            const maxSplit = parseFloat((maxPriceHold / members.length).toFixed(2));
+            const maxGeneratorCharge = parseFloat((maxSplit * 0.5).toFixed(2));
 
+            // 2. Ensure all members can afford the MAX hold
             const broke = members.find(m => {
-                const charge = m.user_id === userId ? actualGeneratorCharge : actualSplit;
+                const charge = m.user_id === userId ? maxGeneratorCharge : maxSplit;
                 return (parseFloat(m.balance) || 0) < charge;
             });
-            if (broke) return NextResponse.json({ error: "A group member has insufficient balance." }, { status: 400 });
+            if (broke) return NextResponse.json({ error: "A group member has insufficient balance to authorize the generation." }, { status: 400 });
 
-            await sql`
-                UPDATE "note"
-                SET status = 'pending', content = null, created_at = NOW()
-                WHERE id = ${note.id}
-            `;
+            // 3. Deduct the max hold UPFRONT in a transaction and reset the note
+            await sql.begin(async (tx) => {
+                for (const member of members) {
+                    const charge = member.user_id === userId ? maxGeneratorCharge : maxSplit;
+                    const [held] = await tx`UPDATE "user" SET balance = balance - ${charge} WHERE id = ${member.user_id} AND balance >= ${charge} RETURNING id`;
+                    if (!held) throw new Error(`Member ${member.user_id} has insufficient balance.`);
+                }
 
-            generateGroup(note.id, userId, membership.group_id, totalPrice, note.language).catch(err => console.error('Group regen error:', err));
+                await tx`
+                    UPDATE "note"
+                    SET status = 'pending', content = null, created_at = NOW()
+                    WHERE id = ${note.id}
+                `;
+            });
+
+            // 4. Pass the tier and maxHold to the updated worker
+            generateGroup(note.id, userId, membership.group_id, membership.tier, maxPriceHold, note.language).catch(err => console.error('Group regen error:', err));
 
             return NextResponse.json({ publicId });
         } catch (error) {
@@ -115,6 +116,7 @@ export async function POST(req) {
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
     } else {
+        // Individual logic - unchanged, already correct!
         try {
             let sourceContent = note.source_content;
             if (!sourceContent && note.transcript_id) {
@@ -132,11 +134,13 @@ export async function POST(req) {
 
             if (balance < worstCaseCost) {
                 return NextResponse.json({
-                    error: `Insufficient balance. This generation may cost up to ฿${worstCaseCost}. Your balance is ฿${balance}.`
+                    error: `Insufficient balance. This generation may cost up to ${worstCaseCost} credits. Your balance is ${balance} credits.`
                 }, { status: 400 });
             }
 
-            await sql`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId}`;
+            // Deduct hold upfront
+            const [held] = await sql`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId} AND balance >= ${worstCaseCost} RETURNING id`;
+            if (!held) return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
 
             await sql`
                 UPDATE "note"
@@ -144,6 +148,7 @@ export async function POST(req) {
                 WHERE id = ${note.id}
             `;
 
+            // Call worker with worstCaseCost
             generate(note.id, userId, worstCaseCost, note.language).catch(err => console.error('Regen error:', err));
 
             return NextResponse.json({ publicId });

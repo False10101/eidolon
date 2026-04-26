@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { transcriptorQueue } from "@/lib/queue";
+import { rateLimit } from "@/lib/rateLimit";
 import { mkdir, writeFile, unlink } from 'fs/promises';
 import { verifyUserData } from "@/lib/auth/verify";
 import { sql } from "@/lib/storage/db";
@@ -15,6 +16,9 @@ export async function POST(req) {
         if (userId === null) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        const limited = await rateLimit(`rl:transcript:${userId}`, 10, 60);
+        if (limited) return limited;
 
         const inProgress = await sql`
             SELECT 1 FROM note
@@ -63,8 +67,18 @@ export async function POST(req) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
         }
 
+        if (file.size > 500 * 1024 * 1024) {
+            return NextResponse.json({ error: 'File is too large. Maximum size is 500MB.' }, { status: 400 });
+        }
+
+        const ALLOWED_AUDIO_EXTS = ['.mp3', '.wav', '.m4a', '.mp4', '.ogg', '.flac', '.aac', '.webm'];
+        const fileName = path.basename(file.name);
+        const fileExt = path.extname(fileName).toLowerCase();
+        if (!ALLOWED_AUDIO_EXTS.includes(fileExt)) {
+            return NextResponse.json({ error: 'Invalid file type. Allowed: mp3, wav, m4a, mp4, ogg, flac, aac, webm' }, { status: 400 });
+        }
+
         const buffer = Buffer.from(await file.arrayBuffer());
-        const fileName = file.name;
         const tempDir = './tmp-transcript';
         await mkdir(tempDir, { recursive: true });
 
@@ -73,30 +87,25 @@ export async function POST(req) {
 
         const durationHours = (await getAudioDuration(inputPath)) / 3600;
 
+        if (durationHours <= 0) {
+            await unlink(inputPath);
+            return NextResponse.json({ error: 'Could not determine audio duration.' }, { status: 400 });
+        }
+
         if (durationHours >= 10) {
             return NextResponse.json({ error: "Audio duration exceeds our 10-hour limit." }, { status: 400 });
         }
 
-        const premiumModel = (model === 'whisper-v3');
-        const rate = premiumModel ? 4 : 2.5;
+        const premiumModel = model === 'whisper-v3';
+        const rate = premiumModel ? 11 : 7;
+        const transcriptionPrice = Math.ceil(durationHours) * rate;
 
-        let transcriptionPrice;
-        if (durationHours < 1) {
-            transcriptionPrice = premiumModel ? 4 : 2.5;
-        } else if (durationHours < 2) {
-            transcriptionPrice = premiumModel ? 8 : 5;
-        } else if (durationHours < 3) {
-            transcriptionPrice = premiumModel ? 12 : 7.5;
-        } else {
-            transcriptionPrice = Math.round(durationHours * rate * 1.2);
-        }
-
-        const balance = await sql`SELECT balance FROM "user" WHERE id = ${userId}`;
-
-        if (balance[0].balance < transcriptionPrice) {
+        const [held] = await sql`UPDATE "user" SET balance = balance - ${transcriptionPrice} WHERE id = ${userId} AND balance >= ${transcriptionPrice} RETURNING id`;
+        if (!held) {
             await unlink(inputPath);
             return NextResponse.json({ error: "Not enough balance." }, { status: 400 });
         }
+
         const job = await transcriptorQueue.add('transcribe', {
             inputPath,
             userId,
@@ -105,7 +114,8 @@ export async function POST(req) {
             vad,
             fileName,
             outputFormat,
-            diarization
+            diarization,
+            transcriptionPrice
         });
 
         return NextResponse.json({ jobId: job.id })
