@@ -34,7 +34,9 @@ export async function POST(req) {
     const [user] = await sql`SELECT email FROM "user" WHERE id = ${userId}`;
     if (!user) return NextResponse.json({ error: 'User not found.' }, { status: 404 });
 
-    const origin = process.env.NEXT_PUBLIC_APP_URL;
+    const host  = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
+    const proto = req.headers.get('x-forwarded-proto') ?? 'https';
+    const origin = `${proto}://${host}`;
 
     const session = await stripe.checkout.sessions.create({
         mode: 'payment',

@@ -56,7 +56,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Pay as you go',
-    sub: 'No subscription. Top up with PromptPay, spend only what you use.',
+    sub: 'No subscription. Top up with card, spend only what you use.',
   },
 ];
 

@@ -19,7 +19,6 @@ const TMP_DIRS = [
   join(process.cwd(), "tmp"),
   join(process.cwd(), "tmp-convert"),
   join(process.cwd(), "tmp-transcript"),
-  join(process.cwd(), "tmp-slips"),
 ];
 
 async function cleanR2() {
