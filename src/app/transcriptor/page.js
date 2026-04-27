@@ -10,6 +10,7 @@ import GeneratingOverlay from '../GeneratingOverlays';
 import ErrorModal from '../ErrorModal';
 import CreditIcon from '../CreditIcon';
 import { useTranslations } from 'next-intl';
+import TranscriptorOnboard from './TranscriptorOnboard';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const MODELS = [
@@ -527,6 +528,7 @@ export default function Transcriptor() {
           </div>
         </main>
       </div>
+      <TranscriptorOnboard />
     </div>
   );
 }

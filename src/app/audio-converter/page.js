@@ -10,6 +10,7 @@ import GeneratingOverlay from '../GeneratingOverlays';
 import ErrorModal from '../ErrorModal';
 import CreditIcon from '../CreditIcon';
 import { useTranslations } from 'next-intl';
+import ConverterOnboard from './ConverterOnboard';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const FORMATS = ['MP3', 'WAV', 'M4A'];
@@ -381,7 +382,7 @@ export default function AudioConverter() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[14px] font-medium text-[var(--fg)]">{ t("dropRecordingHere") }</div>
+                    <div className="text-[14px] font-medium text-[var(--fg)]">{t("dropRecordingHere")}</div>
                     <div className="mt-0.5 text-[12px] text-[var(--fg-3)]">{t('clickToBrowse')} · {t('noSizeLimit')}</div>
                   </div>
                   <div className="flex flex-shrink-0 gap-1.5">
@@ -711,6 +712,7 @@ export default function AudioConverter() {
           </motion.div>
         </main>
       </div>
+      <ConverterOnboard />
     </div>
   );
 }

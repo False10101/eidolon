@@ -10,6 +10,7 @@ import GeneratingOverlay from '../../GeneratingOverlays';
 import ErrorModal from '@/app/ErrorModal';
 import CreditIcon from '@/app/CreditIcon';
 import { useTranslations, useLocale } from 'next-intl';
+import ExamPrepOnboard from '../ExamPrepOnboard';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const stepMap = { pending: 0, reading: 1, generating: 2, writing: 3, saving: 4 };
@@ -178,7 +179,7 @@ export default function NewExamPrepPage() {
   };
 
   const getStepText = (status) => {
-    switch(status) {
+    switch (status) {
       case 'reading': return t('stepReadingSource');
       case 'generating': return t('stepGeneratingQuestions');
       case 'writing': return t('stepWritingSolutions');
@@ -449,7 +450,7 @@ export default function NewExamPrepPage() {
                 <div className="flex flex-shrink-0 items-center gap-3">
                   <div className="text-right">
                     <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('estCost')}</div>
-                    <div className="font-mono text-[13px] text-[var(--accent)] flex items-center">17 - 37 <CreditIcon size={14} className='ml-1'/></div>
+                    <div className="font-mono text-[13px] text-[var(--accent)] flex items-center">17 - 37 <CreditIcon size={14} className='ml-1' /></div>
                   </div>
                   <button onClick={() => handleGenerate('group')} disabled={!isReady || procStatus === 'processing'}
                     className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-5 py-2.5 text-[13px] font-medium text-[var(--fg-2)] transition-all hover:border-[rgba(0,212,200,0.25)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap">
@@ -472,6 +473,7 @@ export default function NewExamPrepPage() {
           </div>
         </main>
       </div>
+      <ExamPrepOnboard />
     </div>
   );
 }

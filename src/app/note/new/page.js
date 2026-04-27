@@ -11,6 +11,7 @@ import TranscriptSourcePicker from '@/app/TranscriptSourcePicker';
 import ErrorModal from '@/app/ErrorModal';
 import CreditIcon from '@/app/CreditIcon';
 import { useTranslations } from 'next-intl';
+import NotesOnboard from '../NotesOnboard';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const COMPACTNESS_OPTIONS = [
@@ -353,6 +354,7 @@ export default function NewNotePage() {
           </motion.div>
         </main>
       </div>
+      <NotesOnboard />
     </div>
   );
 }

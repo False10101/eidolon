@@ -14,6 +14,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import Navbar from '../navbar';
 import CreditIcon from '../CreditIcon';
 import { useTranslations, useLocale } from 'next-intl';
+import HomeOnboard from '../HomeOnboard';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatLastLogin(dateString, t, locale) {
@@ -302,21 +303,26 @@ export default function Home() {
                 change={userData.weeklyComparison?.cost?.change} 
                 cyan 
               />
-              <MetricCard 
-                label={t("balanceRemaining")} 
-                value={<span className="inline-flex items-center gap-1.5"><CreditIcon size={20} color="#00d4c8" />{userData.balance ?? '—'}</span>} 
-                sub={`~${estimatedGens} ${t('generationsLeft')}`} 
-                cyan 
-              />
+              <div data-onboard="balance">
+                <MetricCard 
+                  label={t("balanceRemaining")} 
+                  value={<span className="inline-flex items-center gap-1.5"><CreditIcon size={20} color="#00d4c8" />{userData.balance ?? '—'}</span>} 
+                  sub={`~${estimatedGens} ${t('generationsLeft')}`} 
+                  cyan 
+                />
+              </div>
             </motion.div>
 
             {/* ── Pipeline ── */}
             <motion.div variants={itemVariants}>
               <div className="mb-3.5 text-[11px] uppercase tracking-[0.08em] text-[var(--fg-3)]">{ t("yourPipeline") }</div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                {pipeline.map((p) => (
-                  <PipelineCard key={p.href} {...p} onClick={() => router.push(p.href)} />
-                ))}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5" data-onboard="pipeline">
+                {pipeline.map((p) => {
+                  let dataOnboard = null;
+                  if (p.href === '/audio-converter') dataOnboard = "step-01";
+                  if (p.href === '/note') dataOnboard = "step-03";
+                  return <PipelineCard key={p.href} {...p} dataOnboard={dataOnboard} onClick={() => router.push(p.href)} />;
+                })}
               </div>
             </motion.div>
 
@@ -365,6 +371,8 @@ export default function Home() {
           </motion.main>
         )}
       </div>
+
+      <HomeOnboard />
     </div>
   );
 }
@@ -522,11 +530,12 @@ function MetricCard({ label, value, change, cyan, sub }) {
 }
 
 // ─── PipelineCard ──────────────────────────────────────────────────────────────
-function PipelineCard({ step, nameKey, descKey, priceKey, isFree, isNew, icon, onClick }) {
+function PipelineCard({ step, nameKey, descKey, priceKey, isFree, isNew, icon, onClick, dataOnboard }) {
   const t = useTranslations("home");
   return (
     <button
       onClick={onClick}
+      data-onboard={dataOnboard}
       className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left transition-all duration-200 hover:border-[rgba(0,212,200,0.2)] surface noise"
     >
       <div className="absolute inset-0 bg-[rgba(0,212,200,0.08)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
