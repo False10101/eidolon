@@ -99,6 +99,7 @@ export default function NoteViewer({ params }) {
   const [toast, setToast] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  const [regenError, setRegenError] = useState(null);
 
   const [editName, setEditName] = useState('');
 
@@ -106,6 +107,37 @@ export default function NoteViewer({ params }) {
   const [currentStatus, setCurrentStatus] = useState('pending');
   const intervalRef = useRef(null);
   const progressBarRef = useRef(null);
+
+  const [unlockingTrial, setUnlockingTrial] = useState(false);
+  const [unlockTrialError, setUnlockTrialError] = useState(null);
+
+  const handleUnlockTrial = async () => {
+    setUnlockingTrial(true);
+    setUnlockTrialError(null);
+    try {
+      const token = await getAccessTokenSilently();
+      const res = await fetch('/api/note/unlock-trial', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteId: id }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      window.dispatchEvent(new Event('balance:refresh'));
+
+      const nextRes = await fetch(`/api/note/getDetail/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const nextData = await nextRes.json();
+      setNote(nextData.detail);
+      setEditContent(nextData.detail.content);
+    } catch (err) {
+      setUnlockTrialError(err.message);
+    } finally {
+      setUnlockingTrial(false);
+    }
+  };
 
   const stepMap = { pending: 0, reading: 0, generating: 1, saving: 2 };
   const progressMap = { pending: 5, reading: 20, generating: 60, saving: 90, completed: 100 };
@@ -174,7 +206,7 @@ export default function NoteViewer({ params }) {
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setNote(prev => ({ ...prev, content: editContent, name: editName}));
+      setNote(prev => ({ ...prev, content: editContent, name: editName }));
       setIsEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -252,7 +284,11 @@ export default function NoteViewer({ params }) {
         body: JSON.stringify({ publicId: id }),
       });
       const data = await res.json();
-      if (data.error) { setProcStatus('idle'); return; }
+      if (data.error) { 
+        setRegenError(data.error);
+        setProcStatus('idle'); 
+        return; 
+      }
       pollStatus(token);
     } catch (err) {
       console.error('Regenerate failed:', err);
@@ -392,7 +428,7 @@ export default function NoteViewer({ params }) {
                     <div className="p-3 flex flex-col gap-2">
                       <DetailField label={t("noteName")} value={note.name} editing={isEditing} editValue={editName} onChange={setEditName} />
                       <DetailField label={t("language")} value={note.language} editing={false} />
-                      <DetailField label={t("generationType")} value={note.generation_type} editing={false}/>
+                      <DetailField label={t("generationType")} value={note.generation_type} editing={false} />
                       <DetailField label={t("noteStyle")} value={getStyleLabel(note.style)} editing={false} />
                     </div>
                   </div>
@@ -414,7 +450,7 @@ export default function NoteViewer({ params }) {
                       <div className="h-px bg-[var(--surface-tint)] my-1" />
                       <div className="flex items-center justify-between">
                         <span className="text-[12.5px] font-medium text-[var(--fg-2)]">{t('charged')}</span>
-                        <span className="font-mono text-[16px] font-medium text-[var(--accent)] flex items-center">{note.charge_amount} <CreditIcon size={16} className='ml-1.5'/></span>
+                        <span className="font-mono text-[16px] font-medium text-[var(--accent)] flex items-center">{note.charge_amount} <CreditIcon size={16} className='ml-1.5' /></span>
                       </div>
                     </div>
                   </div>
@@ -533,12 +569,41 @@ export default function NoteViewer({ params }) {
                           ))}
                         </div>
 
-                        <div className="max-w-[720px]">
+                        <div className="max-w-[720px] relative pb-20">
                           <MDEditor.Markdown
-                            source={note.content}
+                            source={note.is_trial ? (note.content?.slice(0, Math.floor((note.content?.length || 0) * 0.3)) + '\n\n...') : note.content}
                             style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '14px', lineHeight: '2' }}
                             rehypePlugins={[]}
                           />
+
+                          {note.is_trial && procStatus !== 'processing' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-[400px] bg-gradient-to-t from-[var(--surface)] via-[var(--surface)] to-transparent flex flex-col items-center justify-end pb-8 pt-32">
+                              <div className="bg-[var(--surface-raised)] border border-[var(--border-strong)] p-6 rounded-2xl shadow-xl flex flex-col items-center text-center max-w-sm relative z-10 w-full mx-4">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[rgba(0,212,200,0.1)] border border-[rgba(0,212,200,0.2)] mb-4">
+                                  <svg viewBox="0 0 24 24" className="h-5 w-5 stroke-[var(--accent)] fill-none stroke-[2]">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                  </svg>
+                                </div>
+                                <h3 className="text-[17px] font-medium text-[var(--fg)] mb-2 tracking-tight">Unlock Full Note</h3>
+                                <p className="text-[13.5px] text-[var(--fg-3)] mb-6 leading-relaxed">
+                                  You've reached the end of your free preview. Unlock the complete text and future regeneration options.
+                                </p>
+
+                                {unlockTrialError && (
+                                  <div className="w-full bg-[rgba(239,68,68,0.1)] text-[#ef4444] text-[12px] p-2.5 rounded-lg mb-4 text-left border border-[rgba(239,68,68,0.2)]">
+                                    {unlockTrialError}
+                                  </div>
+                                )}
+
+                                <button onClick={handleUnlockTrial} disabled={unlockingTrial} className="flex items-center justify-center gap-2 bg-[var(--accent)] text-[var(--on-accent)] px-5 py-3 rounded-xl text-[14px] font-semibold w-full transition-opacity hover:opacity-90 disabled:opacity-50">
+                                  {unlockingTrial ? 'Unlocking...' : (
+                                    <>Unlock for {note.charge_amount} <CreditIcon size={16} color="var(--on-accent)" /></>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -553,6 +618,7 @@ export default function NoteViewer({ params }) {
       {/* ── Fullscreen reader ── */}
       <AnimatePresence>
         {deleteError && <ErrorModal message={deleteError} onClose={() => setDeleteError(null)} />}
+        {regenError && <ErrorModal message={regenError} onClose={() => setRegenError(null)} />}
         {deleteModal && (
           <ConfirmModal
             title={t('deleteNote')}
@@ -618,13 +684,43 @@ export default function NoteViewer({ params }) {
                   {formatCreatedAt(note.created_at, locale)}
                 </div>
                 <div className="text-[12px] text-[var(--fg-3)] mb-8 flex items-center gap-2 select-none">
-                  {t('generatedByEidolon')} <span className="text-[var(--fg-3)]">·</span> {note.charge_amount}<CreditIcon size={12} color='#9a9aaa'/>
+                  {t('generatedByEidolon')} <span className="text-[var(--fg-3)]">·</span> {note.charge_amount}<CreditIcon size={12} color='#9a9aaa' />
                 </div>
-                <div data-color-mode="dark">
+                <div data-color-mode="dark" className="relative pb-20">
                   <MDEditor.Markdown
-                    source={note.content}
+                    source={note.is_trial ? (note.content?.slice(0, Math.floor((note.content?.length || 0) * 0.3)) + '\n\n...') : note.content}
                     style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '15px', lineHeight: '1.95' }}
                   />
+
+                  {note.is_trial && procStatus !== 'processing' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[450px] bg-gradient-to-t from-[var(--bg)] via-[var(--bg)] to-transparent flex flex-col items-center justify-end pb-12">
+                      <div className="bg-[var(--surface)] border border-[var(--border-strong)] p-7 rounded-2xl shadow-2xl flex flex-col items-center text-center max-w-md w-[90%] relative z-10 transition-all">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[rgba(0,212,200,0.1)] border border-[rgba(0,212,200,0.2)] mb-5">
+                          <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-[var(--accent)] fill-none stroke-[2]">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                          </svg>
+                        </div>
+                        <h3 className="text-[19px] font-medium text-[var(--fg)] mb-2.5">Continue Reading</h3>
+                        <p className="text-[14px] text-[var(--fg-3)] mb-6 leading-relaxed px-4">
+                          Top up to instantly unlock the remaining 70% of this dense generated note.
+                        </p>
+
+                        {unlockTrialError && (
+                          <div className="w-full bg-[rgba(239,68,68,0.1)] text-[#ef4444] text-[13px] p-3 rounded-xl mb-4 border border-[rgba(239,68,68,0.2)]">
+                            {unlockTrialError}
+                          </div>
+                        )}
+
+                        <button onClick={handleUnlockTrial} disabled={unlockingTrial} className="flex items-center justify-center gap-2 bg-[var(--accent)] text-[var(--on-accent)] px-6 py-3.5 rounded-xl text-[14px] font-semibold w-full shadow-[0_2px_10px_rgba(0,212,200,0.2)] transition-opacity hover:opacity-90 disabled:opacity-50">
+                          {unlockingTrial ? 'Unlocking...' : (
+                            <>Unlock Note · {note.charge_amount} <CreditIcon size={14} className="ml-1 relative -top-[0.5px]" /></>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>

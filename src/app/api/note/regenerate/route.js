@@ -48,6 +48,7 @@ export async function POST(req) {
     const note = noteRows[0];
 
     if (!note) return NextResponse.json({ error: "Note not found" }, { status: 404 });
+    if (note.is_trial) return NextResponse.json({ error: "You must unlock this free preview before regenerating it." }, { status: 400 });
 
     if (note.generation_type === "group") {
         try {

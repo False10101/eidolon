@@ -48,8 +48,9 @@ export async function POST(req) {
         return NextResponse.json({ error: 'You already have a generation in progress. Please wait for it to complete.' }, { status: 400 });
     }
 
-    const userRows = await sql`SELECT balance FROM "user" WHERE id = ${userId}`;
+    const userRows = await sql`SELECT balance, trial_used FROM "user" WHERE id = ${userId}`;
     const balance = userRows[0].balance;
+    const trialUsed = userRows[0].trial_used ?? false;
 
     const formData = await req.formData();
     const file = formData.get('file') || null;
@@ -101,18 +102,33 @@ export async function POST(req) {
 
     const worstCaseCost = 37;
 
+    let isTrial = false;
+
     if (balance < worstCaseCost) {
-        return NextResponse.json({
-            error: `Insufficient balance. This generation may cost up to ${worstCaseCost} credits. Your balance is ${balance} credits.`
-        }, { status: 400 });
+        if (!trialUsed) {
+            const previousNotes = await sql`SELECT 1 FROM note WHERE user_id = ${userId} LIMIT 1`;
+            if (previousNotes.length === 0) {
+                isTrial = true;
+            }
+        }
+        
+        if (!isTrial) {
+            return NextResponse.json({
+                error: `Insufficient balance. This generation may cost up to ${worstCaseCost} credits. Your balance is ${balance} credits.`
+            }, { status: 400 });
+        }
     }
 
-    const [held] = await sql`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId} AND balance >= ${worstCaseCost} RETURNING id`;
-    if (!held) return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
+    if (isTrial) {
+        await sql`UPDATE "user" SET trial_used = true WHERE id = ${userId}`;
+    } else {
+        const [held] = await sql`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId} AND balance >= ${worstCaseCost} RETURNING id`;
+        if (!held) return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
+    }
 
     const result = await sql`
-        INSERT INTO "note" (name, created_at, user_id, status, public_id, style, transcript_id, uploaded_filename, source_content, generation_type, language)
-        VALUES (${name}, NOW(), ${userId}, 'pending', ${publicId}, ${style}, ${transcriptDbId}, ${uploadedFilename}, ${sourceContent}, ${generation_type}, ${language})
+        INSERT INTO "note" (name, created_at, user_id, status, public_id, style, transcript_id, uploaded_filename, source_content, generation_type, language, is_trial)
+        VALUES (${name}, NOW(), ${userId}, 'pending', ${publicId}, ${style}, ${transcriptDbId}, ${uploadedFilename}, ${sourceContent}, ${generation_type}, ${language}, ${isTrial})
         RETURNING id
     `;
 
