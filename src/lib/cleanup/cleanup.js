@@ -12,8 +12,8 @@ const r2 = new S3Client({
 });
 
 const BUCKET = process.env.R2_DUMP_BUCKET_NAME;
-const MAX_AGE_MS = 10 * 60 * 1000;
-const INTERVAL_MS = 3 * 60 * 1000;
+const MAX_AGE_MS = 5 * 60 * 1000;
+const INTERVAL_MS = 1 * 60 * 1000;
 
 const TMP_DIRS = [
   join(process.cwd(), "tmp"),
