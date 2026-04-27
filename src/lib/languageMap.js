@@ -22,6 +22,8 @@ const languageMap = {
   nld: 'Dutch',
   tur: 'Turkish',
   arb: 'Arabic', 
+  fas: 'Persian',
+  pes: 'Persian',
 
   // Fallback (franc returns 'und' for undetermined)
   und: 'English' 

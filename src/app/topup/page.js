@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import CreditIcon from '../CreditIcon';
+import { useTranslations } from 'next-intl';
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {
@@ -29,7 +30,7 @@ const PACKAGES = [
 
 const BADGE_STYLES = {
     bonus: 'border border-[rgba(34,197,94,0.2)]  bg-[rgba(34,197,94,0.1)]  text-[#22c55e]',
-    best:  'border border-[rgba(0,212,200,0.2)]  bg-[rgba(0,212,200,0.1)]  text-[#00d4c8]',
+    best:  'border border-[rgba(0,212,200,0.2)]  bg-[rgba(0,212,200,0.1)]  text-[var(--accent)]',
 };
 
 const MIN_CUSTOM = 1.50;
@@ -49,13 +50,13 @@ function formatLocal(usdAmount, fx) {
     }
 }
 
-// Custom amount → estimated credits (base rate 100 cr/$1)
+// {t("customAmount")} → estimated credits (base rate 100 cr/$1)
 function estimateCredits(usdAmount) {
     return Math.round(usdAmount * 100);
 }
 
 // ─── Package Card ──────────────────────────────────────────────────────────────
-function PackageCard({ pkg, selected, onSelect, fx }) {
+function PackageCard({ pkg, selected, onSelect, fx, t }) {
     const isSelected = selected === pkg.amount;
     const localStr   = formatLocal(pkg.amount, fx);
 
@@ -65,36 +66,36 @@ function PackageCard({ pkg, selected, onSelect, fx }) {
             className={`w-full text-left rounded-xl border px-4 py-2.5 transition-all duration-150 cursor-pointer
                 ${isSelected
                     ? 'border-[rgba(0,212,200,0.35)] bg-[rgba(0,212,200,0.06)]'
-                    : 'border-white/[0.07] bg-[#111116] hover:border-[rgba(0,212,200,0.2)] hover:bg-[rgba(0,212,200,0.03)]'
+                    : 'border-[var(--border)] bg-[var(--surface)] hover:border-[rgba(0,212,200,0.2)] hover:bg-[rgba(0,212,200,0.03)]'
                 }`}
         >
             <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
                     {/* Top row: credits + badge */}
                     <div className="flex items-center gap-2">
-                        <CreditIcon size={15} color={isSelected ? '#00d4c8' : '#b4b4c2'} />
-                        <span className="font-mono text-[17px] font-medium text-[#e8e8ed]">{pkg.credits.toLocaleString()}</span>
+                        <CreditIcon size={15} color={isSelected ? '#00d4c8' : 'var(--fg-2)'} />
+                        <span className="font-mono text-[17px] font-medium text-[var(--fg)]">{pkg.credits.toLocaleString()}</span>
                         {pkg.badge && (
                             <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${BADGE_STYLES[pkg.badge.style]}`}>
-                                {pkg.badge.text}
+                                {pkg.badge.text.replace('bonus', t('bonus'))}
                             </span>
                         )}
                     </div>
                     {/* USD — secondary dim */}
-                    <span className="font-mono text-[11.5px] text-[#7a7a8a]">
+                    <span className="font-mono text-[11.5px] text-[var(--fg-4)]">
                         {localStr ? `≈ ${localStr} (${pkg.label})` : pkg.label}
                     </span>
                 </div>
                 <div className={`h-[18px] w-[18px] flex-shrink-0 rounded-full border flex items-center justify-center transition-all duration-150 ml-3
-                    ${isSelected ? 'bg-[#00d4c8] border-[#00d4c8]' : 'border-white/[0.12]'}`}>
+                    ${isSelected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border-strong)]'}`}>
                     {isSelected && (
-                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 stroke-[#0c0c0e] fill-none stroke-[3]">
+                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 stroke-[var(--on-accent)] fill-none stroke-[3]">
                             <polyline points="20 6 9 17 4 12" />
                         </svg>
                     )}
                 </div>
             </div>
-            <div className="mt-1 text-[11px] text-[#9a9aaa]">{pkg.desc}</div>
+            <div className="mt-1 text-[11px] text-[var(--fg-3)]">{pkg.desc.replace('note generations', t('noteGenerations'))}</div>
         </button>
     );
 }
@@ -102,6 +103,7 @@ function PackageCard({ pkg, selected, onSelect, fx }) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 function TopupPage() {
     const searchParams = useSearchParams();
+  const t = useTranslations("topup");
     const { getAccessTokenSilently } = useAuth0();
 
     const [balance, setBalance]         = useState(null);
@@ -145,14 +147,14 @@ function TopupPage() {
     useEffect(() => {
         const result = searchParams.get('topup');
         if (result === 'success') {
-            showToast('Payment successful! Credits have been added.');
+            showToast(t('paymentSuccessful'));
             getAccessTokenSilently()
                 .then(token => fetch('/api/profile/balance', { headers: { Authorization: `Bearer ${token}` } }))
                 .then(r => r.json())
                 .then(d => setBalance(d.balance))
                 .catch(() => {});
         } else if (result === 'cancel') {
-            showToast('Payment cancelled.');
+            showToast(t('paymentCancelled'));
         }
     }, [searchParams]);
 
@@ -235,7 +237,7 @@ function TopupPage() {
     };
 
     return (
-        <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] font-sans text-sm">
+        <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
             <Navbar />
 
             <div className="flex flex-1 overflow-hidden">
@@ -244,20 +246,20 @@ function TopupPage() {
                 <main className="flex flex-1 overflow-hidden min-w-0">
 
                     {/* ── Left panel ── */}
-                    <div className="flex w-[300px] flex-shrink-0 flex-col border-r border-white/[0.05]">
+                    <div className="flex w-[300px] flex-shrink-0 flex-col border-r border-[var(--border-faint)]">
 
-                        <div className="flex-shrink-0 px-6 pt-6 pb-5 border-b border-white/[0.07]">
-                            <h1 className="font-serif text-[19px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
-                                Top <span className="text-[#00d4c8]">Up</span>
+                        <div className="flex-shrink-0 px-6 pt-6 pb-5 border-b border-[var(--border)]">
+                            <h1 className="font-serif text-[19px] font-normal tracking-[-0.02em] text-[var(--fg)]">
+                                {t('title')}
                             </h1>
-                            <p className="mt-0.5 text-[12px] text-[#9a9aaa]">
-                                Select a package or enter a custom amount.
+                            <p className="mt-0.5 text-[12px] text-[var(--fg-3)]">
+                                {t("subtitle")}
                             </p>
                         </div>
 
                         <div
                             className="flex-1 overflow-hidden px-4 py-4 flex flex-col gap-2.5"
-                            style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+                            style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}
                         >
                             {PACKAGES.map(pkg => (
                                 <PackageCard
@@ -266,30 +268,31 @@ function TopupPage() {
                                     selected={selected}
                                     onSelect={handleSelectPreset}
                                     fx={fx}
+                                    t={t}
                                 />
                             ))}
 
-                            {/* ── Custom amount ── */}
+                            {/* ── {t("customAmount")} ── */}
                             <div className={`rounded-xl border px-4 py-3.5 transition-all duration-150
                                 ${isCustomActive
                                     ? 'border-[rgba(0,212,200,0.35)] bg-[rgba(0,212,200,0.06)]'
                                     : customFocus
                                         ? 'border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.03)]'
-                                        : 'border-white/[0.07] bg-[#111116]'
+                                        : 'border-[var(--border)] bg-[var(--surface)]'
                                 }`}>
                                 <div className="flex items-center justify-between mb-2.5">
-                                    <span className="text-[12.5px] font-medium text-[#e8e8ed]">Custom amount</span>
+                                    <span className="text-[12.5px] font-medium text-[var(--fg)]">{t("customAmount")}</span>
                                     <div className={`h-[18px] w-[18px] flex-shrink-0 rounded-full border flex items-center justify-center transition-all
-                                        ${isCustomActive && customValid ? 'bg-[#00d4c8] border-[#00d4c8]' : 'border-white/[0.12]'}`}>
+                                        ${isCustomActive && customValid ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border-strong)]'}`}>
                                         {isCustomActive && customValid && (
-                                            <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 stroke-[#0c0c0e] fill-none stroke-[3]">
+                                            <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 stroke-[var(--on-accent)] fill-none stroke-[3]">
                                                 <polyline points="20 6 9 17 4 12" />
                                             </svg>
                                         )}
                                     </div>
                                 </div>
                                 <div className="relative flex items-center">
-                                    <span className="absolute left-3 text-[13px] text-[#9a9aaa] pointer-events-none select-none">$</span>
+                                    <span className="absolute left-3 text-[13px] text-[var(--fg-3)] pointer-events-none select-none">$</span>
                                     <input
                                         type="text"
                                         inputMode="decimal"
@@ -298,48 +301,48 @@ function TopupPage() {
                                         onFocus={handleCustomFocus}
                                         onBlur={handleCustomBlur}
                                         onChange={handleCustomChange}
-                                        className="w-full rounded-lg border border-white/[0.08] bg-[#18181f] pl-7 pr-3 py-2 font-mono text-[13px] text-[#e8e8ed] placeholder-[#9a9aaa] outline-none transition-all focus:border-[rgba(0,212,200,0.3)]"
+                                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] pl-7 pr-3 py-2 font-mono text-[13px] text-[var(--fg)] placeholder-[var(--fg-3)] outline-none transition-all focus:border-[rgba(0,212,200,0.3)]"
                                     />
                                 </div>
                                 {/* Credit estimate for custom */}
                                 {isCustomActive && resolvedAmount && !customError && (
-                                    <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#9a9aaa]">
+                                    <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[var(--fg-3)]">
                                         <CreditIcon size={11} color="#9a9aaa" />
-                                        <span>{estimateCredits(resolvedAmount).toLocaleString()} credits</span>
+                                        <span>{estimateCredits(resolvedAmount).toLocaleString()} {t('creditsLabel')}</span>
                                         {!isUsd && resolvedLocal && (
-                                            <span className="ml-1 text-[#7a7a8a]">· ≈ {resolvedLocal}</span>
+                                            <span className="ml-1 text-[var(--fg-4)]">· ≈ {resolvedLocal}</span>
                                         )}
                                     </div>
                                 )}
                                 {customError ? (
                                     <div className="mt-1.5 text-[11px] text-[#ef4444]">{customError}</div>
                                 ) : !isCustomActive || (!resolvedAmount && !customError) ? (
-                                    <div className="mt-1.5 text-[11px] text-[#9a9aaa]">
-                                        Min ${MIN_CUSTOM.toFixed(2)} · Max ${MAX_CUSTOM.toLocaleString()}
+                                    <div className="mt-1.5 text-[11px] text-[var(--fg-3)]">
+                                        {t('min')} ${MIN_CUSTOM.toFixed(2)} · {t('max')} ${MAX_CUSTOM.toLocaleString()}
                                     </div>
                                 ) : null}
                             </div>
 
                             {/* FX notice */}
                             {!isUsd && (
-                                <div className="flex items-start gap-2 rounded-lg border border-white/[0.05] bg-[#0e0e12] px-3 py-2.5">
-                                    <svg viewBox="0 0 24 24" className="h-3 w-3 flex-shrink-0 mt-0.5 stroke-[#9a9aaa] fill-none stroke-[1.6]">
+                                <div className="flex items-start gap-2 rounded-lg border border-[var(--border-faint)] bg-[var(--surface)] px-3 py-2.5">
+                                    <svg viewBox="0 0 24 24" className="h-3 w-3 flex-shrink-0 mt-0.5 stroke-[var(--fg-3)] fill-none stroke-[1.6]">
                                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
                                     </svg>
-                                    <span className="text-[10.5px] text-[#7a7a8a] leading-[1.6]">
-                                        Local amounts are approximate and updated daily. Charges are always processed in USD.
+                                    <span className="text-[10.5px] text-[var(--fg-4)] leading-[1.6]">
+                                        {t('fxNotice')}
                                     </span>
                                 </div>
                             )}
                         </div>
 
                         {/* Balance footer */}
-                        <div className="flex-shrink-0 px-5 py-4 border-t border-white/[0.07]">
+                        <div className="flex-shrink-0 px-5 py-4 border-t border-[var(--border)]">
                             <div className="flex items-center justify-between rounded-lg border border-[rgba(0,212,200,0.12)] bg-[rgba(0,212,200,0.04)] px-3.5 py-2.5">
-                                <span className="text-[12px] text-[#9a9aaa]">Current balance</span>
+                                <span className="text-[12px] text-[var(--fg-3)]">{t("currentBalance")}</span>
                                 <div className="flex items-center gap-1.5">
                                     <CreditIcon size={13} />
-                                    <span className="font-mono text-[14px] font-medium text-[#00d4c8]">
+                                    <span className="font-mono text-[14px] font-medium text-[var(--accent)]">
                                         {loading ? '—' : parseInt(balance).toLocaleString()}
                                     </span>
                                 </div>
@@ -351,63 +354,63 @@ function TopupPage() {
                     <div className="flex flex-1 flex-col overflow-hidden min-w-0">
 
                         {/* Toolbar */}
-                        <div className="flex-shrink-0 flex items-center justify-between px-7 py-4 border-b border-white/[0.07] bg-[#18181f]">
-                            <span className="text-[13px] font-medium text-[#b4b4c2]">Payment via Stripe</span>
-                            <div className="flex items-center gap-1.5 text-[11px] text-[#9a9aaa]">
+                        <div className="flex-shrink-0 flex items-center justify-between px-7 py-4 border-b border-[var(--border)] bg-[var(--surface-raised)]">
+                            <span className="text-[13px] font-medium text-[var(--fg-2)]">{t("paymentViaStripe")}</span>
+                            <div className="flex items-center gap-1.5 text-[11px] text-[var(--fg-3)]">
                                 <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[1.8]">
                                     <rect x="3" y="11" width="18" height="11" rx="2" />
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                 </svg>
-                                256-bit SSL encrypted
+                                {t("sslEncrypted")}
                             </div>
                         </div>
 
                         <motion.div
                             className="flex-1 overflow-y-auto px-7 py-6 flex flex-col gap-5"
-                            style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+                            style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}
                             variants={containerVariants}
                             initial="hidden"
                             animate="visible"
                         >
                             {/* Order summary */}
                             <motion.div variants={itemVariants}>
-                                <div className="mb-3 text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
-                                    Order summary
+                                <div className="mb-3 text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)] select-none">
+                                    {t('orderSummary')}
                                 </div>
-                                <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden">
-                                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05]">
-                                        <span className="text-[12.5px] text-[#9a9aaa]">Credits</span>
+                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+                                    <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-faint)]">
+                                        <span className="text-[12.5px] text-[var(--fg-3)]">{t('credits')}</span>
                                         <div className="flex items-center gap-1.5">
                                             {resolvedCredits ? (
                                                 <>
                                                     <CreditIcon size={13} />
-                                                    <span className="font-mono text-[12.5px] font-medium text-[#e8e8ed]">
+                                                    <span className="font-mono text-[12.5px] font-medium text-[var(--fg)]">
                                                         {resolvedCredits.toLocaleString()}
                                                     </span>
                                                 </>
-                                            ) : <span className="text-[12.5px] text-[#7a7a8a]">—</span>}
+                                            ) : <span className="text-[12.5px] text-[var(--fg-4)]">—</span>}
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05]">
-                                        <span className="text-[12.5px] text-[#9a9aaa]">Balance after</span>
+                                    <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-faint)]">
+                                        <span className="text-[12.5px] text-[var(--fg-3)]">{t('balanceAfter')}</span>
                                         <div className="flex items-center gap-1.5">
                                             {afterBalance !== null ? (
                                                 <>
                                                     <CreditIcon size={13} />
-                                                    <span className="font-mono text-[12.5px] font-medium text-[#00d4c8]">
+                                                    <span className="font-mono text-[12.5px] font-medium text-[var(--accent)]">
                                                         {afterBalance.toLocaleString()}
                                                     </span>
                                                 </>
-                                            ) : <span className="text-[12.5px] text-[#7a7a8a]">—</span>}
+                                            ) : <span className="text-[12.5px] text-[var(--fg-4)]">—</span>}
                                         </div>
                                     </div>
                                     <div className="flex items-center justify-between px-4 py-3.5 bg-[rgba(0,212,200,0.03)]">
-                                        <span className="text-[13px] font-medium text-[#e8e8ed]">Total charged</span>
+                                        <span className="text-[13px] font-medium text-[var(--fg)]">{t('totalCharged')}</span>
                                         <div className="flex items-center gap-2">
                                             {!isUsd && resolvedLocal && (
-                                                <span className="font-mono text-[15px] font-medium text-[#00d4c8]">≈ {resolvedLocal}</span>
+                                                <span className="font-mono text-[15px] font-medium text-[var(--accent)]">≈ {resolvedLocal}</span>
                                             )}
-                                            <span className={`font-mono ${!isUsd && resolvedLocal ? 'text-[12px] text-[#7a7a8a]' : 'text-[15px] font-medium text-[#00d4c8]'}`}>
+                                            <span className={`font-mono ${!isUsd && resolvedLocal ? 'text-[12px] text-[var(--fg-4)]' : 'text-[15px] font-medium text-[var(--accent)]'}`}>
                                                 {usdLabel ? (isUsd ? usdLabel : `(${usdLabel})`) : '—'}
                                             </span>
                                         </div>
@@ -417,8 +420,8 @@ function TopupPage() {
 
                             {/* Payment method */}
                             <motion.div variants={itemVariants}>
-                                <div className="mb-3 text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
-                                    Payment method
+                                <div className="mb-3 text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)] select-none">
+                                    {t('paymentMethod')}
                                 </div>
                                 <div className="rounded-xl border border-[rgba(99,102,241,0.2)] bg-[rgba(99,102,241,0.04)] p-4">
                                     <div className="flex items-center gap-3 mb-4">
@@ -429,15 +432,15 @@ function TopupPage() {
                                             </svg>
                                         </div>
                                         <div>
-                                            <div className="text-[13px] font-medium text-[#e8e8ed]">Credit / Debit Card</div>
-                                            <div className="mt-0.5 text-[11.5px] text-[#9a9aaa]">
-                                                Powered by Stripe · Visa & Mastercard accepted globally
+                                            <div className="text-[13px] font-medium text-[var(--fg)]">{t('creditDebitCard')}</div>
+                                            <div className="mt-0.5 text-[11.5px] text-[var(--fg-3)]">
+                                                {t('poweredByStripe')}
                                             </div>
                                         </div>
                                         <div className="ml-auto flex items-center gap-1.5">
                                             {['VISA', 'MASTERCARD'].map(brand => (
                                                 <div key={brand}
-                                                    className="rounded-md border border-white/[0.07] bg-[#1e1e2a] px-2 py-0.5 text-[9.5px] font-bold"
+                                                    className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 text-[9.5px] font-bold"
                                                     style={{ color: brand === 'VISA' ? '#1a72bb' : '#eb001b' }}
                                                 >
                                                     {brand}
@@ -446,26 +449,26 @@ function TopupPage() {
                                         </div>
                                     </div>
 
-                                    <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-white/[0.06] bg-[#18181f] px-3.5 py-2.5">
-                                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[#9a9aaa] fill-none stroke-[1.6]">
+                                    <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-2.5">
+                                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0 stroke-[var(--fg-3)] fill-none stroke-[1.6]">
                                             <circle cx="12" cy="12" r="10" />
                                             <line x1="12" y1="16" x2="12" y2="12" />
                                             <line x1="12" y1="8" x2="12.01" y2="8" />
                                         </svg>
-                                        <span className="text-[11.5px] text-[#9a9aaa]">
-                                            You'll be redirected to Stripe's secure checkout to complete payment.
+                                        <span className="text-[11.5px] text-[var(--fg-3)]">
+                                            {t('redirect_msg')}
                                         </span>
                                     </div>
 
                                     <button
                                         onClick={handlePay}
                                         disabled={paying || !canPay}
-                                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00d4c8] px-4 py-3 text-[13.5px] font-semibold text-[#0c0c0e] transition-all hover:bg-[#00bfb3] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-3 text-[13.5px] font-semibold text-[var(--on-accent)] transition-all hover:bg-[var(--accent-hover)] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         {paying ? (
                                             <>
-                                                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0c0c0e]/30 border-t-[#0c0c0e]" />
-                                                Redirecting to Stripe…
+                                                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--on-accent)]/30 border-t-[#0c0c0e]" />
+                                                {t('redirectingToStripe')}
                                             </>
                                         ) : (
                                             <>
@@ -474,8 +477,8 @@ function TopupPage() {
                                                     <line x1="2" y1="10" x2="22" y2="10" />
                                                 </svg>
                                                 {canPay
-                                                    ? `Pay ${!isUsd && resolvedLocal ? `≈ ${resolvedLocal} ` : ''}${usdLabel ? `(${usdLabel})` : ''} with Card`
-                                                    : 'Select an amount to continue'
+                                                    ? `${t('payWithCard')} ${!isUsd && resolvedLocal ? `≈ ${resolvedLocal} ` : ''}${usdLabel ? `(${usdLabel})` : ''}`
+                                                    : t('selectAnAmount')
                                                 }
                                             </>
                                         )}
@@ -485,19 +488,19 @@ function TopupPage() {
 
                             {/* Info box */}
                             <motion.div variants={itemVariants}
-                                className="rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-3.5 flex flex-col gap-1.5"
+                                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 flex flex-col gap-1.5"
                             >
-                                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa] opacity-60 mb-1 select-none">
-                                    Good to know
+                                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)] opacity-60 mb-1 select-none">
+                                    {t('goodToKnow')}
                                 </div>
                                 {[
-                                    <><span className="text-[#e8e8ed] font-medium">Credits are added instantly</span> after payment confirmation.</>,
-                                    'All transactions are processed securely by Stripe.',
-                                    'Pricing is in USD. Local currency amounts shown are approximate.',
-                                    <><span className="text-[#e8e8ed] font-medium">Top-ups are non-refundable</span> once credited to your account.</>,
+                                    t('creditsAddedInstantly'),
+                                    t('processedSecurely'),
+                                    t('pricingInUsd'),
+                                    t('nonRefundable'),
                                 ].map((note, i) => (
-                                    <div key={i} className="flex items-start gap-2 text-[11.5px] text-[#9a9aaa]">
-                                        <span className="mt-[5px] h-[4px] w-[4px] flex-shrink-0 rounded-full bg-[#9a9aaa]" />
+                                    <div key={i} className="flex items-start gap-2 text-[11.5px] text-[var(--fg-3)]">
+                                        <span className="mt-[5px] h-[4px] w-[4px] flex-shrink-0 rounded-full bg-[var(--fg-3)]" />
                                         {note}
                                     </div>
                                 ))}
@@ -516,7 +519,7 @@ function TopupPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{    opacity: 0, y: 6 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#b4b4c2] shadow-lg"
+                        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-2 text-[12.5px] text-[var(--fg-2)] shadow-lg"
                     >
                         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[2.2]">
                             <polyline points="20 6 9 17 4 12" />

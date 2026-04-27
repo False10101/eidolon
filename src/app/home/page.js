@@ -13,9 +13,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth0 } from '@auth0/auth0-react';
 import Navbar from '../navbar';
 import CreditIcon from '../CreditIcon';
+import { useTranslations, useLocale } from 'next-intl';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-function formatLastLogin(dateString) {
+function formatLastLogin(dateString, t, locale) {
   if (!dateString) return '—';
   const date = new Date(dateString);
   const now = new Date();
@@ -23,12 +24,12 @@ function formatLastLogin(dateString) {
   yesterday.setDate(now.getDate() - 1);
 
   const dayLabel =
-    date.toDateString() === now.toDateString() ? 'Today' :
-    date.toDateString() === yesterday.toDateString() ? 'Yesterday' :
-    date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    date.toDateString() === now.toDateString() ? t('today') :
+    date.toDateString() === yesterday.toDateString() ? t('yesterday') :
+    date.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
 
-  const timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  return `${dayLabel}, ${timeLabel} · Bangkok time`;
+  const timeLabel = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: true });
+  return t('bangkokTime', { day: dayLabel, time: timeLabel });
 }
 
 function formatNumber(n) {
@@ -41,53 +42,45 @@ function formatNumber(n) {
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const pipeline = [
   {
-    step: 'Step 01', name: 'Audio Converter', href: '/audio-converter',
-    desc: 'Extract MP3 from Teams recording', price: 'free', isNew: true,
+    step: 'Step 01', nameKey: 'pipeline1Name', href: '/audio-converter',
+    descKey: 'pipeline1Desc', priceKey: 'pipeline1Price', isFree: true, isNew: true,
     icon: (
-      <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
+      <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
       </svg>
     ),
   },
   {
-    step: 'Step 02', name: 'Transcriptor', href: '/transcriptor',
-    desc: 'MP3 → clean Whisper transcript', price: '7 or 11 / hour', isNew: true,
+    step: 'Step 02', nameKey: 'pipeline2Name', href: '/transcriptor',
+    descKey: 'pipeline2Desc', priceKey: 'pipeline2Price', isFree: false, isNew: true,
     icon: (
-      <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
+      <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
         <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
       </svg>
     ),
   },
   {
-    step: 'Step 03', name: 'Inclass Notes', href: '/note',
-    desc: 'Transcript → comprehensive lecture notes', price: '9 - 17 / note', isNew: false,
+    step: 'Step 03', nameKey: 'pipeline3Name', href: '/note',
+    descKey: 'pipeline3Desc', priceKey: 'pipeline3Price', isFree: false, isNew: false,
     icon: (
-      <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
+      <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
       </svg>
     ),
   },
   {
-    step: 'Step 04', name: 'Exam Prep', href: '/exam-prep',
-    desc: 'Notes → practice questions + solutions', price: '17 – 37 / subject', isNew: true,
+    step: 'Step 04', nameKey: 'pipeline4Name', href: '/exam-prep',
+    descKey: 'pipeline4Desc', priceKey: 'pipeline4Price', isFree: false, isNew: true,
     icon: (
-      <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
+      <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <path d="M9 11l3 3L22 4" />
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </svg>
     ),
   },
 ];
-
-const typeDisplayMap = {
-  note:       'Inclass Notes',
-  transcript: 'Transcription',
-  exam_prep:  'Exam Prep',
-  topup: 'Topup',
-  rebate: 'Rebate'
-};
 
 const routeMap = {
   note:       '/note',
@@ -96,9 +89,9 @@ const routeMap = {
 };
 
 const USAGE_TYPES = [
-  { key: 'note',       label: 'Inclass Notes' },
-  { key: 'transcript', label: 'Transcriptor' },
-  { key: 'exam_prep',  label: 'Exam Prep' },
+  { key: 'note',       labelKey: 'usageNotes' },
+  { key: 'transcript', labelKey: 'usageTranscriptor' },
+  { key: 'exam_prep',  labelKey: 'usageExamPrep' },
 ];
 
 // ─── Motion variants ───────────────────────────────────────────────────────────
@@ -129,7 +122,7 @@ function HomeSkeleton() {
       {/* Metric cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 flex flex-col gap-2">
+          <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 flex flex-col gap-2">
             <div className="skeleton h-2.5 w-24 rounded" />
             <div className="skeleton h-7 w-20 rounded" />
             <div className="skeleton h-2.5 w-32 rounded" />
@@ -142,7 +135,7 @@ function HomeSkeleton() {
         <div className="skeleton h-2.5 w-24 rounded mb-3.5" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-white/[0.07] bg-[#111116] p-5 flex flex-col gap-2.5">
+            <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col gap-2.5">
               <div className="skeleton h-9 w-9 rounded-lg" />
               <div className="skeleton h-2 w-12 rounded" />
               <div className="skeleton h-3.5 w-28 rounded" />
@@ -158,13 +151,13 @@ function HomeSkeleton() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 flex-1 min-h-0">
 
         {/* Activity table skeleton */}
-        <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden flex flex-col">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden flex flex-col">
           {/* Table header bar */}
-          <div className="flex items-center justify-between border-b border-white/[0.07] bg-[#18181f] px-4 py-3.5">
+          <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3.5">
             <div className="skeleton h-3 w-24 rounded" />
           </div>
           {/* Column headers */}
-          <div className="flex gap-4 border-b border-white/[0.07] px-4 py-2.5">
+          <div className="flex gap-4 border-b border-[var(--border)] px-4 py-2.5">
             {[80, 60, 56, 72, 28].map((w, i) => (
               <div key={i} className="skeleton h-2 rounded" style={{ width: w }} />
             ))}
@@ -172,7 +165,7 @@ function HomeSkeleton() {
           {/* Rows */}
           <div className="flex flex-col">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 border-b border-white/[0.05] px-4 py-3 last:border-0">
+              <div key={i} className="flex items-center gap-4 border-b border-[var(--border-faint)] px-4 py-3 last:border-0">
                 <div className="skeleton h-3 rounded" style={{ width: `${100 + (i % 3) * 30}px` }} />
                 <div className="skeleton h-4 w-20 rounded" />
                 <div className="skeleton h-4 w-16 rounded" />
@@ -183,9 +176,9 @@ function HomeSkeleton() {
           </div>
         </div>
 
-        {/* Monthly usage skeleton */}
-        <div className="rounded-xl border border-white/[0.07] bg-[#111116] flex flex-col overflow-hidden">
-          <div className="border-b border-white/[0.07] bg-[#18181f] px-4 py-3 flex items-center justify-between">
+        {/* {t("monthlyUsage")} skeleton */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col overflow-hidden">
+          <div className="border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 flex items-center justify-between">
             <div className="skeleton h-3 w-24 rounded" />
             <div className="skeleton h-2.5 w-16 rounded" />
           </div>
@@ -196,7 +189,7 @@ function HomeSkeleton() {
                   <div className="skeleton h-2.5 w-20 rounded" />
                   <div className="skeleton h-2.5 w-12 rounded" />
                 </div>
-                <div className="h-[3px] w-full rounded-full bg-[#18181f] overflow-hidden">
+                <div className="h-[3px] w-full rounded-full bg-[var(--surface-raised)] overflow-hidden">
                   <div
                     className="skeleton h-full rounded-full"
                     style={{ width: `${60 - i * 15}%` }}
@@ -204,9 +197,9 @@ function HomeSkeleton() {
                 </div>
               </div>
             ))}
-            <div className="mt-auto pt-4 border-t border-white/[0.07] grid grid-cols-3 gap-2">
+            <div className="mt-auto pt-4 border-t border-[var(--border)] grid grid-cols-3 gap-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-lg border border-white/[0.07] bg-[#18181f] px-2.5 py-2 flex flex-col gap-1.5">
+                <div key={i} className="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-2 flex flex-col gap-1.5">
                   <div className="skeleton h-2 w-10 rounded" />
                   <div className="skeleton h-4 w-6 rounded" />
                 </div>
@@ -223,6 +216,8 @@ function HomeSkeleton() {
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const router = useRouter();
+  const t = useTranslations("home");
+  const locale = useLocale();
 
   const [userData, setUserData]         = useState({});
   const [activityList, setActivityList] = useState([]);
@@ -261,7 +256,7 @@ export default function Home() {
   const estimatedGens = Math.floor((userData.balance ?? 0) / 6);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] font-sans text-sm">
+    <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
       <Navbar balance={userData.balance} />
 
       <div className="flex flex-1 overflow-hidden">
@@ -277,47 +272,47 @@ export default function Home() {
             {/* ── Welcome row ── */}
             <motion.div variants={itemVariants} className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h1 className="font-serif text-[26px] font-normal tracking-[-0.02em] text-[#e8e8ed] mb-1">
-                  Welcome back, <span className="text-[#00d4c8]">{userData.username}</span>
+                <h1 className="font-serif text-[26px] font-normal tracking-[-0.02em] text-[var(--fg)] mb-1">
+                  {t("welcomeBack")} <span className="text-[var(--accent)]">{userData.username}</span>
                 </h1>
-                <p className="text-[12px] text-[#9a9aaa]">
-                  Last login: <span className="text-[#b4b4c2]">{formatLastLogin(userData.last_login)}</span>
+                <p className="text-[12px] text-[var(--fg-3)]">
+                  { t("lastLogin") } <span className="text-[var(--fg-2)]">{formatLastLogin(userData.last_login, t, locale)}</span>
                 </p>
               </div>
               <button
                 onClick={() => router.push('/pricing')}
-                className="flex items-center gap-2 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-2.5 transition-all hover:border-[rgba(0,212,200,0.2)] hover:bg-[rgba(0,212,200,0.03)]"
+                className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 transition-all hover:border-[rgba(0,212,200,0.2)] hover:bg-[rgba(0,212,200,0.03)]"
               >
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[#00d4c8] fill-none stroke-[1.8]">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[var(--accent)] fill-none stroke-[1.8]">
                   <line x1="12" y1="1" x2="12" y2="23" />
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
-                <span className="text-[12px] text-[#e8e8ed]">View pricing</span>
+                <span className="text-[12px] text-[var(--fg)]">{ t("viewPricing") }</span>
               </button>
             </motion.div>
 
             {/* ── Metric cards ── */}
             <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <MetricCard label="Notes generated"   value={String(noteCount)}              change={userData.weeklyComparison?.tokenSent?.change} />
-              <MetricCard label="Tokens processed"  value={formatNumber(totalTokens)}      change={userData.weeklyComparison?.tokenReceived?.change} />
+              <MetricCard label={t("notesGeneratedLabel")}   value={String(noteCount)}              change={userData.weeklyComparison?.tokenSent?.change} />
+              <MetricCard label={t("tokensProcessedLabel")}  value={formatNumber(totalTokens)}      change={userData.weeklyComparison?.tokenReceived?.change} />
               {/* Passed the icon layout directly into the value string here! */}
               <MetricCard 
-                label="This month spent"  
+                label={t("thisMonthSpent")}  
                 value={<span className="inline-flex items-center gap-1.5"><CreditIcon size={20} color="#00d4c8" />{userData.totalCost ?? 0}</span>} 
                 change={userData.weeklyComparison?.cost?.change} 
                 cyan 
               />
               <MetricCard 
-                label="Balance remaining" 
+                label={t("balanceRemaining")} 
                 value={<span className="inline-flex items-center gap-1.5"><CreditIcon size={20} color="#00d4c8" />{userData.balance ?? '—'}</span>} 
-                sub={`~${estimatedGens} generations left`} 
+                sub={`~${estimatedGens} ${t('generationsLeft')}`} 
                 cyan 
               />
             </motion.div>
 
             {/* ── Pipeline ── */}
             <motion.div variants={itemVariants}>
-              <div className="mb-3.5 text-[11px] uppercase tracking-[0.08em] text-[#9a9aaa]">Your pipeline</div>
+              <div className="mb-3.5 text-[11px] uppercase tracking-[0.08em] text-[var(--fg-3)]">{ t("yourPipeline") }</div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                 {pipeline.map((p) => (
                   <PipelineCard key={p.href} {...p} onClick={() => router.push(p.href)} />
@@ -329,16 +324,16 @@ export default function Home() {
             <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 flex-1 min-h-0">
 
               {/* Activity table */}
-              <div className="flex flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] surface">
-                <div className="flex items-center justify-between border-b border-white/[0.07] bg-[#18181f] px-4 py-3.5">
-                  <span className="text-[12px] font-medium tracking-[0.02em] text-[#b4b4c2]">Recent activity</span>
+              <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] surface">
+                <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3.5">
+                  <span className="text-[12px] font-medium tracking-[0.02em] text-[var(--fg-2)]">{t("recentActivity")}</span>
                 </div>
-                <div className="flex-1 overflow-auto min-h-0" style={{ scrollbarWidth: 'thin', scrollbarColor: '#18181f transparent' }}>
+                <div className="flex-1 overflow-auto min-h-0" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-raised) transparent' }}>
                   <table className="w-full border-collapse">
                     <thead>
                       <tr>
-                        {['Title', 'Type', 'Status', 'Date', ''].map((h) => (
-                          <th key={h} className="border-b border-white/[0.07] px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa] font-normal whitespace-nowrap">
+                        {[t('colTitle'), t('colType'), t('colStatus'), t('colDate'), ''].map((h) => (
+                          <th key={h} className="border-b border-[var(--border)] px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.08em] text-[var(--fg-3)] font-normal whitespace-nowrap">
                             {h}
                           </th>
                         ))}
@@ -363,7 +358,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Monthly usage */}
+              {/* {t("monthlyUsage")} */}
               <MonthlyUsage data={monthlyUsage} />
 
             </motion.div>
@@ -376,6 +371,15 @@ export default function Home() {
 
 // ─── ActivityRow ───────────────────────────────────────────────────────────────
 function ActivityRow({ activity, index, onView }) {
+  const t = useTranslations("home");
+  const locale = useLocale();
+  const typeDisplayMap = {
+    note:       t('typeNote'),
+    transcript: t('typeTranscript'),
+    exam_prep:  t('typeExamPrep'),
+    topup:      t('typeTopup'),
+    rebate:     t('typeRebate'),
+  };
   const statusLower = activity.status?.toLowerCase();
   const statusStyle =
     statusLower === 'completed'  ? 'bg-[rgba(34,197,94,0.1)] text-[#22c55e]' :
@@ -389,11 +393,11 @@ function ActivityRow({ activity, index, onView }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ delay: Math.min(index, 5) * 0.04, duration: 0.3, ease: 'easeOut' }}
-      className="border-b border-white/[0.05] last:border-0 transition-colors hover:bg-white/[0.015]"
+      className="border-b border-[var(--border-faint)] last:border-0 transition-colors hover:bg-[var(--surface-tint-faint)]"
     >
-      <td className="max-w-[180px] truncate px-4 py-2.5 text-[13px] text-[#e8e8ed]">{activity.title}</td>
+      <td className="max-w-[180px] truncate px-4 py-2.5 text-[13px] text-[var(--fg)]">{activity.title}</td>
       <td className="px-4 py-2.5">
-        <span className="rounded border border-white/[0.07] bg-[#18181f] px-1.5 py-0.5 capitalize font-mono text-[10px] text-[#b4b4c2] whitespace-nowrap">
+        <span className="rounded border border-[var(--border)] bg-[var(--surface-raised)] px-1.5 py-0.5 capitalize font-mono text-[10px] text-[var(--fg-2)] whitespace-nowrap">
           {typeDisplayMap[activity.type] ?? activity.type}
         </span>
       </td>
@@ -403,19 +407,19 @@ function ActivityRow({ activity, index, onView }) {
           {activity.status}
         </span>
       </td>
-      <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[11px] text-[#9a9aaa]">
-        {new Date(activity.date).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+      <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[11px] text-[var(--fg-3)]">
+        {new Date(activity.date).toLocaleString(locale, { day: '2-digit', month: '2-digit', year: '2-digit' })}
         {' '}
-        <span className="text-[#7a7a8a]">
-          {new Date(activity.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+        <span className="text-[var(--fg-4)]">
+          {new Date(activity.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
       </td>
       <td className="px-4 py-2.5">
         <button
           onClick={onView}
-          className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-[#00d4c8] opacity-80 transition-opacity hover:opacity-100"
+          className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-[var(--accent)] opacity-80 transition-opacity hover:opacity-100"
         >
-          <EyeIcon className="h-3.5 w-3.5" /> View
+          <EyeIcon className="h-3.5 w-3.5" /> { t("view") }
         </button>
       </td>
     </motion.tr>
@@ -424,43 +428,46 @@ function ActivityRow({ activity, index, onView }) {
 
 // ─── MonthlyUsage ──────────────────────────────────────────────────────────────
 function MonthlyUsage({ data }) {
-  const counts = USAGE_TYPES.map(t => ({
-    ...t,
-    count: parseInt(data.find(d => d.type === t.key)?.totalUsage ?? 0),
+  const t = useTranslations("home");
+  const locale = useLocale();
+  const counts = USAGE_TYPES.map(c => ({
+    ...c,
+    label: t(c.labelKey),
+    count: parseInt(data.find(d => d.type === c.key)?.totalUsage ?? 0),
   }));
   const max = Math.max(...counts.map(c => c.count), 1);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] flex flex-col h-full surface">
-      <div className="border-b border-white/[0.07] bg-[#18181f] px-4 py-3 flex items-center justify-between">
-        <span className="text-[12px] font-medium tracking-[0.02em] text-[#b4b4c2]">Monthly usage</span>
-        <span className="text-[10px] text-[#9a9aaa] font-mono">
-          {new Date().toLocaleString('en-GB', { month: 'long', timeZone: 'Asia/Bangkok' })}
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col h-full surface">
+      <div className="border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 flex items-center justify-between">
+        <span className="text-[12px] font-medium tracking-[0.02em] text-[var(--fg-2)]">{t("monthlyUsage")}</span>
+        <span className="text-[10px] text-[var(--fg-3)] font-mono">
+          {new Date().toLocaleString(locale, { month: 'long', timeZone: 'Asia/Bangkok' })}
         </span>
       </div>
       <div className="flex flex-col gap-2.5 px-4 py-5 flex-1 justify-start">
-        {counts.map((t) => {
-          const pct = Math.round((t.count / max) * 100);
+        {counts.map((c) => {
+          const pct = Math.round((c.count / max) * 100);
           return (
-            <div key={t.key} className="flex flex-col gap-2 px-3">
+            <div key={c.key} className="flex flex-col gap-2 px-3">
               <div className="flex justify-between text-[11px]">
-                <span className="text-[#b4b4c2]">{t.label}</span>
-                <span className="font-mono text-[#b4b4c2]"><span className="text-[#e8e8ed]">{t.count}</span> calls</span>
+                <span className="text-[var(--fg-2)]">{c.label}</span>
+                <span className="font-mono text-[var(--fg-2)]"><span className="text-[var(--fg)]">{c.count}</span> {t('calls')}</span>
               </div>
-              <div className="h-[3px] w-full overflow-hidden rounded-full bg-[#18181f]">
+              <div className="h-[3px] w-full overflow-hidden rounded-full bg-[var(--surface-raised)]">
                 <div
                   className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${pct}%`, background: t.count > 0 ? '#00d4c8' : 'rgba(255,255,255,0.06)' }}
+                  style={{ width: `${pct}%`, background: c.count > 0 ? '#00d4c8' : 'rgba(255,255,255,0.06)' }}
                 />
               </div>
             </div>
           );
         })}
-        <div className="mt-auto pt-4 border-t border-white/[0.07] grid grid-cols-3 gap-2">
+        <div className="mt-auto pt-4 border-t border-[var(--border)] grid grid-cols-3 gap-2">
           {counts.map(({ key, label, count }) => (
-            <div key={key} className="flex flex-col gap-1 rounded-lg border border-white/[0.07] bg-[#18181f] px-2.5 py-2">
-              <div className="text-[10px] text-[#9a9aaa] truncate">{label}</div>
-              <div className="font-mono text-[13px] text-[#e8e8ed]">{count}</div>
+            <div key={key} className="flex flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-2">
+              <div className="text-[10px] text-[var(--fg-3)] truncate">{label}</div>
+              <div className="font-mono text-[13px] text-[var(--fg)]">{count}</div>
             </div>
           ))}
         </div>
@@ -471,18 +478,19 @@ function MonthlyUsage({ data }) {
 
 // ─── MetricCard ────────────────────────────────────────────────────────────────
 function MetricCard({ label, value, change, cyan, sub }) {
+  const t = useTranslations("home");
   const hasChange = change !== undefined;
   const up = (change ?? 0) >= 0;
  
   return (
     <div className={`group relative overflow-hidden rounded-xl border px-4 py-4 noise
       ${cyan
-        ? 'border-[rgba(0,212,200,0.12)] bg-[#111116] surface-teal'
-        : 'border-white/[0.07] bg-[#111116] surface'
+        ? 'border-[rgba(0,212,200,0.12)] bg-[var(--surface)] surface-teal'
+        : 'border-[var(--border)] bg-[var(--surface)] surface'
       }`}
     >
       {/* Top-edge shimmer on hover */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#00d4c8] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-50" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-50" />
  
       {/* Corner radial — fills the dead space, gives cards warmth */}
       <div
@@ -491,8 +499,8 @@ function MetricCard({ label, value, change, cyan, sub }) {
       />
  
       <div className="relative">
-        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-[#9a9aaa]">{label}</div>
-        <div className={`mb-1.5 font-mono text-[22px] font-medium leading-none ${cyan ? 'text-[#00d4c8]' : 'text-[#e8e8ed]'}`}>
+        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-[var(--fg-3)]">{label}</div>
+        <div className={`mb-1.5 font-mono text-[22px] font-medium leading-none ${cyan ? 'text-[var(--accent)]' : 'text-[var(--fg)]'}`}>
           {value}
         </div>
         {hasChange ? (
@@ -503,10 +511,10 @@ function MetricCard({ label, value, change, cyan, sub }) {
                 : <><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></>
               }
             </svg>
-            {Math.abs(change)}% vs last week
+            {Math.abs(change)}% {t('vsLastWeek')}
           </div>
         ) : sub ? (
-          <div className="text-[11px] text-[#b4b4c2]">{sub}</div>
+          <div className="text-[11px] text-[var(--fg-2)]">{sub}</div>
         ) : null}
       </div>
     </div>
@@ -514,30 +522,31 @@ function MetricCard({ label, value, change, cyan, sub }) {
 }
 
 // ─── PipelineCard ──────────────────────────────────────────────────────────────
-function PipelineCard({ step, name, desc, price, isNew, icon, onClick }) {
+function PipelineCard({ step, nameKey, descKey, priceKey, isFree, isNew, icon, onClick }) {
+  const t = useTranslations("home");
   return (
     <button
       onClick={onClick}
-      className="group relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116] p-5 text-left transition-all duration-200 hover:border-[rgba(0,212,200,0.2)] surface noise"
+      className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left transition-all duration-200 hover:border-[rgba(0,212,200,0.2)] surface noise"
     >
       <div className="absolute inset-0 bg-[rgba(0,212,200,0.08)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
  
       {isNew && (
-        <span className="absolute right-3 top-3 z-10 rounded bg-[#00d4c8] px-1.5 py-0.5 text-[9px] font-medium tracking-[0.04em] text-[#0c0c0e]">
-          New
+        <span className="absolute right-3 top-3 z-10 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-medium tracking-[0.04em] text-[var(--on-accent)]">
+          {t('newBadge')}
         </span>
       )}
-      <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f] transition-colors group-hover:border-[rgba(0,212,200,0.3)]">
+      <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-colors group-hover:border-[rgba(0,212,200,0.3)]">
         {icon}
       </div>
-      <div className="relative z-10 mb-1 text-[9px] uppercase tracking-[0.1em] text-[#9a9aaa]">{step}</div>
-      <div className="relative z-10 mb-1 text-[13px] font-medium text-[#e8e8ed]">{name}</div>
-      <div className="relative z-10 mb-2.5 text-[11px] leading-snug text-[#b4b4c2]">{desc}</div>
+      <div className="relative z-10 mb-1 text-[9px] uppercase tracking-[0.1em] text-[var(--fg-3)]">{step}</div>
+      <div className="relative z-10 mb-1 text-[13px] font-medium text-[var(--fg)]">{t(nameKey)}</div>
+      <div className="relative z-10 mb-2.5 text-[11px] leading-snug text-[var(--fg-2)]">{t(descKey)}</div>
       
       {/* Changed to inline-flex items-center and conditionally rendering the icon! */}
-      <span className="relative z-10 inline-flex items-center gap-1 rounded bg-[rgba(0,212,200,0.08)] px-1.5 py-0.5 font-mono text-[10px] text-[#00d4c8]">
-        {price !== 'free' && <CreditIcon size={12} color="#00d4c8" />}
-        {price}
+      <span className="relative z-10 inline-flex items-center gap-1 rounded bg-[rgba(0,212,200,0.08)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--accent)]">
+        {!isFree && <CreditIcon size={12} color="#00d4c8" />}
+        {t(priceKey)}
       </span>
     </button>
   );

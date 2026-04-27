@@ -1,5 +1,85 @@
 @import "tailwindcss";
 
+/* ── Theme tokens ─────────────────────────────────────────────────────────────
+   All hardcoded colours map to these variables.
+   Dark is the default; [data-theme="light"] overrides them.              */
+
+:root {
+  /* Backgrounds */
+  --bg:                  #0c0c0e;
+  --surface:             #111116;
+  --surface-raised:      #18181f;
+  --surface-deep:        #1e1e27;
+  --scrollbar:           #2a2a35;
+  --scrollbar-hover:     #3a3a48;
+
+  /* Text */
+  --fg:                  #e8e8ed;
+  --fg-2:                #b4b4c2;
+  --fg-3:                #9a9aaa;
+  --fg-4:                #7a7a8a;
+  --fg-body:             #b0b0bc;   /* note / transcript reading content */
+
+  /* Accent */
+  --accent:              #00d4c8;
+  --accent-hover:        #00bfb3;
+  --accent-muted:        #00a89f;
+  --on-accent:           #0c0c0e;  /* text ON a teal button */
+
+  /* Borders (rgba so they blend with any surface) */
+  --border-faint:        rgba(255, 255, 255, 0.05);
+  --border:              rgba(255, 255, 255, 0.07);
+  --border-strong:       rgba(255, 255, 255, 0.12);
+  --border-hover:        rgba(255, 255, 255, 0.18);
+
+  /* Hover / tint surfaces */
+  --surface-tint-faint:  rgba(255, 255, 255, 0.01);
+  --surface-tint:        rgba(255, 255, 255, 0.04);
+  --surface-hover:       rgba(255, 255, 255, 0.03);
+
+  /* Card-level hover states (full background shift) */
+  --card-hover:          #14141a;
+  --input-hover:         #1c1c24;
+}
+
+[data-theme="light"] {
+  /* Backgrounds */
+  --bg:                  #f4f4f9;
+  --surface:             #ffffff;
+  --surface-raised:      #ededf4;
+  --surface-deep:        #e2e2ec;
+  --scrollbar:           #c4c4d4;
+  --scrollbar-hover:     #a8a8bc;
+
+  /* Text */
+  --fg:                  #1a1a1e;
+  --fg-2:                #4a4a5a;
+  --fg-3:                #6b6b7a;
+  --fg-4:                #8a8a9a;
+  --fg-body:             #3c3c4c;
+
+  /* Accent — slightly deeper for readability on white */
+  --accent:              #009890;
+  --accent-hover:        #007a72;
+  --accent-muted:        #006660;
+  --on-accent:           #ffffff;
+
+  /* Borders */
+  --border-faint:        rgba(0, 0, 0, 0.06);
+  --border:              rgba(0, 0, 0, 0.10);
+  --border-strong:       rgba(0, 0, 0, 0.16);
+  --border-hover:        rgba(0, 0, 0, 0.24);
+
+  /* Hover / tint surfaces */
+  --surface-tint-faint:  rgba(0, 0, 0, 0.01);
+  --surface-tint:        rgba(0, 0, 0, 0.03);
+  --surface-hover:       rgba(0, 0, 0, 0.025);
+
+  /* Card-level hover states */
+  --card-hover:          #ebebf3;
+  --input-hover:         #e6e6ef;
+}
+
 
 /* ── Cursor defaults ──────────────────────────────────────────────────────────
    Browsers default buttons to `default` cursor. Fix it globally.           */
@@ -56,7 +136,7 @@ select:focus-visible {
    Default blue selection looks off against this dark palette.              */
 ::selection {
   background: rgba(0, 212, 200, 0.2);
-  color: #e8e8ed;
+  color: var(--fg);
 }
 
 /* ── User select ──────────────────────────────────────────────────────────────
@@ -77,9 +157,9 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 textarea:-webkit-autofill,
 select:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 1000px #18181f inset;
-  -webkit-text-fill-color: #e8e8ed;
-  caret-color: #e8e8ed;
+  -webkit-box-shadow: 0 0 0 1000px var(--surface-raised) inset;
+  -webkit-text-fill-color: var(--fg);
+  caret-color: var(--fg);
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -97,12 +177,12 @@ select:-webkit-autofill {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a35;
+  background: var(--scrollbar);
   border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a48;
+  background: var(--scrollbar-hover);
 }
 
 ::-webkit-scrollbar-corner {
@@ -146,22 +226,31 @@ img {
 .surface {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    /* top edge catch-light      */
     0 2px 12px rgba(0, 0, 0, 0.45);
-  /* drop shadow under card   */
 }
 
 /* For cards that contain teal values (balance, spend)                       */
 .surface-teal {
   box-shadow:
     inset 0 1px 0 rgba(0, 212, 200, 0.18),
-    /* teal catch-light on top  */
     0 0 0 1px rgba(0, 212, 200, 0.04),
-    /* outer teal border whisper */
     0 8px 32px rgba(0, 212, 200, 0.06),
-    /* ambient teal glow         */
     0 2px 12px rgba(0, 0, 0, 0.45);
-  /* base drop shadow          */
+}
+
+/* Light mode: replace heavy dark shadows with gentle, natural ones          */
+[data-theme="light"] .surface {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 1px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .surface-teal {
+  box-shadow:
+    inset 0 1px 0 rgba(0, 152, 144, 0.12),
+    0 0 0 1px rgba(0, 152, 144, 0.06),
+    0 4px 16px rgba(0, 152, 144, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Subtle grain on card surfaces — adds tactility without pattern            */
@@ -186,9 +275,12 @@ img {
 .nav-surface {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.05),
-    /* bottom edge light leak    */
     0 4px 24px rgba(0, 0, 0, 0.4);
-  /* page shadow underneath    */
+}
+
+[data-theme="light"] .nav-surface {
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.08);
 }
 
 /* ─── Device blocking ──────────────────────────────────────────────────────────
@@ -248,8 +340,8 @@ img {
 }
 
 .w-md-editor-text-input {
-  color: #9898a8 !important;
-  -webkit-text-fill-color: #9898a8 !important;
+  color: var(--fg-3) !important;
+  -webkit-text-fill-color: var(--fg-3) !important;
 }
 
 /* Fix content area */
@@ -279,97 +371,97 @@ textarea.w-md-editor-text-input {
 
 /* ── MD Editor theme ── */
 .w-md-editor {
-  background: #111116 !important;
+  background: var(--surface) !important;
   border: none !important;
-  color: #9898a8 !important;
+  color: var(--fg-3) !important;
 }
 
 .w-md-editor-toolbar {
-  background: #18181f !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--surface-raised) !important;
+  border-bottom: 1px solid var(--border) !important;
   padding: 4px 8px !important;
 }
 
 .w-md-editor-toolbar li button {
-  color: #6b6b7a !important;
+  color: var(--fg-4) !important;
   border-radius: 6px !important;
 }
 
 .w-md-editor-toolbar li button:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-  color: #e8e8ed !important;
+  background: var(--surface-tint) !important;
+  color: var(--fg) !important;
 }
 
 .w-md-editor-toolbar li.active button {
   background: rgba(0, 212, 200, 0.07) !important;
-  color: #00d4c8 !important;
+  color: var(--accent) !important;
 }
 
 .w-md-editor-toolbar-divider {
-  background: rgba(255, 255, 255, 0.07) !important;
+  background: var(--border) !important;
 }
 
 .w-md-editor-text-input,
 .w-md-editor-text {
-  background: #111116 !important;
-  color: #9898a8 !important;
+  background: var(--surface) !important;
+  color: var(--fg-3) !important;
   font-size: 14px !important;
   line-height: 1.8 !important;
 }
 
 .w-md-editor .token.title {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
   font-weight: 500 !important;
 }
 
 .w-md-editor .token.bold {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
 }
 
 .w-md-editor .token.italic {
-  color: #00d4c8 !important;
+  color: var(--accent) !important;
 }
 
 .w-md-editor .token.code {
-  color: #00d4c8 !important;
+  color: var(--accent) !important;
 }
 
 .w-md-editor .token.blockquote {
-  color: #00d4c8 !important;
+  color: var(--accent) !important;
 }
 
 .w-md-editor .token.list.punctuation {
-  color: #6b6b7a !important;
+  color: var(--fg-4) !important;
 }
 
 .wmde-markdown {
   background: transparent !important;
-  color: #9898a8 !important;
+  color: var(--fg-3) !important;
   font-size: 14px !important;
   line-height: 1.8 !important;
 }
 
 .wmde-markdown h1 {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
   font-size: 26px !important;
   font-weight: 500 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-bottom: 1px solid var(--border) !important;
   padding-bottom: 8px !important;
   margin-bottom: 16px !important;
 }
 
 .wmde-markdown h2 {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
   font-size: 20px !important;
   font-weight: 500 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-bottom: 1px solid var(--border) !important;
   padding-bottom: 6px !important;
   margin-top: 28px !important;
   margin-bottom: 12px !important;
 }
 
 .wmde-markdown h3 {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
   font-size: 15px !important;
   font-weight: 500 !important;
   margin-top: 20px !important;
@@ -377,7 +469,7 @@ textarea.w-md-editor-text-input {
 }
 
 .wmde-markdown h4 {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   text-transform: uppercase !important;
@@ -387,7 +479,7 @@ textarea.w-md-editor-text-input {
 }
 
 .wmde-markdown h5 {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   text-transform: uppercase !important;
@@ -397,7 +489,7 @@ textarea.w-md-editor-text-input {
 }
 
 .wmde-markdown h6 {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
   font-size: 11px !important;
   font-weight: 500 !important;
   text-transform: uppercase !important;
@@ -407,18 +499,18 @@ textarea.w-md-editor-text-input {
 }
 
 .wmde-markdown strong {
-  color: #e8e8ed !important;
+  color: var(--fg) !important;
   font-weight: 500 !important;
 }
 
 .wmde-markdown em {
-  color: #00d4c8 !important;
+  color: var(--accent) !important;
 }
 
 .wmde-markdown blockquote {
-  border-left: 2px solid #00d4c8 !important;
-  background: #18181f !important;
-  color: #9898a8 !important;
+  border-left: 2px solid var(--accent) !important;
+  background: var(--surface-raised) !important;
+  color: var(--fg-3) !important;
   border-radius: 0 8px 8px 0 !important;
   padding: 10px 16px !important;
   margin: 12px 0 !important;
@@ -429,23 +521,23 @@ textarea.w-md-editor-text-input {
 }
 
 .wmde-markdown code {
-  background: #18181f !important;
-  color: #00d4c8 !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--surface-raised) !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 4px !important;
   padding: 1px 6px !important;
   font-size: 12px !important;
 }
 
 .wmde-markdown pre {
-  background: #18181f !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--surface-raised) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 8px !important;
 }
 
 .wmde-markdown pre code {
   border: none !important;
-  color: #9898a8 !important;
+  color: var(--fg-3) !important;
 }
 
 .wmde-markdown table {
@@ -454,33 +546,33 @@ textarea.w-md-editor-text-input {
 }
 
 .wmde-markdown table th {
-  background: #18181f !important;
-  color: #e8e8ed !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--surface-raised) !important;
+  color: var(--fg) !important;
+  border: 1px solid var(--border) !important;
   padding: 8px 12px !important;
   font-weight: 500 !important;
 }
 
 .wmde-markdown table td {
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid var(--border) !important;
   padding: 8px 12px !important;
-  color: #9898a8 !important;
+  color: var(--fg-3) !important;
 }
 
 .wmde-markdown table tr:nth-child(even) td {
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: var(--surface-tint-faint) !important;
 }
 
 .wmde-markdown hr {
-  border-color: rgba(255, 255, 255, 0.07) !important;
+  border-color: var(--border) !important;
 }
 
 .wmde-markdown a {
-  color: #00d4c8 !important;
+  color: var(--accent) !important;
 }
 
 .wmde-markdown li::marker {
-  color: #6b6b7a !important;
+  color: var(--fg-4) !important;
 }
 
 .w-md-editor-text::-webkit-scrollbar {
@@ -488,7 +580,7 @@ textarea.w-md-editor-text-input {
 }
 
 .w-md-editor-text::-webkit-scrollbar-thumb {
-  background: #1e1e27;
+  background: var(--surface-deep);
   border-radius: 2px;
 }
 
@@ -522,7 +614,7 @@ textarea.w-md-editor-text-input {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #18181f 25%, #1e1e27 50%, #18181f 75%);
+  background: linear-gradient(90deg, var(--surface-raised) 25%, var(--surface-deep) 50%, var(--surface-raised) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;
   border-radius: 6px;

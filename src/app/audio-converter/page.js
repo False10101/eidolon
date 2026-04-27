@@ -9,6 +9,7 @@ import Sidebar from '../sidebar';
 import GeneratingOverlay from '../GeneratingOverlays';
 import ErrorModal from '../ErrorModal';
 import CreditIcon from '../CreditIcon';
+import { useTranslations } from 'next-intl';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const FORMATS = ['MP3', 'WAV', 'M4A'];
@@ -26,11 +27,11 @@ function fmtTimeInput(val) {
   return out.slice(0, 8);
 }
 
-function getStepLabel(pct) {
-  if (pct < 20) return 'Uploading to server';
-  if (pct < 50) return 'Extracting audio track';
-  if (pct < 85) return 'Encoding audio';
-  return 'Uploading to storage';
+function getStepLabel(pct, t) {
+  if (pct < 20) return t("uploadingToServer");
+  if (pct < 50) return t("extractingAudio");
+  if (pct < 85) return t("encodingAudio");
+  return t("uploadingToStorage");
 }
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
@@ -46,6 +47,7 @@ const itemVariants = {
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function AudioConverter() {
   const router = useRouter();
+  const t = useTranslations("audioConverter");
   const { getAccessTokenSilently } = useAuth0();
 
   // File
@@ -107,7 +109,7 @@ export default function AudioConverter() {
   const handleDownload = async () => {
     const jobId = completedJobIdRef.current;
     if (!jobId) {
-      setError('Download reference lost. Please convert again.');
+      setError(t('errorDownloadRef'));
       return;
     }
     try {
@@ -118,7 +120,7 @@ export default function AudioConverter() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError('Your file has expired. Please convert again.');
+        setError(t('errorFileExpired'));
         resetAll();
         return;
       }
@@ -131,7 +133,7 @@ export default function AudioConverter() {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Download error:', err);
-      setError('Download failed. Please try again.');
+      setError(t('errorDownloadFailed'));
     }
   };
 
@@ -145,14 +147,14 @@ export default function AudioConverter() {
         const data = await res.json();
 
         if (data.state === 'waiting') {
-          setTranscriptStep(data.queuePosition ? `Queue position: ${data.queuePosition}` : 'Waiting in queue');
+          setTranscriptStep(data.queuePosition ? `${t('queuePosition')} ${data.queuePosition}` : t('waitingInQueue'));
           setProgress(0);
         } else if (data.state === 'active') {
           const pct = data.progress || 0;
           setProgress(pct);
-          if (pct < 40) setTranscriptStep('Reading audio');
-          else if (pct < 90) setTranscriptStep('Transcribing');
-          else setTranscriptStep('Saving transcript');
+          if (pct < 40) setTranscriptStep(t('readingAudio'));
+          else if (pct < 90) setTranscriptStep(t('transcribing'));
+          else setTranscriptStep(t('savingTranscript'));
         } else if (data.state === 'completed') {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
@@ -163,7 +165,7 @@ export default function AudioConverter() {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
           setStatus('idle');
-          setError('Transcription failed. Please try again.');
+          setError(t('errorTranscriptionFailed'));
         }
       } catch (err) {
         console.error('Transcript polling error:', err);
@@ -182,7 +184,7 @@ export default function AudioConverter() {
 
         if (data.state === 'waiting') {
           const pos = data.queuePosition;
-          setConvStep(pos ? `Queue position: ${pos}` : 'Waiting in queue');
+          setConvStep(pos ? `${t('queuePosition')} ${pos}` : t('waitingInQueue'));
           setProgress(0);
         } else if (data.state === 'completed') {
           clearInterval(intervalRef.current);
@@ -197,7 +199,7 @@ export default function AudioConverter() {
           if (action === 'transcribe' || action === 'both') {
             setPhase('transcribing');
             setProgress(0);
-            setTranscriptStep('Waiting in queue');
+            setTranscriptStep(t('waitingInQueue'));
             pollTranscriptStatus(data.transcriptJobId, token);
           } else {
             // download only
@@ -208,11 +210,11 @@ export default function AudioConverter() {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
           setStatus('idle');
-          setError('Conversion failed. Check your file format and try again.');
+          setError(t('errorConversionFailed'));
         } else {
           const pct = 20 + Math.round((data.progress || 0) * 0.8);
           setProgress(pct);
-          setConvStep(getStepLabel(pct));
+          setConvStep(getStepLabel(pct, t));
         }
       } catch (err) {
         console.error('Polling error:', err);
@@ -227,7 +229,7 @@ export default function AudioConverter() {
     setStatus('converting');
     setPhase('converting');
     setProgress(0);
-    setConvStep('Uploading to server');
+    setConvStep(t('uploadingToServer'));
     setResultId(null);
 
     try {
@@ -263,7 +265,7 @@ export default function AudioConverter() {
 
       if (!data.jobId) {
         setStatus('idle');
-        setError(data.error || 'Failed to start conversion.');
+        setError(data.error || t('errorStartConversion'));
         return;
       }
 
@@ -271,7 +273,7 @@ export default function AudioConverter() {
     } catch (err) {
       console.error('Conversion error:', err);
       setStatus('idle');
-      setError('Something went wrong. Please try again.');
+      setError(t('errorGeneric'));
     }
   };
 
@@ -293,7 +295,7 @@ export default function AudioConverter() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] font-sans text-sm">
+    <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
 
       <AnimatePresence>
         {error && <ErrorModal message={error} onClose={() => setError(null)} />}
@@ -309,29 +311,29 @@ export default function AudioConverter() {
           {(status === 'converting' || status === 'done') && (
             phase === 'transcribing' ? (
               <GeneratingOverlay
-                title="Transcribing audio…"
+                title={t('transcribingAudio')}
                 subtitle={transcriptStep}
                 targetProgress={progress}
                 smoothed={true}
                 done={status === 'done'}
                 doneLabel={file?.name?.replace(/\.[^/.]+$/, '') || ''}
                 onView={() => resultId && router.push(`/transcriptor/${resultId}`)}
-                onViewLabel="View transcript"
+                onViewLabel={t('viewTranscript')}
                 onReset={resetAll}
-                onResetLabel="Convert another"
+                onResetLabel={t("convertAnother")}
               />
             ) : (
               <GeneratingOverlay
-                title="Converting your file…"
+                title={t('converting')}
                 subtitle={convStep}
                 targetProgress={progress}
                 onCancel={null}
                 done={status === 'done'}
                 doneLabel={convertedName}
                 onView={handleDownload}
-                onViewLabel="Download file"
+                onViewLabel={t("downloadFile")}
                 onReset={resetAll}
-                onResetLabel="Convert another"
+                onResetLabel={t("convertAnother")}
                 smoothed={false}
               />
             )
@@ -339,11 +341,11 @@ export default function AudioConverter() {
 
           {/* Page header */}
           <div className="flex-shrink-0 px-8 pt-6">
-            <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
-              Audio <span className="text-[#00d4c8]">Converter</span>
+            <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[var(--fg)]">
+              {t('title').split(' ')[0]} <span className="text-[var(--accent)]">{t('title').split(' ')[1]}</span>
             </h1>
-            <p className="mt-0.5 text-[12.5px] text-[#9a9aaa]">
-              Extract audio from your lecture recording. <span className="text-[#00d4c8] font-medium">Free</span> — <span className="text-[#e8e8ed] font-medium">nothing is stored on the server</span>.
+            <p className="mt-0.5 text-[12.5px] text-[var(--fg-3)]">
+              {t('subtitle')}
             </p>
           </div>
 
@@ -366,49 +368,49 @@ export default function AudioConverter() {
                   className={`relative flex flex-shrink-0 cursor-pointer items-center gap-5 overflow-hidden rounded-xl border-[1.5px] border-dashed px-7 py-5 transition-all duration-200
                     ${dragging
                       ? 'border-[rgba(0,212,200,0.28)] bg-[rgba(0,212,200,0.02)]'
-                      : 'border-white/[0.08] hover:border-[rgba(0,212,200,0.28)] hover:bg-[rgba(0,212,200,0.02)]'}`}
+                      : 'border-[var(--border)] hover:border-[rgba(0,212,200,0.28)] hover:bg-[rgba(0,212,200,0.02)]'}`}
                 >
                   <div className="pointer-events-none absolute inset-0"
                     style={{ background: 'radial-gradient(ellipse at 30% 50%, rgba(0,212,200,0.04) 0%, transparent 60%)' }} />
                   <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[10px] border transition-all duration-200
-                    ${dragging ? 'border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]' : 'border-white/[0.07] bg-[#18181f]'}`}>
-                    <svg viewBox="0 0 24 24" className={`h-5 w-5 fill-none stroke-[1.6] transition-colors ${dragging ? 'stroke-[#00d4c8]' : 'stroke-[#9a9aaa]'}`}>
+                    ${dragging ? 'border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]' : 'border-[var(--border)] bg-[var(--surface-raised)]'}`}>
+                    <svg viewBox="0 0 24 24" className={`h-5 w-5 fill-none stroke-[1.6] transition-colors ${dragging ? 'stroke-[var(--accent)]' : 'stroke-[var(--fg-3)]'}`}>
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[14px] font-medium text-[#e8e8ed]">Drop your lecture recording here</div>
-                    <div className="mt-0.5 text-[12px] text-[#9a9aaa]">or click to browse — .mp4, .mov, .mkv, .avi, .webm · No size limit</div>
+                    <div className="text-[14px] font-medium text-[var(--fg)]">{ t("dropRecordingHere") }</div>
+                    <div className="mt-0.5 text-[12px] text-[var(--fg-3)]">{t('clickToBrowse')} · {t('noSizeLimit')}</div>
                   </div>
                   <div className="flex flex-shrink-0 gap-1.5">
                     {['.mp4', '.mov', '.mkv', '.avi', '.webm'].map(t => (
-                      <span key={t} className="rounded-md border border-white/[0.07] bg-[#18181f] px-2 py-0.5 font-mono text-[10.5px] text-[#9a9aaa]">{t}</span>
+                      <span key={t} className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 font-mono text-[10.5px] text-[var(--fg-3)]">{t}</span>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-shrink-0 items-center gap-3.5 rounded-xl border border-[rgba(0,212,200,0.15)] bg-[#111116] px-5 py-3.5 surface">
+                <div className="flex flex-shrink-0 items-center gap-3.5 rounded-xl border border-[rgba(0,212,200,0.15)] bg-[var(--surface)] px-5 py-3.5 surface">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] border border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]">
-                    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] stroke-[#00d4c8] fill-none stroke-[1.6]">
+                    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] stroke-[var(--accent)] fill-none stroke-[1.6]">
                       <polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="truncate text-[14px] font-medium text-[#e8e8ed]">{file.name}</div>
-                    <div className="mt-0.5 text-[12px] text-[#9a9aaa]">{formatBytes(file.size)} · {file.name.split('.').pop().toUpperCase()}</div>
+                    <div className="truncate text-[14px] font-medium text-[var(--fg)]">{file.name}</div>
+                    <div className="mt-0.5 text-[12px] text-[var(--fg-3)]">{formatBytes(file.size)} · {file.name.split('.').pop().toUpperCase()}</div>
                   </div>
                   <div className="flex flex-shrink-0 gap-1.5">
                     <button onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+                      className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-3)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)]">
                       <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                      Replace
+                      {t('replace')}
                     </button>
                     <button onClick={removeFile}
-                      className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#9a9aaa] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444]">
+                      className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-3)] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444]">
                       <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                      Remove
+                      {t('remove')}
                     </button>
                   </div>
                 </div>
@@ -422,68 +424,68 @@ export default function AudioConverter() {
             <motion.div variants={itemVariants} className="grid flex-shrink-0 grid-cols-3 gap-3.5">
 
               {/* Output format */}
-              <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Output format</div>
+              <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t("outputFormat")}</div>
                 <div className="flex gap-1">
                   {FORMATS.map(f => (
                     <button key={f} onClick={() => handleSetFormat(f)}
                       className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] transition-all duration-100
             ${format === f
-                          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
-                          : 'border-white/[0.07] bg-[#18181f] text-[#9a9aaa] hover:border-white/[0.14] hover:text-[#b4b4c2]'}`}>
+                          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
+                          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
                       {f}
                     </button>
                   ))}
                 </div>
-                <div className="text-[11px] text-[#9a9aaa]"><span className="text-[#e8e8ed] font-medium">MP3</span> is recommended for Whisper transcription.</div>
+                <div className="text-[11px] text-[var(--fg-3)]">{t('mp3Recommended')}</div>
               </div>
 
               {/* Bitrate */}
-              <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Bitrate</div>
+              <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t("bitrate")}</div>
                 <div className="flex gap-1">
                   {BITRATES.map(b => (
                     <button key={b} onClick={() => setBitrate(b)}
                       className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] transition-all duration-100
             ${bitrate === b
-                          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
-                          : 'border-white/[0.07] bg-[#18181f] text-[#9a9aaa] hover:border-white/[0.14] hover:text-[#b4b4c2]'}`}>
+                          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
+                          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
                       {b}
                     </button>
                   ))}
                 </div>
-                <div className="text-[11px] text-[#9a9aaa]"><span className="text-[#e8e8ed] font-medium">192 kbps</span> balances quality and file size.</div>
+                <div className="text-[11px] text-[var(--fg-3)]">{t('bitrateHint')}</div>
               </div>
 
               {/* Trim */}
-              <div className="flex flex-col gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Trim</div>
+              <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t("trim")}</div>
                 <button onClick={() => setTrimEnabled(v => !v)} className="flex items-center gap-2 py-0.5">
-                  <div className={`relative h-4 w-7 flex-shrink-0 rounded-full transition-colors duration-200 ${trimEnabled ? 'bg-[#00d4c8]' : 'bg-[#1e1e27]'}`}>
+                  <div className={`relative h-4 w-7 flex-shrink-0 rounded-full transition-colors duration-200 ${trimEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--surface-deep)]'}`}>
                     <div className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-all duration-200 ${trimEnabled ? 'left-[14px]' : 'left-0.5'}`} />
                   </div>
-                  <span className={`text-[13px] transition-colors ${trimEnabled ? 'text-[#00d4c8]' : 'text-[#b4b4c2]'}`}>
-                    {trimEnabled ? 'Enabled' : 'Trim audio'}
+                  <span className={`text-[13px] transition-colors ${trimEnabled ? 'text-[var(--accent)]' : 'text-[var(--fg-2)]'}`}>
+                    {trimEnabled ? t("trimEnabled") : t("trimAudio")}
                   </span>
                 </button>
                 <div className={`grid grid-cols-2 gap-2 overflow-hidden transition-all duration-200 ${trimEnabled ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
                   {[
-                    { label: 'Start', val: trimStart, set: setTrimStart },
-                    { label: 'End', val: trimEnd, set: setTrimEnd },
+                    { label: t("start"), val: trimStart, set: setTrimStart },
+                    { label: t("end"), val: trimEnd, set: setTrimEnd },
                   ].map(({ label, val, set }) => (
                     <div key={label}>
-                      <div className="mb-1 text-[10px] uppercase tracking-[0.05em] text-[#9a9aaa]">{label}</div>
-                      <div className="flex items-center overflow-hidden rounded-lg border border-white/[0.07] bg-[#18181f] focus-within:border-[rgba(0,212,200,0.35)] transition-colors">
+                      <div className="mb-1 text-[10px] uppercase tracking-[0.05em] text-[var(--fg-3)]">{label}</div>
+                      <div className="flex items-center overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] focus-within:border-[rgba(0,212,200,0.35)] transition-colors">
                         <input type="text" value={val} onChange={(e) => set(fmtTimeInput(e.target.value))}
                           placeholder="00:00:00" maxLength={8}
-                          className="min-w-0 flex-1 bg-transparent px-2.5 py-[7px] font-mono text-[12.5px] text-[#e8e8ed] outline-none placeholder:text-[#9a9aaa] placeholder:opacity-40" />
-                        <span className="px-2 text-[10px] text-[#9a9aaa] select-none">h:m:s</span>
+                          className="min-w-0 flex-1 bg-transparent px-2.5 py-[7px] font-mono text-[12.5px] text-[var(--fg)] outline-none placeholder:text-[var(--fg-3)] placeholder:opacity-40" />
+                        <span className="px-2 text-[10px] text-[var(--fg-3)] select-none">h:m:s</span>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="text-[11px] text-[#9a9aaa]">
-                  {trimEnabled ? 'Set start and end times.' : 'Leave blank to convert the full file.'}
+                <div className="text-[11px] text-[var(--fg-3)]">
+                  {trimEnabled ? t("setStartEnd") : t("leaveBlank")}
                 </div>
               </div>
 
@@ -491,8 +493,8 @@ export default function AudioConverter() {
 
             {/* Post-conversion action */}
             <motion.div variants={itemVariants}>
-              <div className="flex flex-col gap-3 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">After conversion</div>
+              <div className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t("afterConversion")}</div>
                 <div className="grid grid-cols-3 gap-2">
 
                   {/* Download only */}
@@ -501,7 +503,7 @@ export default function AudioConverter() {
                     className={`group relative flex flex-col gap-2 overflow-hidden rounded-xl border px-4 py-3.5 text-left transition-all duration-150
           ${postAction === 'download'
                         ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.05)]'
-                        : 'border-white/[0.07] bg-[#18181f] hover:border-white/[0.13] hover:bg-[#1c1c24]'}`}
+                        : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-white/[0.13] hover:bg-[var(--input-hover)]'}`}
                   >
                     {postAction === 'download' && (
                       <div className="pointer-events-none absolute inset-0"
@@ -510,24 +512,24 @@ export default function AudioConverter() {
                     <div className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all
           ${postAction === 'download'
                         ? 'border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.1)]'
-                        : 'border-white/[0.07] bg-[#111116] group-hover:border-white/[0.13]'}`}>
-                      <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 fill-none stroke-[1.8] transition-colors ${postAction === 'download' ? 'stroke-[#00d4c8]' : 'stroke-[#9a9aaa]'}`}>
+                        : 'border-[var(--border)] bg-[var(--surface)] group-hover:border-white/[0.13]'}`}>
+                      <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 fill-none stroke-[1.8] transition-colors ${postAction === 'download' ? 'stroke-[var(--accent)]' : 'stroke-[var(--fg-3)]'}`}>
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
                     </div>
                     <div>
-                      <div className={`text-[12.5px] font-medium transition-colors ${postAction === 'download' ? 'text-[#e8e8ed]' : 'text-[#b4b4c2]'}`}>
-                        Download
+                      <div className={`text-[12.5px] font-medium transition-colors ${postAction === 'download' ? 'text-[var(--fg)]' : 'text-[var(--fg-2)]'}`}>
+                        {t('download')}
                       </div>
-                      <div className="mt-0.5 text-[11px] leading-[1.45] text-[#9a9aaa]">
-                        Save the converted audio file to your device.
+                      <div className="mt-0.5 text-[11px] leading-[1.45] text-[var(--fg-3)]">
+                        {t("saveConverted")}
                       </div>
                     </div>
                     {postAction === 'download' && (
-                      <div className="absolute right-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[#00d4c8]">
-                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 fill-none stroke-[#0c0c0e] stroke-[3]">
+                      <div className="absolute right-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)]">
+                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 fill-none stroke-[var(--on-accent)] stroke-[3]">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       </div>
@@ -540,7 +542,7 @@ export default function AudioConverter() {
                     className={`group relative flex flex-col gap-2 overflow-hidden rounded-xl border px-4 py-3.5 text-left transition-all duration-150
           ${postAction === 'transcribe'
                         ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.05)]'
-                        : 'border-white/[0.07] bg-[#18181f] hover:border-white/[0.13] hover:bg-[#1c1c24]'}`}
+                        : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-white/[0.13] hover:bg-[var(--input-hover)]'}`}
                   >
                     {postAction === 'transcribe' && (
                       <div className="pointer-events-none absolute inset-0"
@@ -549,22 +551,22 @@ export default function AudioConverter() {
                     <div className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all
           ${postAction === 'transcribe'
                         ? 'border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.1)]'
-                        : 'border-white/[0.07] bg-[#111116] group-hover:border-white/[0.13]'}`}>
-                      <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 fill-none stroke-[1.8] transition-colors ${postAction === 'transcribe' ? 'stroke-[#00d4c8]' : 'stroke-[#9a9aaa]'}`}>
+                        : 'border-[var(--border)] bg-[var(--surface)] group-hover:border-white/[0.13]'}`}>
+                      <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 fill-none stroke-[1.8] transition-colors ${postAction === 'transcribe' ? 'stroke-[var(--accent)]' : 'stroke-[var(--fg-3)]'}`}>
                         <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                       </svg>
                     </div>
                     <div>
-                      <div className={`text-[12.5px] font-medium transition-colors ${postAction === 'transcribe' ? 'text-[#e8e8ed]' : 'text-[#b4b4c2]'}`}>
-                        Transcribe
+                      <div className={`text-[12.5px] font-medium transition-colors ${postAction === 'transcribe' ? 'text-[var(--fg)]' : 'text-[var(--fg-2)]'}`}>
+                        {t('transcribe')}
                       </div>
-                      <div className="mt-0.5 text-[11px] leading-[1.45] text-[#9a9aaa]">
-                        Automatically send to Transcriptor when done.
+                      <div className="mt-0.5 text-[11px] leading-[1.45] text-[var(--fg-3)]">
+                        {t("autoSendTranscriptor")}
                       </div>
                     </div>
                     {postAction === 'transcribe' && (
-                      <div className="absolute right-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[#00d4c8]">
-                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 fill-none stroke-[#0c0c0e] stroke-[3]">
+                      <div className="absolute right-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)]">
+                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 fill-none stroke-[var(--on-accent)] stroke-[3]">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       </div>
@@ -577,7 +579,7 @@ export default function AudioConverter() {
                     className={`group relative flex flex-col gap-2 overflow-hidden rounded-xl border px-4 py-3.5 text-left transition-all duration-150
           ${postAction === 'both'
                         ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.05)]'
-                        : 'border-white/[0.07] bg-[#18181f] hover:border-white/[0.13] hover:bg-[#1c1c24]'}`}
+                        : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-white/[0.13] hover:bg-[var(--input-hover)]'}`}
                   >
                     {postAction === 'both' && (
                       <div className="pointer-events-none absolute inset-0"
@@ -586,25 +588,25 @@ export default function AudioConverter() {
                     <div className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all
           ${postAction === 'both'
                         ? 'border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.1)]'
-                        : 'border-white/[0.07] bg-[#111116] group-hover:border-white/[0.13]'}`}>
+                        : 'border-[var(--border)] bg-[var(--surface)] group-hover:border-white/[0.13]'}`}>
                       {/* Stacked icon: download + pen */}
-                      <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 fill-none stroke-[1.8] transition-colors ${postAction === 'both' ? 'stroke-[#00d4c8]' : 'stroke-[#9a9aaa]'}`}>
+                      <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 fill-none stroke-[1.8] transition-colors ${postAction === 'both' ? 'stroke-[var(--accent)]' : 'stroke-[var(--fg-3)]'}`}>
                         <polyline points="8 17 12 21 16 17" />
                         <line x1="12" y1="12" x2="12" y2="21" />
                         <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29" />
                       </svg>
                     </div>
                     <div>
-                      <div className={`text-[12.5px] font-medium transition-colors ${postAction === 'both' ? 'text-[#e8e8ed]' : 'text-[#b4b4c2]'}`}>
-                        Download <span className="text-[#b4b4c2] font-normal">+</span> Transcribe
+                      <div className={`text-[12.5px] font-medium transition-colors ${postAction === 'both' ? 'text-[var(--fg)]' : 'text-[var(--fg-2)]'}`}>
+                        {t('download')} <span className="text-[var(--fg-2)] font-normal">+</span> {t('transcribe')}
                       </div>
-                      <div className="mt-0.5 text-[11px] leading-[1.45] text-[#9a9aaa]">
-                        Save the file and queue transcription simultaneously.
+                      <div className="mt-0.5 text-[11px] leading-[1.45] text-[var(--fg-3)]">
+                        {t("saveAndQueue")}
                       </div>
                     </div>
                     {postAction === 'both' && (
-                      <div className="absolute right-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[#00d4c8]">
-                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 fill-none stroke-[#0c0c0e] stroke-[3]">
+                      <div className="absolute right-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)]">
+                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 fill-none stroke-[var(--on-accent)] stroke-[3]">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       </div>
@@ -621,13 +623,13 @@ export default function AudioConverter() {
                 initial="hidden"
                 animate="visible"
               >
-                <div className="flex flex-col gap-3 rounded-xl border border-white/[0.07] bg-[#111116] px-4 py-4 surface noise">
-                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Transcription settings</div>
+                <div className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
+                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t("transcriptionSettings")}</div>
                   <div className="grid grid-cols-2 gap-3">
 
                     {/* Model */}
                     <div className="flex flex-col gap-2">
-                      <div className="text-[11px] text-[#9a9aaa]">Model</div>
+                      <div className="text-[11px] text-[var(--fg-3)]">{t('model')}</div>
                       <div className="flex gap-1">
                         {[
                           { id: 'whisper-v3-turbo', label: 'Turbo', sub: '7 /hr' },
@@ -636,34 +638,34 @@ export default function AudioConverter() {
                           <button key={m.id} onClick={() => setTranscribeModel(m.id)}
                             className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2 transition-all duration-100
                   ${transcribeModel === m.id
-                                ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
-                                : 'border-white/[0.07] bg-[#18181f] text-[#9a9aaa] hover:border-white/[0.14] hover:text-[#b4b4c2]'}`}>
+                                ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
+                                : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
                             <span className="text-[12px]">{m.label}</span>
-                            <span className={`font-mono text-[10px] ${transcribeModel === m.id ? 'text-[#00d4c8]' : 'text-[#9a9aaa]'}`}> <CreditIcon size={10} color={transcribeModel === m.id ? '#00d4c8' : '#b4b4c2'} /> {m.sub}</span>
+                            <span className={`font-mono text-[10px] ${transcribeModel === m.id ? 'text-[var(--accent)]' : 'text-[var(--fg-3)]'}`}> <CreditIcon size={10} color={transcribeModel === m.id ? '#00d4c8' : 'var(--fg-2)'} /> {m.sub}</span>
                           </button>
                         ))}
                       </div>
-                      <div className="text-[11px] text-[#9a9aaa]"><span className="text-[#e8e8ed] font-medium">Turbo</span> is faster and cheaper for most lectures.</div>
+                      <div className="text-[11px] text-[var(--fg-3)]">{t('turboFaster')}</div>
                     </div>
 
                     {/* Output format */}
                     <div className="flex flex-col gap-2">
-                      <div className="text-[11px] text-[#9a9aaa]">Output format</div>
+                      <div className="text-[11px] text-[var(--fg-3)]">{t("outputFormat")}</div>
                       <div className="flex gap-1">
                         {[
-                          { id: 'text', label: 'Plain text' },
-                          { id: 'verbose_json', label: 'With timestamps' },
+                          { id: 'text', label: t('plainText') },
+                          { id: 'verbose_json', label: t('withTimestamps') },
                         ].map(f => (
                           <button key={f.id} onClick={() => setTranscribeOutputFormat(f.id)}
                             className={`flex-1 rounded-lg border py-2 text-center text-[12px] transition-all duration-100
                   ${transcribeOutputFormat === f.id
-                                ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
-                                : 'border-white/[0.07] bg-[#18181f] text-[#9a9aaa] hover:border-white/[0.14] hover:text-[#b4b4c2]'}`}>
+                                ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
+                                : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
                             {f.label}
                           </button>
                         ))}
                       </div>
-                      <div className="text-[11px] text-[#9a9aaa]">Timestamps enable word-level timing in the viewer.</div>
+                      <div className="text-[11px] text-[var(--fg-3)]">{t('timestampsHint')}</div>
                     </div>
 
                   </div>
@@ -677,32 +679,32 @@ export default function AudioConverter() {
             {/* Action bar */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-shrink-0 items-center justify-between gap-4 rounded-xl border border-white/[0.07] bg-[#111116] px-5 py-3.5 surface shadow-xl shadow-black/40"
+              className="flex flex-shrink-0 items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3.5 surface shadow-xl shadow-black/40"
             >
               <div className="flex flex-col gap-0.5">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[#9a9aaa]">Summary</div>
-                <div className="text-[13px] text-[#e8e8ed]">
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t("summary")}</div>
+                <div className="text-[13px] text-[var(--fg)]">
                   {file
                     ? <>
-                      <span className="text-[#00d4c8]">{file.name}</span>
+                      <span className="text-[var(--accent)]">{file.name}</span>
                       {' → '}{format} · {bitrate}
-                      {trimEnabled ? ' · Trimmed' : ''}
-                      {postAction === 'transcribe' && ' · Transcribe'}
-                      {postAction === 'both' && ' · Download + Transcribe'}
+                      {trimEnabled ? ' · ' + t('trimmed') : ''}
+                      {postAction === 'transcribe' && ' · ' + t('transcribe')}
+                      {postAction === 'both' && ' · ' + t('downloadAndTranscribe')}
                     </>
-                    : 'No file selected'}
+                    : t("noFileSelected")}
                 </div>
               </div>
               <button
                 onClick={handleConvert}
                 disabled={!file || status === 'converting'}
-                className="flex flex-shrink-0 items-center gap-2 rounded-lg bg-[#00d4c8] px-6 py-2.5 text-[13px] font-medium text-[#0c0c0e] transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25"
+                className="flex flex-shrink-0 items-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-2.5 text-[13px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25"
               >
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[2.2]">
                   <polyline points="23 4 23 10 17 10" />
                   <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                 </svg>
-                Convert file
+                {t('convertFile')}
               </button>
             </motion.div>
 

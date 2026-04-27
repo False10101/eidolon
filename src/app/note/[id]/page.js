@@ -3,7 +3,8 @@
 import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
-import { motion, AnimatePresence } from 'motion/react'
+import { useTranslations, useLocale } from 'next-intl';
+import { motion, AnimatePresence } from 'motion/react';
 import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
 import MDEditor from '@uiw/react-md-editor';
@@ -14,10 +15,10 @@ import CreditIcon from '@/app/CreditIcon';
 
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-function formatCreatedAt(ts) {
+function formatCreatedAt(ts, locale) {
   if (!ts) return '—';
   const withZ = ts.toString().replace(' ', 'T').split('.')[0] + 'Z';
-  return new Date(withZ).toLocaleString('en-GB', {
+  return new Date(withZ).toLocaleString(locale || 'en-GB', {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
     timeZone: 'Asia/Bangkok', hour12: false,
@@ -40,8 +41,8 @@ function ActionBtn({ children, onClick, icon, danger, active }) {
       onClick={onClick}
       className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] transition-all
         ${active
-          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
-          : 'border-white/[0.07] bg-[#18181f] text-[#b4b4c2] hover:border-white/[0.14] hover:text-[#e8e8ed]'}
+          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
+          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-2)] hover:border-[var(--border-hover)] hover:text-[var(--fg)]'}
         ${danger ? 'hover:!border-[rgba(239,68,68,0.3)] hover:!text-[#ef4444]' : ''}`}
     >
       {icon}{children}
@@ -53,16 +54,16 @@ function ActionBtn({ children, onClick, icon, danger, active }) {
 function DetailField({ label, value, editing, editValue, onChange, placeholder }) {
   return (
     <div className="flex flex-col gap-1">
-      <div className="text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">{label}</div>
+      <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{label}</div>
       {editing ? (
         <input
           value={editValue}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || '—'}
-          className="bg-[#18181f] border border-[rgba(0,212,200,0.25)] rounded-lg px-2.5 py-1.5 text-[12px] text-[#e8e8ed] outline-none focus:border-[rgba(0,212,200,0.5)] transition-colors w-full placeholder:text-[#9a9aaa] min-h-[32px]"
+          className="bg-[var(--surface-raised)] border border-[rgba(0,212,200,0.25)] rounded-lg px-2.5 py-1.5 text-[12px] text-[var(--fg)] outline-none focus:border-[rgba(0,212,200,0.5)] transition-colors w-full placeholder:text-[var(--fg-3)] min-h-[32px]"
         />
       ) : (
-        <div className="bg-[#18181f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-[12px] text-[#e8e8ed] min-h-[32px] capitalize truncate">
+        <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-[12px] text-[var(--fg)] min-h-[32px] capitalize truncate">
           {value || '—'}
         </div>
       )}
@@ -73,8 +74,18 @@ function DetailField({ label, value, editing, editValue, onChange, placeholder }
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function NoteViewer({ params }) {
   const router = useRouter();
+  const t = useTranslations('notes');
+  const locale = useLocale();
   const { getAccessTokenSilently } = useAuth0();
   const { id } = use(params);
+
+  const NOTE_STEPS_KEYS = ['stepReadingTranscript', 'stepGeneratingNote', 'stepSavingNote'];
+  const getStyleLabel = (style) => {
+    if (style === 'exam') return t('examNote');
+    if (style === 'standard') return t('standard');
+    if (style === 'textbook') return t('textbook');
+    return style;
+  };
 
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -96,7 +107,6 @@ export default function NoteViewer({ params }) {
   const intervalRef = useRef(null);
   const progressBarRef = useRef(null);
 
-  const NOTE_STEPS = ['Reading transcript', 'Generating note', 'Saving note'];
   const stepMap = { pending: 0, reading: 0, generating: 1, saving: 2 };
   const progressMap = { pending: 5, reading: 20, generating: 60, saving: 90, completed: 100 };
 
@@ -122,7 +132,7 @@ export default function NoteViewer({ params }) {
         });
         const data = await res.json();
         if (!res.ok || data.error) {
-          setError(data.error ?? 'Note not found.');
+          setError(data.error ?? t('errorNoteNotFound'));
           setLoading(false);
           return;
         }
@@ -130,7 +140,7 @@ export default function NoteViewer({ params }) {
         setEditName(data.detail.name ?? '');
         setEditContent(data.detail.content ?? '');
       } catch (err) {
-        setError('Failed to load note.');
+        setError(t('failedToLoad'));
       } finally {
         setLoading(false);
       }
@@ -193,8 +203,8 @@ export default function NoteViewer({ params }) {
       }
       router.push('/note');
     } catch {
-      setDeleteModal(false); 
-      setDeleteError('Something went wrong. Please try again.');
+      setDeleteModal(false);
+      setDeleteError(t('errorGeneric'));
       setDeleting(false);
     }
   };
@@ -253,7 +263,7 @@ export default function NoteViewer({ params }) {
   const tier = note ? getTier(note.total_tokens ?? 0) : null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] font-sans text-sm">
+    <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
@@ -275,8 +285,8 @@ export default function NoteViewer({ params }) {
                   <div className="skeleton h-28 w-full rounded-xl" />
                   <div className="skeleton h-10 w-full rounded-lg" />
                 </div>
-                <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#111116]">
-                  <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.07]">
+                <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
                     <div className="skeleton h-5 w-32 rounded" />
                     <div className="flex gap-1.5">
                       {[60, 52, 52, 72, 52].map((w, i) => (
@@ -302,11 +312,11 @@ export default function NoteViewer({ params }) {
           {!loading && error && (
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
-                <div className="mb-2 text-[14px] font-medium text-[#e8e8ed]">Failed to load note</div>
-                <div className="mb-4 text-[12px] text-[#9a9aaa]">{error}</div>
+                <div className="mb-2 text-[14px] font-medium text-[var(--fg)]">{t('failedToLoad')}</div>
+                <div className="mb-4 text-[12px] text-[var(--fg-3)]">{error}</div>
                 <button onClick={() => router.push('/note')}
-                  className="rounded-lg border border-white/[0.07] bg-[#18181f] px-4 py-2 text-[13px] text-[#b4b4c2] transition-all hover:text-[#e8e8ed]">
-                  Back to notes
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-2 text-[13px] text-[var(--fg-2)] transition-all hover:text-[var(--fg)]">
+                  {t('backToNotes')}
                 </button>
               </div>
             </div>
@@ -323,8 +333,8 @@ export default function NoteViewer({ params }) {
               {procStatus === 'processing' && (
                 <GeneratingOverlay
                   variant="document"
-                  title="Regenerating your note…"
-                  subtitle={NOTE_STEPS[stepMap[currentStatus]] ?? 'Processing…'}
+                  title={t('regeneratingNote')}
+                  subtitle={t(NOTE_STEPS_KEYS[stepMap[currentStatus]]) ?? 'Processing…'}
                   progress={progressMap[currentStatus] ?? 5}
                   onCancel={null}
                 />
@@ -332,11 +342,11 @@ export default function NoteViewer({ params }) {
 
               {/* Page header */}
               <div className="flex-shrink-0 flex items-center justify-between px-7 pt-5 pb-0 gap-4">
-                <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed] select-none truncate">
+                <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[var(--fg)] select-none truncate">
                   {note.name}
                 </h1>
-                <div className="flex-shrink-0 flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[11px] text-[#9a9aaa] select-none">
-                  Last generated: <span className="text-[#b4b4c2]">{formatCreatedAt(note.created_at)}</span>
+                <div className="flex-shrink-0 flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[11px] text-[var(--fg-3)] select-none">
+                  {t('lastGenerated')} <span className="text-[var(--fg-2)]">{formatCreatedAt(note.created_at, locale)}</span>
                 </div>
               </div>
 
@@ -346,27 +356,27 @@ export default function NoteViewer({ params }) {
                 {/* ── Left panel ── */}
                 <div
                   className="flex w-[280px] flex-shrink-0 flex-col gap-3 overflow-y-auto"
-                  style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+                  style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}
                 >
                   {/* Source file */}
-                  <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
-                    <div className="px-4 py-2.5 border-b border-white/[0.07] text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
-                      Source file
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden surface noise">
+                    <div className="px-4 py-2.5 border-b border-[var(--border)] text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)] select-none">
+                      {t('sourceFile')}
                     </div>
                     <div className="p-3.5">
-                      <div className="flex items-center gap-3 bg-[#18181f] border border-white/[0.07] rounded-lg px-3 py-2.5">
+                      <div className="flex items-center gap-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2.5">
                         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]">
-                          <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
+                          <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[var(--accent)] fill-none stroke-[1.8]">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                             <polyline points="14 2 14 8 20 8" />
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="truncate text-[12.5px] font-medium text-[#e8e8ed]">
+                          <div className="truncate text-[12.5px] font-medium text-[var(--fg)]">
                             {note.uploaded_filename ?? note.transcriptName}
                           </div>
-                          <div className="mt-0.5 text-[11px] text-[#9a9aaa]">
-                            {note.uploaded_filename ? 'Uploaded file' : 'In-app transcript'}
+                          <div className="mt-0.5 text-[11px] text-[var(--fg-3)]">
+                            {note.uploaded_filename ? t('uploadedFile') : t('inAppTranscript')}
                           </div>
                         </div>
                       </div>
@@ -374,37 +384,37 @@ export default function NoteViewer({ params }) {
                   </div>
 
                   {/* Details */}
-                  <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
-                    <div className="px-4 py-2.5 border-b border-white/[0.07] flex items-center justify-between select-none">
-                      <div className="text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">Details</div>
-                      {isEditing && <div className="text-[10px] text-[#00d4c8] opacity-70">Editing</div>}
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden surface noise">
+                    <div className="px-4 py-2.5 border-b border-[var(--border)] flex items-center justify-between select-none">
+                      <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('detailsLabel')}</div>
+                      {isEditing && <div className="text-[10px] text-[var(--accent)] opacity-70">{t('editing')}</div>}
                     </div>
                     <div className="p-3 flex flex-col gap-2">
-                      <DetailField label="Name" value={note.name} editing={isEditing} editValue={editName} onChange={setEditName} />
-                      <DetailField label="Language" value={note.language} editing={false} />
-                      <DetailField label="Generation Type" value={note.generation_type} editing={false}/>
-                      <DetailField label="Note style" value={styleLabels[note.style] ?? note.style} editing={false} />
+                      <DetailField label={t("noteName")} value={note.name} editing={isEditing} editValue={editName} onChange={setEditName} />
+                      <DetailField label={t("language")} value={note.language} editing={false} />
+                      <DetailField label={t("generationType")} value={note.generation_type} editing={false}/>
+                      <DetailField label={t("noteStyle")} value={getStyleLabel(note.style)} editing={false} />
                     </div>
                   </div>
 
                   {/* Token breakdown */}
-                  <div className="rounded-xl border border-[rgba(0,212,200,0.1)] bg-[#111116] overflow-hidden surface-teal">
-                    <div className="px-4 py-2.5 border-b border-white/[0.07] text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
-                      Usage
+                  <div className="rounded-xl border border-[rgba(0,212,200,0.1)] bg-[var(--surface)] overflow-hidden surface-teal">
+                    <div className="px-4 py-2.5 border-b border-[var(--border)] text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)] select-none">
+                      {t('usageLabel')}
                     </div>
                     <div className="p-3.5 flex flex-col gap-1.5">
                       <div className="flex justify-between text-[12.5px]">
-                        <span className="text-[#9a9aaa]">Total tokens</span>
-                        <span className="font-mono text-[12px] text-[#e8e8ed]">{note.total_tokens?.toLocaleString() ?? '—'}</span>
+                        <span className="text-[var(--fg-3)]">{t('totalTokens')}</span>
+                        <span className="font-mono text-[12px] text-[var(--fg)]">{note.total_tokens?.toLocaleString() ?? '—'}</span>
                       </div>
                       <div className="flex justify-between text-[12.5px]">
-                        <span className="text-[#9a9aaa]">Tier</span>
-                        <span className="font-mono text-[12px] text-[#e8e8ed]">{tier.label}</span>
+                        <span className="text-[var(--fg-3)]">{t('tierLabel')}</span>
+                        <span className="font-mono text-[12px] text-[var(--fg)]">{tier.label}</span>
                       </div>
-                      <div className="h-px bg-white/[0.07] my-1" />
+                      <div className="h-px bg-[var(--surface-tint)] my-1" />
                       <div className="flex items-center justify-between">
-                        <span className="text-[12.5px] font-medium text-[#b4b4c2]">Charged</span>
-                        <span className="font-mono text-[16px] font-medium text-[#00d4c8] flex items-center">{note.charge_amount} <CreditIcon size={16} className='ml-1.5'/></span>
+                        <span className="text-[12.5px] font-medium text-[var(--fg-2)]">{t('charged')}</span>
+                        <span className="font-mono text-[16px] font-medium text-[var(--accent)] flex items-center">{note.charge_amount} <CreditIcon size={16} className='ml-1.5'/></span>
                       </div>
                     </div>
                   </div>
@@ -414,26 +424,26 @@ export default function NoteViewer({ params }) {
                     <button
                       onClick={handleRegenerate}
                       disabled={procStatus === 'processing'}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00d4c8] py-2.5 text-[13px] font-medium text-[#0c0c0e] transition-opacity hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] py-2.5 text-[13px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-current fill-none stroke-2">
                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                       </svg>
-                      Regenerate note
+                      {t('regenerateNote')}
                     </button>
                   </div>
                 </div>
 
                 {/* ── Right panel ── */}
-                <div className="flex flex-1 flex-col overflow-hidden min-w-0 rounded-xl border border-white/[0.07] bg-[#111116] surface">
+                <div className="flex flex-1 flex-col overflow-hidden min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] surface">
 
                   {/* Viewer header */}
-                  <div className="flex-shrink-0 flex items-center justify-between gap-3 border-b border-white/[0.07] bg-[#18181f] px-5 py-3">
+                  <div className="flex-shrink-0 flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-raised)] px-5 py-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-[13px] font-medium text-[#b4b4c2]">Generated note</span>
+                      <span className="text-[13px] font-medium text-[var(--fg-2)]">{t('generatedNote')}</span>
                       <div className="flex items-center gap-1.5 rounded-full bg-[rgba(34,197,94,0.1)] px-2 py-0.5 text-[11px] font-medium text-[#22c55e]">
                         <div className="h-[5px] w-[5px] rounded-full bg-current" />
-                        Completed
+                        {t('completed')}
                       </div>
                     </div>
                     <div className="flex flex-shrink-0 items-center gap-1.5">
@@ -453,7 +463,7 @@ export default function NoteViewer({ params }) {
                           )
                         }
                       >
-                        {saving ? 'Saving…' : saved ? 'Saved' : isEditing ? 'Save' : 'Edit'}
+                        {saving ? t('saving') : saved ? t('saved') : isEditing ? t('save') : t('edit')}
                       </ActionBtn>
 
                       {isEditing && (
@@ -461,27 +471,27 @@ export default function NoteViewer({ params }) {
                           <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
-                        }>Cancel</ActionBtn>
+                        }>{t('cancel')}</ActionBtn>
                       )}
 
                       <ActionBtn onClick={copyNote} icon={
                         <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                           <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                         </svg>
-                      }>Copy</ActionBtn>
+                      }>{t('copy')}</ActionBtn>
 
                       <ActionBtn onClick={() => setIsFullscreen(true)} icon={
                         <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
                         </svg>
-                      }>Fullscreen</ActionBtn>
+                      }>{t('fullscreen')}</ActionBtn>
 
                       <ActionBtn danger onClick={() => setDeleteModal(true)} icon={
                         <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                           <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M9 6V4h6v2" />
                         </svg>
                       }>
-                        {deleting ? 'Deleting…' : 'Delete'}
+                        {deleting ? t('deleting') : t('delete')}
                       </ActionBtn>
                     </div>
                   </div>
@@ -494,22 +504,22 @@ export default function NoteViewer({ params }) {
                         onChange={setEditContent}
                         height="100%"
                         preview="edit"
-                        style={{ background: '#111116', borderRadius: 0, border: 'none', height: '100%' }}
+                        style={{ background: 'var(--surface)', borderRadius: 0, border: 'none', height: '100%' }}
                       />
                     ) : (
                       <div
                         className="h-full overflow-y-auto px-10 py-8"
-                        style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+                        style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}
                       >
                         {/* Meta chips */}
                         <div className="flex flex-wrap items-center gap-3 mb-6">
                           {[
                             {
-                              label: formatCreatedAt(note.created_at),
+                              label: formatCreatedAt(note.created_at, locale),
                               icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>,
                             },
                             {
-                              label: styleLabels[note.style] ?? note.style,
+                              label: getStyleLabel(note.style),
                               icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>,
                             },
                             {
@@ -517,7 +527,7 @@ export default function NoteViewer({ params }) {
                               icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>,
                             },
                           ].map((m, i) => (
-                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-[#9a9aaa]">
+                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-[var(--fg-3)]">
                               {m.icon}{m.label}
                             </div>
                           ))}
@@ -526,7 +536,7 @@ export default function NoteViewer({ params }) {
                         <div className="max-w-[720px]">
                           <MDEditor.Markdown
                             source={note.content}
-                            style={{ background: 'transparent', color: '#b0b0bc', fontSize: '14px', lineHeight: '2' }}
+                            style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '14px', lineHeight: '2' }}
                             rehypePlugins={[]}
                           />
                         </div>
@@ -545,10 +555,10 @@ export default function NoteViewer({ params }) {
         {deleteError && <ErrorModal message={deleteError} onClose={() => setDeleteError(null)} />}
         {deleteModal && (
           <ConfirmModal
-            title="Delete this note?"
-            message="This note will be permanently deleted and cannot be recovered."
-            confirmLabel="Delete"
-            loadingLabel="Deleting…"
+            title={t('deleteNote')}
+            message={t('deleteNoteConfirm')}
+            confirmLabel={t('delete')}
+            loadingLabel={t('deleting')}
             loading={deleting}
             onConfirm={handleDelete}
             onCancel={() => { if (!deleting) setDeleteModal(false); }}
@@ -560,27 +570,27 @@ export default function NoteViewer({ params }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="fixed inset-0 z-[200] bg-[#0c0c0e] flex flex-col"
+            className="fixed inset-0 z-[200] bg-[var(--bg)] flex flex-col"
           >
-            <nav className="h-14 flex-shrink-0 flex items-center justify-between px-8 border-b border-white/[0.05] bg-[#111116] nav-surface">
+            <nav className="h-14 flex-shrink-0 flex items-center justify-between px-8 border-b border-[var(--border-faint)] bg-[var(--surface)] nav-surface">
               <div className="flex items-center gap-4 select-none">
-                <span className="font-serif text-[18px] text-[#00d4c8]">Eidolon</span>
-                <div className="h-4 w-px bg-white/[0.07]" />
-                <span className="text-[12px] text-[#b4b4c2] truncate max-w-[400px]">
+                <span className="font-serif text-[18px] text-[var(--accent)]">Eidolon</span>
+                <div className="h-4 w-px bg-[var(--surface-tint)]" />
+                <span className="text-[12px] text-[var(--fg-2)] truncate max-w-[400px]">
                   {note.name}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={copyNote}
-                  className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#b4b4c2] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+                  className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-2)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)]">
                   <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                     <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
-                  Copy all
+                  {t('copyAll')}
                 </button>
                 <button onClick={() => setIsFullscreen(false)}
-                  className="group flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f] transition-all hover:border-[rgba(239,68,68,0.3)]">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-2 stroke-[#9a9aaa] group-hover:stroke-[#ef4444] transition-colors">
+                  className="group flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-all hover:border-[rgba(239,68,68,0.3)]">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-2 stroke-[var(--fg-3)] group-hover:stroke-[#ef4444] transition-colors">
                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
@@ -588,32 +598,32 @@ export default function NoteViewer({ params }) {
             </nav>
 
             {/* Reading progress bar */}
-            <div className="h-[2px] w-full bg-[#1e1e27] flex-shrink-0 overflow-hidden">
+            <div className="h-[2px] w-full bg-[var(--surface-deep)] flex-shrink-0 overflow-hidden">
               <div
                 ref={progressBarRef}
-                className="h-full bg-[#00d4c8]"
+                className="h-full bg-[var(--accent)]"
                 style={{ width: '0%', transition: 'width 60ms linear', willChange: 'width' }}
               />
             </div>
 
             <div
               className="flex-1 overflow-y-auto py-16 px-8 flex justify-center"
-              style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}
               onScroll={handleReaderScroll}
             >
               <div className="w-full max-w-[680px]">
-                <div className="text-[11px] uppercase tracking-[0.08em] text-[#9a9aaa] mb-3 select-none">
+                <div className="text-[11px] uppercase tracking-[0.08em] text-[var(--fg-3)] mb-3 select-none">
                   {note.name}
-                  <span className="text-[#9a9aaa] mx-1">·</span>
-                  {formatCreatedAt(note.created_at)}
+                  <span className="text-[var(--fg-3)] mx-1">·</span>
+                  {formatCreatedAt(note.created_at, locale)}
                 </div>
-                <div className="text-[12px] text-[#9a9aaa] mb-8 flex items-center gap-2 select-none">
-                  Generated by Eidolon <span className="text-[#9a9aaa]">·</span> {note.charge_amount}<CreditIcon size={12} color='#9a9aaa'/>
+                <div className="text-[12px] text-[var(--fg-3)] mb-8 flex items-center gap-2 select-none">
+                  {t('generatedByEidolon')} <span className="text-[var(--fg-3)]">·</span> {note.charge_amount}<CreditIcon size={12} color='#9a9aaa'/>
                 </div>
                 <div data-color-mode="dark">
                   <MDEditor.Markdown
                     source={note.content}
-                    style={{ background: 'transparent', color: '#b0b0bc', fontSize: '15px', lineHeight: '1.95' }}
+                    style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '15px', lineHeight: '1.95' }}
                   />
                 </div>
               </div>
@@ -623,12 +633,12 @@ export default function NoteViewer({ params }) {
       </AnimatePresence>
 
       {/* Copy toast */}
-      <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#b4b4c2] transition-all duration-200
+      <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-2 text-[12.5px] text-[var(--fg-2)] transition-all duration-200
         ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'}`}>
         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[2.2]">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-        Copied to clipboard
+        {t('copiedToClipboard')}
       </div>
 
     </div>
