@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans TC", "Noto Sans Thai", "Noto Sans Devanagari", "Noto Sans Arabic", "Noto Sans KR", "Noto Sans JP";
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 /* ── Theme tokens ─────────────────────────────────────────────────────────────
    All hardcoded colours map to these variables.
    Dark is the default; [data-theme="light"] overrides them.              */
