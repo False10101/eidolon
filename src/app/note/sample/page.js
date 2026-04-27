@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
@@ -1631,8 +1632,8 @@ function ActionBtn({ children, onClick, icon, danger, active }) {
       onClick={onClick}
       className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] transition-all
         ${active
-          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[#00d4c8]'
-          : 'border-white/[0.07] bg-[#18181f] text-[#b4b4c2] hover:border-white/[0.14] hover:text-[#e8e8ed]'}
+          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
+          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-2)] hover:border-[var(--border-hover)] hover:text-[var(--fg)]'}
         ${danger ? 'hover:!border-[rgba(239,68,68,0.3)] hover:!text-[#ef4444]' : ''}`}
     >
       {icon}{children}
@@ -1643,16 +1644,16 @@ function ActionBtn({ children, onClick, icon, danger, active }) {
 function DetailField({ label, value, editing, editValue, onChange, placeholder }) {
   return (
     <div className="flex flex-col gap-1">
-      <div className="text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">{label}</div>
+      <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{label}</div>
       {editing ? (
         <input
           value={editValue}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || '—'}
-          className="bg-[#18181f] border border-[rgba(0,212,200,0.25)] rounded-lg px-2.5 py-1.5 text-[12px] text-[#e8e8ed] outline-none focus:border-[rgba(0,212,200,0.5)] transition-colors w-full placeholder:text-[#9a9aaa] min-h-[32px]"
+          className="bg-[var(--surface-raised)] border border-[rgba(0,212,200,0.25)] rounded-lg px-2.5 py-1.5 text-[12px] text-[var(--fg)] outline-none focus:border-[rgba(0,212,200,0.5)] transition-colors w-full placeholder:text-[var(--fg-3)] min-h-[32px]"
         />
       ) : (
-        <div className="bg-[#18181f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-[12px] text-[#e8e8ed] min-h-[32px] truncate">
+        <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-[12px] text-[var(--fg)] min-h-[32px] truncate">
           {value || '—'}
         </div>
       )}
@@ -1663,8 +1664,16 @@ function DetailField({ label, value, editing, editValue, onChange, placeholder }
 // ─── Main Component ────────────────────────────────────────────────────────────
 function SampleViewerContent() {
   const router = useRouter();
+  const t = useTranslations('notes');
   const searchParams = useSearchParams();
   const style = searchParams.get('style') || 'standard';
+
+  const getStyleLabel = (s) => {
+    if (s === 'exam') return t('examNote');
+    if (s === 'standard') return t('standard');
+    if (s === 'textbook') return t('textbook');
+    return s;
+  };
 
   const [note, setNote] = useState({
     name: "Application Security Lecture 6",
@@ -1730,7 +1739,7 @@ function SampleViewerContent() {
   const tier = getTier(note.total_tokens);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] font-sans text-sm">
+    <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
@@ -1748,17 +1757,17 @@ function SampleViewerContent() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => router.back()}
-                  className="rounded-lg p-1.5 text-[#9a9aaa] hover:bg-white/[0.05] hover:text-[#e8e8ed] transition-colors"
+                  className="rounded-lg p-1.5 text-[var(--fg-3)] hover:bg-[var(--surface-tint)] hover:text-[var(--fg)] transition-colors"
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5 stroke-current fill-none stroke-2">
                     <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
                   </svg>
                 </button>
-                <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[#e8e8ed] select-none truncate">
+                <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[var(--fg)] select-none truncate">
                   {note.name}
                 </h1>
-                <span className="rounded bg-[#00d4c8]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#00d4c8] border border-[#00d4c8]/20">
-                  {styleLabels[style]} Sample
+                <span className="rounded bg-[var(--accent)]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--accent)] border border-[var(--accent)]/20">
+                  {getStyleLabel(style)} {t('preview')}
                 </span>
               </div>
             </div>
@@ -1767,25 +1776,25 @@ function SampleViewerContent() {
             <div className="flex flex-1 overflow-hidden gap-3.5 p-5 px-7 min-h-0">
 
               {/* ── Left panel ── */}
-              <div className="flex w-[280px] flex-shrink-0 flex-col gap-3 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}>
+              <div className="flex w-[280px] flex-shrink-0 flex-col gap-3 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}>
                 {/* Source file */}
-                <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
-                  <div className="px-4 py-2.5 border-b border-white/[0.07] text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
-                    Source file
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden surface noise">
+                  <div className="px-4 py-2.5 border-b border-[var(--border)] text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)] select-none">
+                    {t('sourceFile')}
                   </div>
                   <div className="p-3.5">
-                    <div className="flex items-center gap-3 bg-[#18181f] border border-white/[0.07] rounded-lg px-3 py-2.5 opacity-60">
+                    <div className="flex items-center gap-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-3 py-2.5 opacity-60">
                       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]">
-                        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[#00d4c8] fill-none stroke-[1.8]">
+                        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[var(--accent)] fill-none stroke-[1.8]">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="truncate text-[12.5px] font-medium text-[#e8e8ed]">
+                        <div className="truncate text-[12.5px] font-medium text-[var(--fg)]">
                           {note.uploaded_filename}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-[#9a9aaa]">
-                          Uploaded file
+                        <div className="mt-0.5 text-[11px] text-[var(--fg-3)]">
+                          {t('uploadedFile')}
                         </div>
                       </div>
                     </div>
@@ -1793,48 +1802,48 @@ function SampleViewerContent() {
                 </div>
 
                 {/* Details */}
-                <div className="rounded-xl border border-white/[0.07] bg-[#111116] overflow-hidden surface noise">
-                  <div className="px-4 py-2.5 border-b border-white/[0.07] flex items-center justify-between select-none">
-                    <div className="text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa]">Details</div>
-                    {isEditing && <div className="text-[10px] text-[#00d4c8] opacity-70">Editing</div>}
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden surface noise">
+                  <div className="px-4 py-2.5 border-b border-[var(--border)] flex items-center justify-between select-none">
+                    <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('detailsLabel')}</div>
+                    {isEditing && <div className="text-[10px] text-[var(--accent)] opacity-70">{t('editing')}</div>}
                   </div>
                   <div className="p-3 flex flex-col gap-2">
-                    <DetailField label="Name" value={note.name} editing={isEditing} editValue={editName} onChange={setEditName} />
-                    <DetailField label="Language" value={note.language} editing={false} />
-                    <DetailField label="Generation Type" value={note.generation_type} editing={false} />
-                    <DetailField label="Note style" value={styleLabels[note.style]} editing={false} />
+                    <DetailField label={t('noteName')} value={note.name} editing={isEditing} editValue={editName} onChange={setEditName} />
+                    <DetailField label={t('language')} value={note.language} editing={false} />
+                    <DetailField label={t('generationType')} value={note.generation_type} editing={false} />
+                    <DetailField label={t('noteStyle')} value={getStyleLabel(note.style)} editing={false} />
                   </div>
                 </div>
 
                 {/* Token breakdown */}
-                <div className="rounded-xl border border-[rgba(0,212,200,0.1)] bg-[#111116] overflow-hidden surface-teal">
-                  <div className="px-4 py-2.5 border-b border-white/[0.07] text-[10px] uppercase tracking-[0.07em] text-[#9a9aaa] select-none">
-                    Usage (Simulated)
+                <div className="rounded-xl border border-[rgba(0,212,200,0.1)] bg-[var(--surface)] overflow-hidden surface-teal">
+                  <div className="px-4 py-2.5 border-b border-[var(--border)] text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)] select-none">
+                    {t('usageSimulated')}
                   </div>
                   <div className="p-3.5 flex flex-col gap-1.5">
                     <div className="flex justify-between text-[12.5px]">
-                      <span className="text-[#9a9aaa]">Total tokens</span>
-                      <span className="font-mono text-[12px] text-[#e8e8ed]">{note.total_tokens.toLocaleString()}</span>
+                      <span className="text-[var(--fg-3)]">{t('totalTokens')}</span>
+                      <span className="font-mono text-[12px] text-[var(--fg)]">{note.total_tokens.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-[12.5px]">
-                      <span className="text-[#9a9aaa]">Tier</span>
-                      <span className="font-mono text-[12px] text-[#e8e8ed]">{tier.label}</span>
+                      <span className="text-[var(--fg-3)]">{t('tierLabel')}</span>
+                      <span className="font-mono text-[12px] text-[var(--fg)]">{tier.label}</span>
                     </div>
-                    <div className="h-px bg-white/[0.07] my-1" />
+                    <div className="h-px bg-[var(--surface-tint)] my-1" />
                   </div>
                 </div>
               </div>
 
               {/* ── Right panel ── */}
-              <div className="flex flex-1 flex-col overflow-hidden min-w-0 rounded-xl border border-white/[0.07] bg-[#111116] surface">
+              <div className="flex flex-1 flex-col overflow-hidden min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] surface">
 
                 {/* Viewer header */}
-                <div className="flex-shrink-0 flex items-center justify-between gap-3 border-b border-white/[0.07] bg-[#18181f] px-5 py-3">
+                <div className="flex-shrink-0 flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-raised)] px-5 py-3">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-[13px] font-medium text-[#b4b4c2]">Generated note</span>
+                    <span className="text-[13px] font-medium text-[var(--fg-2)]">{t('generatedNote')}</span>
                     <div className="flex items-center gap-1.5 rounded-full bg-[rgba(34,197,94,0.1)] px-2 py-0.5 text-[11px] font-medium text-[#22c55e]">
                       <div className="h-[5px] w-[5px] rounded-full bg-current" />
-                      Completed
+                      {t('completed')}
                     </div>
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-1.5">
@@ -1854,7 +1863,7 @@ function SampleViewerContent() {
                         )
                       }
                     >
-                      {saving ? 'Saving…' : saved ? 'Saved' : isEditing ? 'Save' : 'Sandbox Edit'}
+                      {saving ? t('saving') : saved ? t('saved') : isEditing ? t('save') : t('sandboxEdit')}
                     </ActionBtn>
 
                     {isEditing && (
@@ -1862,20 +1871,20 @@ function SampleViewerContent() {
                         <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
-                      }>Cancel</ActionBtn>
+                      }>{t('cancel')}</ActionBtn>
                     )}
 
                     <ActionBtn onClick={copyNote} icon={
                       <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                         <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                       </svg>
-                    }>Copy</ActionBtn>
+                    }>{t('copy')}</ActionBtn>
 
                     <ActionBtn onClick={() => setIsFullscreen(true)} icon={
                       <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
                       </svg>
-                    }>Fullscreen</ActionBtn>
+                    }>{t('fullscreen')}</ActionBtn>
 
                   </div>
                 </div>
@@ -1888,12 +1897,12 @@ function SampleViewerContent() {
                       onChange={setEditContent}
                       height="100%"
                       preview="edit"
-                      style={{ background: '#111116', borderRadius: 0, border: 'none', height: '100%' }}
+                      style={{ background: 'var(--surface)', borderRadius: 0, border: 'none', height: '100%' }}
                     />
                   ) : (
                     <div
                       className="h-full overflow-y-auto px-10 py-8"
-                      style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+                      style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}
                     >
                       {/* Meta chips */}
                       <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -1911,7 +1920,7 @@ function SampleViewerContent() {
                             icon: <svg viewBox="0 0 24 24" className="h-[11px] w-[11px] stroke-current fill-none stroke-2"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>,
                           },
                         ].map((m, i) => (
-                          <div key={i} className="flex items-center gap-1.5 text-[11px] text-[#9a9aaa]">
+                          <div key={i} className="flex items-center gap-1.5 text-[11px] text-[var(--fg-3)]">
                             {m.icon}{m.label}
                           </div>
                         ))}
@@ -1920,7 +1929,7 @@ function SampleViewerContent() {
                       <div className="max-w-[720px]">
                         <MDEditor.Markdown
                           source={note.content}
-                          style={{ background: 'transparent', color: '#b0b0bc', fontSize: '14px', lineHeight: '2' }}
+                          style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '14px', lineHeight: '2' }}
                           rehypePlugins={[]}
                         />
                       </div>
@@ -1941,62 +1950,62 @@ function SampleViewerContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="fixed inset-0 z-[200] bg-[#0c0c0e] flex flex-col"
+            className="fixed inset-0 z-[200] bg-[var(--bg)] flex flex-col"
           >
-            <nav className="h-14 flex-shrink-0 flex items-center justify-between px-8 border-b border-white/[0.05] bg-[#111116] nav-surface">
+            <nav className="h-14 flex-shrink-0 flex items-center justify-between px-8 border-b border-[var(--border-faint)] bg-[var(--surface)] nav-surface">
               <div className="flex items-center gap-4 select-none">
-                <span className="font-serif text-[18px] text-[#00d4c8]">Eidolon</span>
-                <div className="h-4 w-px bg-white/[0.07]" />
-                <span className="text-[12px] text-[#9a9aaa] truncate max-w-[400px]">
+                <span className="font-serif text-[18px] text-[var(--accent)]">Eidolon</span>
+                <div className="h-4 w-px bg-[var(--surface-tint)]" />
+                <span className="text-[12px] text-[var(--fg-3)] truncate max-w-[400px]">
                   {note.name}{note.lecture_topic ? ` · ${note.lecture_topic}` : ''}
                 </span>
-                <span className="rounded bg-[#00d4c8]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#00d4c8]">
-                  Preview
+                <span className="rounded bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--accent)]">
+                  {t('preview')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={copyNote}
-                  className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3 py-1.5 text-[12px] text-[#b4b4c2] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]">
+                  className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-2)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)]">
                   <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                     <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
-                  Copy all
+                  {t('copyAll')}
                 </button>
                 <button onClick={() => setIsFullscreen(false)}
-                  className="group flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-[#18181f] transition-all hover:border-[rgba(239,68,68,0.3)]">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-2 stroke-[#9a9aaa] group-hover:stroke-[#ef4444] transition-colors">
+                  className="group flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-all hover:border-[rgba(239,68,68,0.3)]">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-2 stroke-[var(--fg-3)] group-hover:stroke-[#ef4444] transition-colors">
                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
             </nav>
 
-            <div className="h-[2px] w-full bg-[#1e1e27] flex-shrink-0 overflow-hidden">
+            <div className="h-[2px] w-full bg-[var(--surface-deep)] flex-shrink-0 overflow-hidden">
               <div
                 ref={progressBarRef}
-                className="h-full bg-[#00d4c8]"
+                className="h-full bg-[var(--accent)]"
                 style={{ width: '0%', transition: 'width 60ms linear', willChange: 'width' }}
               />
             </div>
 
             <div
               className="flex-1 overflow-y-auto py-16 px-8 flex justify-center"
-              style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e1e27 transparent' }}
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}
               onScroll={handleReaderScroll}
             >
               <div className="w-full max-w-[680px]">
-                <div className="text-[11px] uppercase tracking-[0.08em] text-[#9a9aaa] mb-3 select-none">
+                <div className="text-[11px] uppercase tracking-[0.08em] text-[var(--fg-3)] mb-3 select-none">
                   {note.name}{note.lecture_topic ? ` · ${note.lecture_topic}` : ''}
-                  <span className="text-[#9a9aaa] mx-1">·</span>
+                  <span className="text-[var(--fg-3)] mx-1">·</span>
                   {formatCreatedAt(note.created_at)}
                 </div>
-                <div className="text-[12px] text-[#9a9aaa] mb-8 flex items-center gap-2 select-none">
-                  Generated by Eidolon <span className="text-[#9a9aaa]">·</span>{note.charge_amount} <CreditIcon size={14} color='#9a9aaa'/>
+                <div className="text-[12px] text-[var(--fg-3)] mb-8 flex items-center gap-2 select-none">
+                  {t('generatedByEidolon')} <span className="text-[var(--fg-3)]">·</span>{note.charge_amount} <CreditIcon size={14} color='#9a9aaa'/>
                 </div>
                 <div data-color-mode="dark">
                   <MDEditor.Markdown
                     source={note.content}
-                    style={{ background: 'transparent', color: '#b0b0bc', fontSize: '15px', lineHeight: '1.95' }}
+                    style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '15px', lineHeight: '1.95' }}
                   />
                 </div>
               </div>
@@ -2005,12 +2014,12 @@ function SampleViewerContent() {
         )}
       </AnimatePresence>
 
-      <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-[#18181f] px-3.5 py-2 text-[12.5px] text-[#b4b4c2] transition-all duration-200
+      <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-2 text-[12.5px] text-[var(--fg-2)] transition-all duration-200
         ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'}`}>
         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[2.2]">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-        Copied to clipboard
+        {t('copiedToClipboard')}
       </div>
 
     </div>
@@ -2021,7 +2030,7 @@ function SampleViewerContent() {
 // when used in a client component that's rendered dynamically.
 export default function SampleNoteViewer() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0c0c0e] text-[#9a9aaa]">Loading preview...</div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[var(--bg)] text-[var(--fg-3)]">Loading preview...</div>}>
       <SampleViewerContent />
     </Suspense>
   );

@@ -12,7 +12,7 @@ export default function ErrorModal({ message, onClose }) {
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
         onClick={(e) => e.stopPropagation()}
-        className="mx-4 w-full max-w-[340px] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111116] shadow-2xl shadow-black/80 surface"
+        className="mx-4 w-full max-w-[340px] overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl shadow-black/80 surface"
       >
         <div className="flex flex-col items-center px-6 pt-7 pb-6 text-center">
           {/* Icon */}
@@ -25,15 +25,15 @@ export default function ErrorModal({ message, onClose }) {
           </div>
 
           {/* Title */}
-          <div className="mb-2 text-[16px] font-semibold text-[#e8e8ed]">Something went wrong</div>
+          <div className="mb-2 text-[16px] font-semibold text-[var(--fg)]">Something went wrong</div>
 
           {/* Message */}
-          <p className="mb-6 text-[13px] leading-[1.7] text-[#9a9aaa]">{message}</p>
+          <p className="mb-6 text-[13px] leading-[1.7] text-[var(--fg-3)]">{message}</p>
 
           {/* Button */}
           <button
             onClick={onClose}
-            className="w-full rounded-xl border border-white/[0.07] bg-[#18181f] py-2.5 text-[13px] font-medium text-[#9a9aaa] transition-all hover:border-white/[0.14] hover:text-[#e8e8ed]"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] py-2.5 text-[13px] font-medium text-[var(--fg-3)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)]"
           >
             Got it
           </button>

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import "./globals.css";
 import { motion } from 'framer-motion';
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
+import IntlProvider from "./IntlProvider";
 import {
   ComputerDesktopIcon,
   DevicePhoneMobileIcon,
@@ -33,7 +34,7 @@ const DeviceBlockScreen = ({ variant, className }) => {
   return (
     <div
       className={`${className} h-screen w-screen flex-col items-center justify-center overflow-hidden fixed inset-0 z-50`}
-      style={{ background: '#0c0c0e' }}
+      style={{ background: 'var(--bg)' }}
     >
       {/* Subtle radial glow behind card */}
       <div
@@ -49,7 +50,7 @@ const DeviceBlockScreen = ({ variant, className }) => {
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="relative mx-6 w-full max-w-sm overflow-hidden rounded-2xl surface noise"
         style={{
-          background: '#111116',
+          background: 'var(--surface)',
           border: '1px solid rgba(255,255,255,0.07)',
           padding: '2rem',
         }}
@@ -69,12 +70,12 @@ const DeviceBlockScreen = ({ variant, className }) => {
           }}
         >
           {isMobile ? (
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.8]" style={{ stroke: '#00d4c8' }}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.8]" style={{ stroke: 'var(--accent)' }}>
               <rect x="5" y="2" width="14" height="20" rx="2" />
               <line x1="12" y1="18" x2="12" y2="18.01" strokeLinecap="round" strokeWidth="2" />
             </svg>
           ) : (
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.8]" style={{ stroke: '#00d4c8' }}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.8]" style={{ stroke: 'var(--accent)' }}>
               <rect x="2" y="7" width="20" height="14" rx="2" />
               <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
@@ -82,12 +83,12 @@ const DeviceBlockScreen = ({ variant, className }) => {
         </div>
 
         {/* Title */}
-        <div className="mb-1" style={{ fontSize: '15px', fontWeight: 500, color: '#e8e8ed', letterSpacing: '-0.01em' }}>
+        <div className="mb-1" style={{ fontSize: '15px', fontWeight: 500, color: 'var(--fg)', letterSpacing: '-0.01em' }}>
           {isMobile ? 'Desktop only' : 'Rotate your device'}
         </div>
 
         {/* Subtitle */}
-        <p style={{ fontSize: '13px', lineHeight: '1.7', color: '#6b6b7a', marginBottom: '1.5rem' }}>
+        <p style={{ fontSize: '13px', lineHeight: '1.7', color: 'var(--fg-4)', marginBottom: '1.5rem' }}>
           {isMobile
             ? 'Eidolon requires a desktop or laptop to use. Please switch devices to continue.'
             : 'Eidolon requires landscape orientation on tablets. Rotate your device or switch to a desktop.'}
@@ -96,7 +97,7 @@ const DeviceBlockScreen = ({ variant, className }) => {
         {/* Device status row */}
         <div
           className="flex items-center justify-between rounded-xl px-4 py-3"
-          style={{ background: '#18181f', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--surface-raised)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           {/* Mobile */}
           <div className="flex flex-col items-center gap-1.5">
@@ -128,12 +129,12 @@ const DeviceBlockScreen = ({ variant, className }) => {
 
           {/* Desktop */}
           <div className="flex flex-col items-center gap-1.5">
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.6]" style={{ stroke: '#00d4c8' }}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-[1.6]" style={{ stroke: 'var(--accent)' }}>
               <rect x="2" y="3" width="20" height="14" rx="2" />
               <line x1="8" y1="21" x2="16" y2="21" />
               <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
-            <span style={{ fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#00d4c8' }}>
+            <span style={{ fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)' }}>
               desktop ✓
             </span>
           </div>
@@ -156,15 +157,15 @@ function AppLayout({ children }) {
   // Document title
   useEffect(() => {
     const titleMap = [
-      ['/admin',           'Admin | Eidolon'],
-      ['/profile',         'Profile | Eidolon'],
-      ['/top-up',          'Top Up | Eidolon'],
-      ['/pricing',         'Pricing | Eidolon'],
-      ['/exam-prep',       'Exam Prep | Eidolon'],
-      ['/transcriptor',    'Transcriptor | Eidolon'],
+      ['/admin', 'Admin | Eidolon'],
+      ['/profile', 'Profile | Eidolon'],
+      ['/top-up', 'Top Up | Eidolon'],
+      ['/pricing', 'Pricing | Eidolon'],
+      ['/exam-prep', 'Exam Prep | Eidolon'],
+      ['/transcriptor', 'Transcriptor | Eidolon'],
       ['/audio-converter', 'Audio Converter | Eidolon'],
-      ['/note',            'Inclass Notetaker | Eidolon'],
-      ['/home',            'Dashboard | Eidolon'],
+      ['/note', 'Inclass Notetaker | Eidolon'],
+      ['/home', 'Dashboard | Eidolon'],
     ];
 
     const match = titleMap.find(([path]) => pathname === path || pathname.startsWith(path + '/'));
@@ -174,8 +175,9 @@ function AppLayout({ children }) {
   // Auth guard + DB sync
   useEffect(() => {
     if (isLoading) return;
-    if (!isAuthenticated) {
-      router.replace('/auth/login');
+    const PUBLIC_ROUTES = ['/landing', '/landing/pricing', '/note/sample'];
+    if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
+      router.replace('/landing');
       return;
     }
 
@@ -217,20 +219,37 @@ function AppLayout({ children }) {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Runs before paint — prevents flash of wrong theme */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+          (function() {
+            try {
+              var stored = localStorage.getItem('theme');
+              var system = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+              document.documentElement.setAttribute('data-theme', stored || system);
+            } catch(e) {
+              document.documentElement.setAttribute('data-theme', 'dark');
+            }
+          })();
+        `}} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-slate-200`}
       >
-        <Auth0Provider
-          domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN}
-          clientId={process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID}
-          cacheLocation="localstorage"
-          authorizationParams={{
-            redirect_uri: typeof window !== 'undefined' ? window.location.origin : '',
-            audience: 'https://eidolon.api',
-          }}
-        >
-          <AppLayout>{children}</AppLayout>
-        </Auth0Provider>
+        <IntlProvider>
+          <Auth0Provider
+            domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN}
+            clientId={process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID}
+            cacheLocation="localstorage"
+            authorizationParams={{
+              redirect_uri: typeof window !== 'undefined' ? window.location.origin : '',
+              audience: 'https://eidolon.api',
+            }}
+          >
+            <AppLayout>{children}</AppLayout>
+          </Auth0Provider>
+        </IntlProvider>
       </body>
     </html>
   );

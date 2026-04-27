@@ -18,7 +18,7 @@ function OdometerDigit({ value }) {
           <div key={n} style={{
             height: DIGIT_H, lineHeight: `${DIGIT_H}px`,
             fontFamily: 'var(--font-geist-mono, monospace)',
-            fontSize: 52, fontWeight: 500, color: '#00d4c8',
+            fontSize: 52, fontWeight: 500, color: 'var(--accent)',
             display: 'block', textAlign: 'center',
           }}>
             {n}
@@ -106,17 +106,17 @@ function StagePill({ label }) {
     <div style={{
       display: 'flex', alignItems: 'center', gap: 6,
       borderRadius: 99, border: '1px solid rgba(255,255,255,0.07)',
-      background: '#111116', padding: '4px 12px',
+      background: 'var(--surface)', padding: '4px 12px',
     }}>
       <span style={{
         width: 5, height: 5, borderRadius: '50%',
-        background: '#00d4c8',
+        background: 'var(--accent)',
         animation: 'pulse-dot 1.4s ease-in-out infinite',
         flexShrink: 0,
       }} />
       <span style={{
         fontFamily: 'var(--font-geist-mono, monospace)',
-        fontSize: 11, color: '#b4b4c2',
+        fontSize: 11, color: 'var(--fg-2)',
         textTransform: 'uppercase', letterSpacing: '0.06em',
       }}>
         {label}
@@ -171,7 +171,7 @@ export default function GeneratingOverlay({
   }, [isDone, smoothed, targetProgress]);
 
   return (
-    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0c0c0e]">
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--bg)]">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -201,20 +201,20 @@ export default function GeneratingOverlay({
             </svg>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-geist-sans, sans-serif)', fontSize: 22, fontWeight: 400, color: '#e8e8ed', letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: 'var(--font-geist-sans, sans-serif)', fontSize: 22, fontWeight: 400, color: 'var(--fg)', letterSpacing: '-0.02em' }}>
               {title?.replace('…', '') ?? 'Complete'}
             </div>
             {doneLabel && (
-              <div style={{ marginTop: 4, fontSize: 13, color: '#9a9aaa' }}>{doneLabel}</div>
+              <div style={{ marginTop: 4, fontSize: 13, color: 'var(--fg-3)' }}>{doneLabel}</div>
             )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {onView && (
               <button onClick={onView} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
-                background: '#00d4c8', borderRadius: 8,
+                background: 'var(--accent)', borderRadius: 8,
                 padding: '10px 20px', fontSize: 13, fontWeight: 500,
-                color: '#0c0c0e', border: 'none', cursor: 'pointer',
+                color: 'var(--on-accent)', border: 'none', cursor: 'pointer',
               }}>
                 {onViewLabel}
               </button>
@@ -222,9 +222,9 @@ export default function GeneratingOverlay({
             {onReset && (
               <button onClick={onReset} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
-                background: '#18181f', borderRadius: 8,
+                background: 'var(--surface-raised)', borderRadius: 8,
                 padding: '10px 16px', fontSize: 13,
-                color: '#b4b4c2', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer',
+                color: 'var(--fg-2)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer',
               }}>
                 {onResetLabel}
               </button>
@@ -243,7 +243,7 @@ export default function GeneratingOverlay({
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <OdometerNumber value={displayProgress} />
-            <div style={{ fontFamily: 'var(--font-geist-sans, sans-serif)', fontSize: 18, fontWeight: 400, color: '#e8e8ed', letterSpacing: '-0.01em', marginTop: 2 }}>
+            <div style={{ fontFamily: 'var(--font-geist-sans, sans-serif)', fontSize: 18, fontWeight: 400, color: 'var(--fg)', letterSpacing: '-0.01em', marginTop: 2 }}>
               {title}
             </div>
             <StagePill label={subtitle} />
@@ -270,7 +270,7 @@ export default function GeneratingOverlay({
           {onCancel && (
             <button
               onClick={onCancel}
-              style={{ fontSize: 12, color: '#9a9aaa', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: 12, color: 'var(--fg-3)', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               Cancel
             </button>

@@ -10,12 +10,12 @@ export default function Home() {
 
 
   useEffect(() => {
-  if (isLoading) return;
+    if (isLoading) return;
 
-  if (isAuthenticated) {
-    router.push('/home');
-  } else {
-    router.push('/auth/login');
-  }
-}, [isAuthenticated, isLoading, router]);
+    if (isAuthenticated) {
+      router.push('/home');
+    } else {
+      router.push('/landing');
+    }
+  }, [isAuthenticated, isLoading, router]);
 }

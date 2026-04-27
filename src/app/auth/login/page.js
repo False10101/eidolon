@@ -17,7 +17,7 @@ const itemVariants = {
 const FEATURES = [
   {
     icon: (
-      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-[#00d4c8] fill-none stroke-[1.8]">
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
         <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
         <line x1="12" y1="19" x2="12" y2="23" />
@@ -28,7 +28,7 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-[#00d4c8] fill-none stroke-[1.8]">
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
         <line x1="16" y1="13" x2="8" y2="13" />
@@ -40,7 +40,7 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-[#00d4c8] fill-none stroke-[1.8]">
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <path d="M9 11l3 3L22 4" />
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </svg>
@@ -50,7 +50,7 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-[#00d4c8] fill-none stroke-[1.8]">
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <line x1="12" y1="1" x2="12" y2="23" />
         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
       </svg>
@@ -76,9 +76,9 @@ export default function Login() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center gap-3 bg-[#0c0c0e]">
+      <div className="flex h-screen w-full flex-col items-center justify-center gap-3 bg-[var(--bg)]">
         <div className="h-5 w-5 animate-spin rounded-full border border-transparent border-t-[#00d4c8]" />
-        <span className="font-mono text-[11px] tracking-[0.1em] text-[#9a9aaa] uppercase">
+        <span className="font-mono text-[11px] tracking-[0.1em] text-[var(--fg-3)] uppercase">
           Syncing identity…
         </span>
       </div>
@@ -86,7 +86,7 @@ export default function Login() {
   }
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-[#0c0c0e] text-[#e8e8ed] text-sm">
+    <div className="relative flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--fg)] text-sm">
 
       {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 z-0" style={{
@@ -95,9 +95,9 @@ export default function Login() {
 
       {/* ── Left panel ── */}
       <div
-        className="relative z-10 hidden md:flex md:w-[320px] lg:w-[420px] flex-shrink-0 flex-col justify-between overflow-hidden border-r border-white/[0.07] p-10"
+        className="relative z-10 hidden md:flex md:w-[320px] lg:w-[420px] flex-shrink-0 flex-col justify-between overflow-hidden border-r border-[var(--border)] p-10"
         style={{
-          backgroundColor: '#111116',
+          backgroundColor: 'var(--surface)',
           backgroundImage: 'linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
         }}
@@ -112,12 +112,12 @@ export default function Login() {
 
         {/* Logo + tagline */}
         <div className="relative z-10">
-          <div className="mb-3 font-serif text-[28px] tracking-[-0.03em] text-[#00d4c8]">
+          <div className="mb-3 font-serif text-[28px] tracking-[-0.03em] text-[var(--accent)]">
             Eidolon
             <sup className="text-[15px] font-sans font-medium tracking-normal opacity-75 ml-0.5">v2</sup>
           </div>
-          <p className="max-w-[280px] text-[13px] leading-relaxed text-[#9a9aaa]">
-            AI-powered lecture notes for students who actually want to <span className="text-[#e8e8ed] font-medium">learn</span>, not just survive.
+          <p className="max-w-[280px] text-[13px] leading-relaxed text-[var(--fg-3)]">
+            AI-powered lecture notes for students who actually want to <span className="text-[var(--fg)] font-medium">learn</span>, not just survive.
           </p>
         </div>
 
@@ -129,15 +129,15 @@ export default function Login() {
                 {f.icon}
               </div>
               <div>
-                <div className="text-[13px] font-medium text-[#e8e8ed]">{f.title}</div>
-                <div className="text-[12px] leading-relaxed text-[#b4b4c2]">{f.sub}</div>
+                <div className="text-[13px] font-medium text-[var(--fg)]">{f.title}</div>
+                <div className="text-[12px] leading-relaxed text-[var(--fg-2)]">{f.sub}</div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Version */}
-        <div className="relative z-10 font-mono text-[11px] text-[#9a9aaa] select-none">
+        <div className="relative z-10 font-mono text-[11px] text-[var(--fg-3)] select-none">
           v2.0 — Academic Suite
         </div>
       </div>
@@ -152,14 +152,14 @@ export default function Login() {
         >
           {/* Heading */}
           <motion.div variants={itemVariants} className="mb-7">
-            <h1 className="mb-1.5 font-serif text-[26px] font-normal tracking-[-0.02em] text-[#e8e8ed]">
+            <h1 className="mb-1.5 font-serif text-[26px] font-normal tracking-[-0.02em] text-[var(--fg)]">
               Sign in to{' '}
-              <span className="text-[#00d4c8]">
+              <span className="text-[var(--accent)]">
                 Eidolon<sup className="text-[13px] font-sans font-medium tracking-normal opacity-75 ml-0.5">v2</sup>
               </span>
             </h1>
-            <p className="text-[13px] leading-relaxed text-[#9a9aaa]">
-              Use your university Google account to get started. <span className="text-[#e8e8ed] font-medium">No password needed.</span>
+            <p className="text-[13px] leading-relaxed text-[var(--fg-3)]">
+              Use your university Google account to get started. <span className="text-[var(--fg)] font-medium">No password needed.</span>
             </p>
           </motion.div>
 
@@ -183,7 +183,7 @@ export default function Login() {
           <motion.button
             variants={itemVariants}
             onClick={handleGoogleLogin}
-            className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl border border-white/[0.09] bg-[#111116] px-5 py-3.5 text-[14px] font-medium text-[#e8e8ed] transition-all duration-200 hover:border-white/[0.15] hover:bg-[#18181f]"
+            className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-5 py-3.5 text-[14px] font-medium text-[var(--fg)] transition-all duration-200 hover:border-[var(--border-hover)] hover:bg-[var(--surface-raised)]"
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
           >
@@ -202,35 +202,35 @@ export default function Login() {
 
           {/* Divider */}
           <motion.div variants={itemVariants} className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/[0.07]" />
-            <span className="text-[11px] text-[#9a9aaa] select-none">Access is invite-only</span>
-            <div className="h-px flex-1 bg-white/[0.07]" />
+            <div className="h-px flex-1 bg-[var(--surface-tint)]" />
+            <span className="text-[11px] text-[var(--fg-3)] select-none">Access is invite-only</span>
+            <div className="h-px flex-1 bg-[var(--surface-tint)]" />
           </motion.div>
 
           {/* Access note */}
           <motion.div
             variants={itemVariants}
-            className="flex items-start gap-2.5 rounded-xl border border-white/[0.07] bg-[#111116] p-4 surface"
+            className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 surface"
           >
-            <svg viewBox="0 0 24 24" className="mt-px h-3.5 w-3.5 flex-shrink-0 stroke-[#9a9aaa] fill-none stroke-[1.8]">
+            <svg viewBox="0 0 24 24" className="mt-px h-3.5 w-3.5 flex-shrink-0 stroke-[var(--fg-3)] fill-none stroke-[1.8]">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <p className="text-[12px] leading-relaxed text-[#9a9aaa]">
+            <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
               Eidolon is currently available to{' '}
-              <strong className="font-medium text-[#e8e8ed]">students</strong> with an approved
-              account. Sign in with your Google account — if you have access, you'll be <span className="text-[#e8e8ed] font-medium">redirected automatically</span>.
+              <strong className="font-medium text-[var(--fg)]">students</strong> with an approved
+              account. Sign in with your Google account — if you have access, you'll be <span className="text-[var(--fg)] font-medium">redirected automatically</span>.
             </p>
           </motion.div>
 
           {/* Footer */}
           <motion.p
             variants={itemVariants}
-            className="mt-7 text-center text-[11.5px] leading-relaxed text-[#9a9aaa] select-none"
+            className="mt-7 text-center text-[11.5px] leading-relaxed text-[var(--fg-3)] select-none"
           >
             By signing in you agree to fair use of the service.<br />
-            <span className="text-[#b4b4c2] font-medium">Balance is non-refundable</span> once consumed.
+            <span className="text-[var(--fg-2)] font-medium">Balance is non-refundable</span> once consumed.
           </motion.p>
         </motion.div>
       </div>
