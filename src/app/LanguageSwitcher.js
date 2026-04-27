@@ -3,14 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 
 const LANGUAGES = [
-  { locale: 'en', label: 'English',    flag: '🇬🇧' },
-  { locale: 'th', label: 'ภาษาไทย',   flag: '🇹🇭' },
-  { locale: 'zh', label: '中文',        flag: '🇨🇳' },
-  { locale: 'es', label: 'Español',    flag: '🇪🇸' },
-  { locale: 'hi', label: 'हिंदी',      flag: '🇮🇳' },
-  { locale: 'id', label: 'Indonesia',  flag: '🇮🇩' },
-  { locale: 'pt', label: 'Português',  flag: '🇧🇷' },
-  { locale: 'fr', label: 'Français',   flag: '🇫🇷' },
+  { locale: 'en', label: 'English',    countryCode: 'gb' },
+  { locale: 'th', label: 'ภาษาไทย',   countryCode: 'th' },
+  { locale: 'zh', label: '中文',        countryCode: 'cn' },
+  { locale: 'es', label: 'Español',    countryCode: 'es' },
+  { locale: 'hi', label: 'हिंदी',      countryCode: 'in' },
+  { locale: 'id', label: 'Indonesia',  countryCode: 'id' },
+  { locale: 'pt', label: 'Português',  countryCode: 'br' },
+  { locale: 'fr', label: 'Français',   countryCode: 'fr' },
 ];
 
 export { LANGUAGES };
@@ -47,7 +47,7 @@ export default function LanguageSwitcher() {
         title="Switch language"
         className="group flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 transition-all hover:border-[rgba(0,212,200,0.25)] hover:bg-[rgba(0,212,200,0.04)]"
       >
-        <span className="text-[13px] leading-none font-emoji" style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"' }}>{currentLang.flag}</span>
+        <img src={`https://flagcdn.com/${currentLang.countryCode}.svg`} alt="" className="w-[14px] h-auto rounded-[2px] object-cover shadow-sm pointer-events-none" />
         <span className="text-[11px] font-medium text-[var(--fg-3)] group-hover:text-[var(--accent)] transition-colors hidden sm:block">
           {currentLang.locale.toUpperCase()}
         </span>
@@ -68,7 +68,7 @@ export default function LanguageSwitcher() {
                   : 'text-[var(--fg-3)] hover:bg-[var(--surface-hover)] hover:text-[var(--fg)]'
                 }`}
             >
-              <span className="text-[14px] font-emoji" style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"' }}>{lang.flag}</span>
+              <img src={`https://flagcdn.com/${lang.countryCode}.svg`} alt="" className="w-[15px] h-auto rounded-[2px] object-cover shadow-sm pointer-events-none" />
               <span className="flex-1">{lang.label}</span>
               {lang.locale === current && (
                 <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[var(--accent)] fill-none stroke-[2.5]">
