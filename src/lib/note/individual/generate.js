@@ -54,22 +54,28 @@ export async function generate(noteId, userId, worstCaseCost, targetLanguage) {
                 WHERE id = ${noteId}
             `;
 
-            const [updated] = await tx`
-                UPDATE "user" SET balance = balance + ${diff}
-                WHERE id = ${userId}
-                RETURNING balance
-            `;
+            if (!note.is_trial) {
+                const [updated] = await tx`
+                    UPDATE "user" SET balance = balance + ${diff}
+                    WHERE id = ${userId}
+                    RETURNING balance
+                `;
 
-            await tx`
-                INSERT INTO "activity" (type, title, status, user_id, respective_table_id, date, charge_amount, balance_after)
-                VALUES ('note', ${note.name}, 'completed', ${userId}, ${noteId}, NOW(), ${chargeAmount}, ${updated.balance})
-            `;
+                await tx`
+                    INSERT INTO "activity" (type, title, status, user_id, respective_table_id, date, charge_amount, balance_after)
+                    VALUES ('note', ${note.name}, 'completed', ${userId}, ${noteId}, NOW(), ${chargeAmount}, ${updated.balance})
+                `;
+            }
         });
 
         return { success: true };
     } catch (error) {
         await sql`UPDATE "note" SET status = 'failed', charge_amount = 0 WHERE id = ${noteId}`;
-        await sql`UPDATE "user" SET balance = balance + ${worstCaseCost} WHERE id = ${userId}`;
+        const checkRows = await sql`SELECT is_trial FROM "note" WHERE id = ${noteId}`;
+        const isTrial = checkRows[0]?.is_trial;
+        if (!isTrial) {
+            await sql`UPDATE "user" SET balance = balance + ${worstCaseCost} WHERE id = ${userId}`;
+        }
         console.error('Generation failed:', error);
         throw new Error(error.message ?? 'Generation failed. Please try again.');
     }
