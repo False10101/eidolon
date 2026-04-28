@@ -49,10 +49,17 @@ export async function GET(req) {
 
     // 3. If STILL not found, create brand new user
     if (!user) {
-      // Postgres superpower: RETURNING * lets us skip the second SELECT query entirely!
+      // Check for referral cookie
+      const refCode = req.cookies.get('eidolon_ref')?.value ?? null;
+      let referredBy = null;
+      if (refCode) {
+        const refRows = await sql`SELECT id FROM "user" WHERE referral_code = ${refCode} LIMIT 1`;
+        if (refRows[0]) referredBy = refRows[0].id;
+      }
+
       const newRows = await sql`
-        INSERT INTO "user" (username, email, google_id, avatar_url, last_login, status, role, balance) 
-        VALUES (${username}, ${email}, ${googleId}, ${picture}, NOW(), 'normal', 'user', 0.00)
+        INSERT INTO "user" (username, email, google_id, avatar_url, last_login, status, role, balance, referred_by)
+        VALUES (${username}, ${email}, ${googleId}, ${picture}, NOW(), 'normal', 'user', 0.00, ${referredBy})
         RETURNING *
       `;
       user = newRows[0];

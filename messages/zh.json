@@ -581,7 +581,13 @@
     "courses": "门课程",
     "audioHours": "小时的音频",
     "inputOutput": "输入 + 输出",
-    "since": "自从"
+    "since": "自从",
+    "referral": "推荐",
+    "referralTitle": "你的推荐链接",
+    "referralDesc": "邀请朋友加入 Eidolon",
+    "referralSub": "分享你的链接 — 当有人通过它注册时，你将获得他们为平台产生利润的 30%。",
+    "copy": "复制",
+    "copied": "已复制！"
   },
   "pricingPage": {
     "title": "只为你的",

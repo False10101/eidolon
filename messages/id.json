@@ -581,7 +581,13 @@
     "courses": "kursus",
     "audioHours": "jam audio",
     "inputOutput": "input + output",
-    "since": "sejak"
+    "since": "sejak",
+    "referral": "Referral",
+    "referralTitle": "Link referral kamu",
+    "referralDesc": "Ajak teman bergabung ke Eidolon",
+    "referralSub": "Bagikan linkmu — ketika seseorang mendaftar melaluinya, kamu akan mendapatkan 30% dari keuntungan yang mereka hasilkan untuk platform.",
+    "copy": "Salin",
+    "copied": "Tersalin!"
   },
   "pricingPage": {
     "title": "Bayar hanya untuk apa yang Anda",

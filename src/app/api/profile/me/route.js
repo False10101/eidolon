@@ -8,7 +8,7 @@ export async function GET(req) {
         if (userId === null) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const [user] = await sql`
-            SELECT id, username, email, balance, avatar_url, created_at
+            SELECT id, username, email, balance, avatar_url, created_at, referral_code
             FROM "user" WHERE id = ${userId}
         `;
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });

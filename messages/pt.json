@@ -581,7 +581,13 @@
     "courses": "disciplinas",
     "audioHours": "hrs de áudio",
     "inputOutput": "entrada + saída",
-    "since": "desde"
+    "since": "desde",
+    "referral": "Referência",
+    "referralTitle": "O teu link de referência",
+    "referralDesc": "Convida amigos para o Eidolon",
+    "referralSub": "Partilha o teu link — quando alguém se registar através dele, ganhas 30% do lucro que geram para a plataforma.",
+    "copy": "Copiar",
+    "copied": "Copiado!"
   },
   "pricingPage": {
     "title": "Pague só pelo que",
