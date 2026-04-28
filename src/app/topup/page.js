@@ -225,7 +225,11 @@ function TopupPage() {
             const res   = await fetch('/api/topup/create-session', {
                 method:  'POST',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ amount: resolvedAmount }),
+                body:    JSON.stringify({
+                    amount:   resolvedAmount,
+                    currency: fx?.currency ?? 'USD',
+                    fxRate:   fx?.rate     ?? 1,
+                }),
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
@@ -235,6 +239,18 @@ function TopupPage() {
             setPaying(false);
         }
     };
+
+    // ── Payment method badges based on detected currency ──────────────────────
+    const isThb = fx?.currency === 'THB';
+    const isUsdStrict = !fx || fx.currency === 'USD';
+    const paymentBadges = [
+        { label: 'VISA',        color: '#1a72bb' },
+        { label: 'MASTERCARD',  color: '#eb001b' },
+        { label: 'Google Pay',  color: '#4285F4' },
+        { label: 'Apple Pay',   color: 'var(--fg)' },
+        ...(isUsdStrict ? [{ label: 'Link', color: '#635BFF' }] : []),
+        ...(isThb       ? [{ label: 'PromptPay', color: '#1C4ED8' }] : []),
+    ];
 
     return (
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
@@ -432,18 +448,16 @@ function TopupPage() {
                                             </svg>
                                         </div>
                                         <div>
-                                            <div className="text-[13px] font-medium text-[var(--fg)]">{t('creditDebitCard')}</div>
-                                            <div className="mt-0.5 text-[11.5px] text-[var(--fg-3)]">
-                                                {t('poweredByStripe')}
-                                            </div>
+                                            <div className="text-[13px] font-medium text-[var(--fg)]">{t('paymentMethod')}</div>
+                                            <div className="mt-0.5 text-[11.5px] text-[var(--fg-3)]">{t('poweredByStripe')}</div>
                                         </div>
                                         <div className="ml-auto flex items-center gap-1.5">
-                                            {['VISA', 'MASTERCARD'].map(brand => (
-                                                <div key={brand}
-                                                    className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 text-[9.5px] font-bold"
-                                                    style={{ color: brand === 'VISA' ? '#1a72bb' : '#eb001b' }}
+                                            {paymentBadges.map(b => (
+                                                <div key={b.label}
+                                                    className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 text-[9px] font-bold whitespace-nowrap"
+                                                    style={{ color: b.color }}
                                                 >
-                                                    {brand}
+                                                    {b.label}
                                                 </div>
                                             ))}
                                         </div>
@@ -470,17 +484,19 @@ function TopupPage() {
                                                 <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--on-accent)]/30 border-t-[#0c0c0e]" />
                                                 {t('redirectingToStripe')}
                                             </>
-                                        ) : (
+                                        ) : canPay ? (
                                             <>
                                                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[2.2]">
                                                     <rect x="2" y="5" width="20" height="14" rx="2" />
                                                     <line x1="2" y1="10" x2="22" y2="10" />
                                                 </svg>
-                                                {canPay
-                                                    ? `${t('payWithCard')} ${!isUsd && resolvedLocal ? `≈ ${resolvedLocal} ` : ''}${usdLabel ? `(${usdLabel})` : ''}`
-                                                    : t('selectAnAmount')
+                                                {isThb && resolvedLocal
+                                                    ? `Pay ≈ ${resolvedLocal} (${usdLabel})`
+                                                    : `Pay ${usdLabel}`
                                                 }
                                             </>
+                                        ) : (
+                                            t('selectAnAmount')
                                         )}
                                     </button>
                                 </div>
