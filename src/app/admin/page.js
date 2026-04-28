@@ -94,10 +94,20 @@ function BarChart({ data }) {
   const H = 100, W = 780, pad = 40;
   const bw = 8, gap = 3;
   const groupW = (W - pad) / data.length;
+
+  // Y-axis gridline labels: show actual counts at 0%, 33%, 66%, 100%
+  const yTicks = [0, 0.33, 0.66, 1].map(f => ({ f, val: Math.round(f * max) }));
+
   return (
     <svg viewBox={`0 0 ${W + 10} ${H + 30}`} className="w-full overflow-visible">
-      {[0, 0.33, 0.66, 1].map((f, i) => (
-        <line key={i} x1={pad} y1={H - f * H} x2={W} y2={H - f * H} stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+      {/* Y-axis gridlines + labels */}
+      {yTicks.map(({ f, val }, i) => (
+        <g key={i}>
+          <line x1={pad} y1={H - f * H} x2={W} y2={H - f * H} stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+          <text x={pad - 6} y={H - f * H + 3.5} textAnchor="end" fill="#6b6b7a" fontSize="8.5" opacity=".55" fontFamily="Geist, sans-serif">
+            {val}
+          </text>
+        </g>
       ))}
       {data.map((d, i) => {
         const cx = pad + i * groupW + groupW / 2;
@@ -111,6 +121,10 @@ function BarChart({ data }) {
             <rect x={x0} y={H - nh} width={bw} height={Math.max(nh, 1)} fill="#00d4c8" opacity=".75" rx="2" />
             <rect x={x0 + bw + gap} y={H - th} width={bw} height={Math.max(th, 1)} fill="#22c55e" opacity=".75" rx="2" />
             <rect x={x0 + (bw + gap) * 2} y={H - eh} width={bw} height={Math.max(eh, 1)} fill="#f59e0b" opacity=".75" rx="2" />
+            {/* Value labels always shown above each bar */}
+            <text x={x0 + bw / 2} y={H - nh - 4} textAnchor="middle" fill="#00d4c8" fontSize="7.5" opacity=".8" fontFamily="Geist, sans-serif">{d.notes}</text>
+            <text x={x0 + bw + gap + bw / 2} y={H - th - 4} textAnchor="middle" fill="#22c55e" fontSize="7.5" opacity=".8" fontFamily="Geist, sans-serif">{d.transcripts}</text>
+            <text x={x0 + (bw + gap) * 2 + bw / 2} y={H - eh - 4} textAnchor="middle" fill="#f59e0b" fontSize="7.5" opacity=".8" fontFamily="Geist, sans-serif">{d.examPrep}</text>
             {data.length <= 14 && (
               <text x={cx} y={H + 16} textAnchor="middle" fill="#6b6b7a" fontSize="9" opacity=".6" fontFamily="Geist, sans-serif">
                 {new Date(d.day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
