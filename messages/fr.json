@@ -581,7 +581,13 @@
     "courses": "cours",
     "audioHours": "h d'audio",
     "inputOutput": "entrée + sortie",
-    "since": "depuis"
+    "since": "depuis",
+    "referral": "Parrainage",
+    "referralTitle": "Votre lien de parrainage",
+    "referralDesc": "Invitez des amis sur Eidolon",
+    "referralSub": "Partagez votre lien — lorsque quelqu'un s'inscrit via celui-ci, vous gagnez 30% du bénéfice qu'il génère pour la plateforme.",
+    "copy": "Copier",
+    "copied": "Copié !"
   },
   "pricingPage": {
     "title": "Ne payez que ce que vous",

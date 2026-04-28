@@ -581,7 +581,13 @@
     "courses": "courses",
     "audioHours": "hrs of audio",
     "inputOutput": "input + output",
-    "since": "since"
+    "since": "since",
+    "referral": "Referral",
+    "referralTitle": "Your referral link",
+    "referralDesc": "Invite friends to Eidolon",
+    "referralSub": "Share your link — when someone signs up through it, you earn 30% of the profit they generate for the platform.",
+    "copy": "Copy",
+    "copied": "Copied!"
   },
   "pricingPage": {
     "title": "Pay only for what you",
