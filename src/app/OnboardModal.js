@@ -52,7 +52,6 @@ export default function OnboardModal({ storageKey, slides, accentColor = '#00d4c
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={dismiss}
             style={{
               position: 'fixed', inset: 0, zIndex: 9998,
               background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)',

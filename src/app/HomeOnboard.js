@@ -140,11 +140,7 @@ export default function HomeOnboard() {
             />
           </motion.div>
 
-          {/* Clickable overlay to close */}
-          <div
-            onClick={dismiss}
-            style={{ position: 'fixed', inset: 0, zIndex: 9998, cursor: 'default' }}
-          />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9998, cursor: 'default' }} />
 
           {/* Tooltip */}
           <motion.div
