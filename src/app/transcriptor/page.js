@@ -324,7 +324,7 @@ export default function Transcriptor() {
                             {m.badge}
                           </span>
                         )}
-                        <div>{m.label.split(' ').slice(0, 2).join(' ')}</div>
+                        <div>{m.label.split(' ').slice(0, 3).join(' ')}</div>
                         <div className={`text-[10px] flex justify-center items-center mt-0.5 ${model === m.value ? 'text-[var(--accent)]/90' : 'text-[var(--fg-3)]'}`}>
                           {m.price} <CreditIcon size={8} className='mx-0.5' color={model === m.value ? '#00d4c8' : 'var(--fg-2)'}/> /hr
                         </div>
