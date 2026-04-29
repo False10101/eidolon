@@ -31,6 +31,8 @@ export async function POST(req) {
 
         let tempFilePath = '';
         let fileName = '';
+        const ALLOWED_FORMATS = ['MP3', 'WAV', 'M4A'];
+        const ALLOWED_BITRATES = ['128 kbps', '192 kbps', '256 kbps'];
         let format = 'MP3';
         let bitrate = '192 kbps';
         let start = null;
@@ -52,13 +54,13 @@ export async function POST(req) {
             });
 
             busboy.on('field', (name, val) => {
-                if (name === 'format') format = val;
-                if (name === 'bitrate') bitrate = val;
+                if (name === 'format' && ALLOWED_FORMATS.includes(val)) format = val;
+                if (name === 'bitrate' && ALLOWED_BITRATES.includes(val)) bitrate = val;
                 if (name === 'start' && val) start = val;
                 if (name === 'end' && val) end = val;
                 if (name === 'postAction' && val) postAction = val;
-                if (name === 'model' && val) model = val;
-                if (name === 'outputFormat' && val) outputFormat = val;
+                if (name === 'model' && ['whisper-v3-turbo', 'whisper-v3'].includes(val)) model = val;
+                if (name === 'outputFormat' && ['text', 'verbose_json'].includes(val)) outputFormat = val;
             });
 
             busboy.on('error', reject);
