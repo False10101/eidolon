@@ -7,7 +7,7 @@ export async function PATCH(req) {
         const userId = await verifyUserData(req);
         if (userId === null) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { content, publicId, name, topic, instructor } = await req.json();
+        const { content, publicId, name } = await req.json();
 
         const [note] = await sql`SELECT id FROM "note" WHERE public_id = ${publicId} AND user_id = ${userId}`;
         let id = note?.id;
@@ -22,7 +22,7 @@ export async function PATCH(req) {
             id = access.id;
         }
 
-        await sql`UPDATE "note" SET content = ${content}, name = ${name}, lecture_topic = ${topic}, instructor = ${instructor} WHERE id = ${id}`;
+        await sql`UPDATE "note" SET content = ${content}, name = ${name} WHERE id = ${id}`;
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error(error);
