@@ -57,11 +57,14 @@ export async function POST(req) {
 
         const formData = await req.formData();
         const file = formData.get('file');
-        const label = formData.get('label') || file.name.split(".")[0];
-        const model = formData.get('model') || 'whisper-v3-turbo';
+        const rawLabel = formData.get('label') || file.name.split(".")[0];
+        const label = String(rawLabel).slice(0, 255);
+        const rawModel = formData.get('model');
+        const model = ['whisper-v3-turbo', 'whisper-v3'].includes(rawModel) ? rawModel : 'whisper-v3-turbo';
         const vad = formData.get('vad') || 'true';
-        const outputFormat = formData.get('outputFormat') || 'text';
-        const diarization = formData.get('diarization') || 'false';
+        const rawOutputFormat = formData.get('outputFormat');
+        const outputFormat = ['text', 'verbose_json'].includes(rawOutputFormat) ? rawOutputFormat : 'text';
+        const diarization = formData.get('diarization') === 'true' ? 'true' : 'false';
 
         if (!file) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
