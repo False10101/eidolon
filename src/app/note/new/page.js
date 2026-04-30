@@ -16,7 +16,7 @@ import NotesOnboard from '../NotesOnboard';
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const COMPACTNESS_OPTIONS = [
   {
-    value: 'exam',
+    value: 'stripped',
     label: 'Exam Note', labelKey: 'examNote', badgeKey: 'compact',
     
     description: 'Ultra-condensed for limited exam note allowances. Definitions, key terms, and formulas only — no elaboration.',

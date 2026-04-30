@@ -81,11 +81,11 @@ export default function NoteViewer({ params }) {
 
   const NOTE_STEPS_KEYS = ['stepReadingTranscript', 'stepGeneratingNote', 'stepSavingNote'];
   const getStyleLabel = (style) => {
-    if (style === 'exam') return t('examNote');
+    if (style === 'stripped') return t('examNote');
     if (style === 'standard') return t('standard');
     if (style === 'textbook') return t('textbook');
     return style;
-  };
+};
 
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
