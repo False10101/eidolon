@@ -49,10 +49,10 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
 };
 
-const stageCeilings = {
-  uploading: 12,
-  waiting: 12,
-  active: 88,
+const stageProgress = {
+  idle: 0,
+  uploading: 10,
+  waiting: 10,
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -75,6 +75,7 @@ export default function Transcriptor() {
   const [error, setError] = useState(null);
   const [stage, setStage] = useState('idle');
   const [stageLabel, setStageLabel] = useState('');
+  const [progress, setProgress] = useState(0);
 
   const intervalRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -105,9 +106,11 @@ export default function Transcriptor() {
         if (data.state === 'waiting') {
           setStage('waiting');
           setStageLabel(data.queuePosition ? t('queuePosition') + ' ' + data.queuePosition : t('waitingInQueue'));
+          setProgress(stageProgress.waiting);
         } else if (data.state === 'active') {
           setStage('active');
           const pct = data.progress || 0;
+          setProgress(pct);
           if (pct < 20) setStageLabel(t('validatingBalance'));
           else if (pct < 40) setStageLabel(t('readingAudio'));
           else if (pct < 90) setStageLabel(t('transcribing'));
@@ -136,6 +139,7 @@ export default function Transcriptor() {
     setProcStatus('processing');
     setStage('uploading');
     setStageLabel(t('uploadingFile'));
+    setProgress(stageProgress.uploading);
 
     try {
       const token = await getAccessTokenSilently();
@@ -178,6 +182,7 @@ export default function Transcriptor() {
     }
     setProcStatus('idle');
     setStage('idle');
+    setProgress(0);
     setResultId(null);
     removeFile();
     setError(null);
@@ -204,8 +209,8 @@ export default function Transcriptor() {
             <GeneratingOverlay
               title={t('transcribing')}
               subtitle={stageLabel}
-              targetProgress={procStatus === 'done' ? 100 : stageCeilings[stage] ?? 0}
-              smoothed={true}
+              targetProgress={procStatus === 'done' ? 100 : (stage === 'active' ? progress : (stageProgress[stage] ?? 0))}
+              smoothed={false}
               done={procStatus === 'done'}
               doneLabel={label || file?.name}
               onView={() => resultId && router.push(`/transcriptor/${resultId}`)}

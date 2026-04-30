@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { verifyUserData } from '@/lib/auth/verify';
 import { sql } from '@/lib/storage/db';
 import { rateLimit } from '@/lib/rateLimit';
+import { getFxRate } from '@/lib/topup/fx';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -16,7 +17,7 @@ export async function POST(req) {
     const limited = await rateLimit(`rl:topup:${userId}`, 15, 60);
     if (limited) return limited;
 
-    const { amount, currency, fxRate } = await req.json();
+    const { amount, currency } = await req.json();
 
     if (!amount || typeof amount !== 'number') {
         return NextResponse.json({ error: 'Invalid amount.' }, { status: 400 });
@@ -29,22 +30,27 @@ export async function POST(req) {
     const amountUsd    = parseFloat(amount.toFixed(2));
     const credits      = Math.round(amountUsd * 100);
 
-    // For THB sessions (PromptPay), charge in THB but store credits from USD equiv
-    const isThb        = currency === 'THB' && fxRate && fxRate > 0;
+    // The client may suggest a display currency, but the server alone decides the rate.
+    const trustedThbRate = currency === 'THB' ? await getFxRate('THB') : null;
+    const isThb = currency === 'THB' && trustedThbRate && trustedThbRate > 0;
     const sessionCurrency = isThb ? 'thb' : 'usd';
-    const unitAmount   = isThb
-        ? Math.round(amountUsd * fxRate * 100)  // THB satangs (THB has 2 decimal places in Stripe)
-        : Math.round(amountUsd * 100);           // USD cents
+    const unitAmount = isThb
+        ? Math.round(amountUsd * trustedThbRate * 100)
+        : Math.round(amountUsd * 100);
 
     const [user] = await sql`SELECT email FROM "user" WHERE id = ${userId}`;
     if (!user) return NextResponse.json({ error: 'User not found.' }, { status: 404 });
 
-    const host   = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
-    const proto  = req.headers.get('x-forwarded-proto') ?? 'https';
-    const origin = `${proto}://${host}`;
+    const configuredOrigin = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+    if (!configuredOrigin) {
+        console.error('Missing APP_URL or NEXT_PUBLIC_APP_URL for Stripe return URLs.');
+        return NextResponse.json({ error: 'Top-up is temporarily unavailable.' }, { status: 500 });
+    }
+
+    const origin = configuredOrigin.replace(/\/+$/, '');
 
     const productName = isThb
-        ? `Eidolon Credits — ฿${Math.round(amountUsd * fxRate)}`
+        ? `Eidolon Credits — ฿${Math.round(amountUsd * trustedThbRate)}`
         : `Eidolon Credits — $${amountUsd}`;
 
     const session = await stripe.checkout.sessions.create({
@@ -71,7 +77,7 @@ export async function POST(req) {
             credits:    credits.toString(),
         },
         success_url: `${origin}/topup?topup=success`,
-        cancel_url:  `${origin}/topup?topup=cancel`,
+        cancel_url: `${origin}/topup?topup=cancel`,
     });
 
     return NextResponse.json({ url: session.url });

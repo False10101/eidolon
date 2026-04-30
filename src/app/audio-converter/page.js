@@ -315,7 +315,7 @@ export default function AudioConverter() {
                 title={t('transcribingAudio')}
                 subtitle={transcriptStep}
                 targetProgress={progress}
-                smoothed={true}
+                smoothed={false}
                 done={status === 'done'}
                 doneLabel={file?.name?.replace(/\.[^/.]+$/, '') || ''}
                 onView={() => resultId && router.push(`/transcriptor/${resultId}`)}

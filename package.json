@@ -47,7 +47,7 @@
     "marked-highlight": "^2.2.3",
     "motion": "^12.38.0",
     "mysql2": "^3.14.2",
-    "next": "15.3.8",
+    "next": "^15.5.15",
     "next-intl": "^4.9.1",
     "openai": "^6.34.0",
     "path-to-regexp": "^8.2.0",

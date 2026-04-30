@@ -371,7 +371,7 @@ export default function NoteViewer({ params }) {
                   variant="document"
                   title={t('regeneratingNote')}
                   subtitle={t(NOTE_STEPS_KEYS[stepMap[currentStatus]]) ?? 'Processing…'}
-                  progress={progressMap[currentStatus] ?? 5}
+                  targetProgress={progressMap[currentStatus] ?? 5}
                   onCancel={null}
                 />
               )}

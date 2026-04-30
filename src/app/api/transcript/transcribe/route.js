@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 import { transcriptorQueue } from "@/lib/queue";
 import { rateLimit } from "@/lib/rateLimit";
-import { mkdir, writeFile, unlink } from 'fs/promises';
+import { mkdir, unlink } from 'fs/promises';
+import { createWriteStream } from 'fs';
 import { verifyUserData } from "@/lib/auth/verify";
 import { sql } from "@/lib/storage/db";
 import getAudioDuration from "@/lib/audio-converter-queues/duration";
 import path from "path";
+import Busboy from 'busboy';
+import { Readable } from 'stream';
+
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+const ALLOWED_AUDIO_EXTS = new Set(['.mp3', '.wav', '.m4a', '.mp4', '.ogg', '.flac', '.aac', '.webm']);
+
+async function cleanupTempFile(inputPath) {
+    if (!inputPath) return;
+    await unlink(inputPath).catch(() => {});
+}
 
 export async function POST(req) {
     let inputPath = null;
@@ -19,6 +30,11 @@ export async function POST(req) {
 
         const limited = await rateLimit(`rl:transcript:${userId}`, 10, 60);
         if (limited) return limited;
+
+        const contentLength = Number(req.headers.get('content-length'));
+        if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BYTES) {
+            return NextResponse.json({ error: 'File is too large. Maximum size is 500MB.' }, { status: 400 });
+        }
 
         const inProgress = await sql`
             SELECT 1 FROM note
@@ -55,47 +71,89 @@ export async function POST(req) {
             return NextResponse.json({ error: "Queue is full" }, { status: 429 });
         }
 
-        const formData = await req.formData();
-        const file = formData.get('file');
-        const rawLabel = formData.get('label') || file.name.split(".")[0];
-        const label = String(rawLabel).slice(0, 255);
-        const rawModel = formData.get('model');
-        const model = ['whisper-v3-turbo', 'whisper-v3'].includes(rawModel) ? rawModel : 'whisper-v3-turbo';
-        const vad = formData.get('vad') || 'true';
-        const rawOutputFormat = formData.get('outputFormat');
-        const outputFormat = ['text', 'verbose_json'].includes(rawOutputFormat) ? rawOutputFormat : 'text';
-        const diarization = formData.get('diarization') === 'true' ? 'true' : 'false';
-
-        if (!file) {
-            return NextResponse.json({ error: "No file provided" }, { status: 400 });
-        }
-
-        if (file.size > 500 * 1024 * 1024) {
-            return NextResponse.json({ error: 'File is too large. Maximum size is 500MB.' }, { status: 400 });
-        }
-
-        const ALLOWED_AUDIO_EXTS = ['.mp3', '.wav', '.m4a', '.mp4', '.ogg', '.flac', '.aac', '.webm'];
-        const fileName = path.basename(file.name);
-        const fileExt = path.extname(fileName).toLowerCase();
-        if (!ALLOWED_AUDIO_EXTS.includes(fileExt)) {
-            return NextResponse.json({ error: 'Invalid file type. Allowed: mp3, wav, m4a, mp4, ogg, flac, aac, webm' }, { status: 400 });
-        }
-
-        const buffer = Buffer.from(await file.arrayBuffer());
         const tempDir = './tmp-transcript';
         await mkdir(tempDir, { recursive: true });
 
-        inputPath = path.join(tempDir, `input-${Date.now()}-${fileName}`);
-        await writeFile(inputPath, buffer);
+        const headers = Object.fromEntries(req.headers);
+        const busboy = Busboy({
+            headers,
+            limits: {
+                files: 1,
+                fileSize: MAX_UPLOAD_BYTES,
+            },
+        });
+
+        let fileName = '';
+        let label = '';
+        let model = 'whisper-v3-turbo';
+        let vad = 'true';
+        let outputFormat = 'text';
+        let diarization = 'false';
+        let sawFile = false;
+        let writeStream = null;
+        let uploadError = null;
+
+        const uploadPromise = new Promise((resolve, reject) => {
+            busboy.on('file', (name, file, info) => {
+                sawFile = true;
+                fileName = path.basename(info.filename);
+                const fileExt = path.extname(fileName).toLowerCase();
+
+                if (!ALLOWED_AUDIO_EXTS.has(fileExt)) {
+                    uploadError = new Error('Invalid file type. Allowed: mp3, wav, m4a, mp4, ogg, flac, aac, webm');
+                    file.resume();
+                    return;
+                }
+
+                if (!label) {
+                    label = fileName.split('.')[0];
+                }
+
+                inputPath = path.join(tempDir, `input-${Date.now()}-${fileName}`);
+                writeStream = createWriteStream(inputPath);
+                file.pipe(writeStream);
+
+                file.on('limit', () => {
+                    uploadError = new Error('File is too large. Maximum size is 500MB.');
+                    writeStream.destroy(uploadError);
+                });
+
+                file.on('error', reject);
+                writeStream.on('finish', resolve);
+                writeStream.on('error', reject);
+            });
+
+            busboy.on('field', (name, val) => {
+                if (name === 'label' && val) label = String(val).slice(0, 255);
+                if (name === 'model' && ['whisper-v3-turbo', 'whisper-v3'].includes(val)) model = val;
+                if (name === 'vad' && val) vad = val;
+                if (name === 'outputFormat' && ['text', 'verbose_json'].includes(val)) outputFormat = val;
+                if (name === 'diarization') diarization = val === 'true' ? 'true' : 'false';
+            });
+
+            busboy.on('filesLimit', () => reject(new Error('Only one file is allowed.')));
+            busboy.on('error', reject);
+            busboy.on('finish', () => {
+                if (uploadError) return reject(uploadError);
+                if (!sawFile || !writeStream) return reject(new Error('No file provided'));
+            });
+        });
+
+        const nodeStream = Readable.fromWeb(req.body);
+        nodeStream.pipe(busboy);
+        await uploadPromise;
 
         const durationHours = (await getAudioDuration(inputPath)) / 3600;
 
         if (durationHours <= 0) {
-            await unlink(inputPath);
+            await cleanupTempFile(inputPath);
+            inputPath = null;
             return NextResponse.json({ error: 'Could not determine audio duration.' }, { status: 400 });
         }
 
         if (durationHours >= 10) {
+            await cleanupTempFile(inputPath);
+            inputPath = null;
             return NextResponse.json({ error: "Audio duration exceeds our 10-hour limit." }, { status: 400 });
         }
 
@@ -105,7 +163,8 @@ export async function POST(req) {
 
         const [held] = await sql`UPDATE "user" SET balance = balance - ${transcriptionPrice} WHERE id = ${userId} AND balance >= ${transcriptionPrice} RETURNING id`;
         if (!held) {
-            await unlink(inputPath);
+            await cleanupTempFile(inputPath);
+            inputPath = null;
             return NextResponse.json({ error: "Not enough balance." }, { status: 400 });
         }
 
@@ -121,11 +180,23 @@ export async function POST(req) {
             transcriptionPrice
         });
 
+        inputPath = null;
         return NextResponse.json({ jobId: job.id })
 
     } catch (error) {
-        if (inputPath) await unlink(inputPath).catch(() => { });
+        await cleanupTempFile(inputPath);
         console.error(error);
+
+        const message = error instanceof Error ? error.message : '';
+        if (
+            message === 'No file provided' ||
+            message === 'Only one file is allowed.' ||
+            message === 'File is too large. Maximum size is 500MB.' ||
+            message === 'Invalid file type. Allowed: mp3, wav, m4a, mp4, ogg, flac, aac, webm'
+        ) {
+            return NextResponse.json({ error: message }, { status: 400 });
+        }
+
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

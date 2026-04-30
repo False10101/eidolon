@@ -28,7 +28,7 @@ export async function GET(req, { params }) {
 
     let queuePosition = null;
     if (state === 'waiting') {
-        const waitingJobs = await audioQueue.getWaiting();
+        const waitingJobs = await transcriptorQueue.getWaiting();
         const idx = waitingJobs.findIndex(j => j.id === job.id);
         queuePosition = idx === -1 ? null : idx + 1; // 1-based
     }
