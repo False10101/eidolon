@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,17 +15,17 @@ import TranscriptorOnboard from './TranscriptorOnboard';
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const MODELS = [
   {
-    value: 'whisper-v3-turbo',
-    label: 'Whisper v3 Turbo', descKey: 'turboDesc',
+    value: 'openai/whisper-large-v3-turbo',
+    label: 'Whisper v3 Turbo',
     descKey: 'turboDesc',
-    price: '7',
+    price: '0.04',
     badge: null
   },
   {
-    value: 'whisper-v3',
-    label: 'Whisper v3 Large', descKey: 'premiumDesc',
+    value: 'openai/whisper-large-v3',
+    label: 'Whisper v3 Large',
     descKey: 'premiumDesc',
-    price: '11',
+    price: '0.09',
     badge: 'Premium'
   },
 ];
@@ -37,6 +37,10 @@ const OUTPUT_FORMATS = [
 
 function formatBytes(bytes) {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function ceilToTwoDecimals(value) {
+  return Math.ceil(value * 100) / 100;
 }
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
@@ -62,13 +66,11 @@ export default function Transcriptor() {
   const { getAccessTokenSilently } = useAuth0();
 
   const [file, setFile] = useState(null);
+  const [fileDurationSeconds, setFileDurationSeconds] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [label, setLabel] = useState('');
-  const [model, setModel] = useState('whisper-v3-turbo');
-  const [vadEnabled, setVadEnabled] = useState(true);
+  const [model, setModel] = useState('openai/whisper-large-v3-turbo');
   const [outputFormat, setOutputFormat] = useState('text');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [diarization, setDiarization] = useState(false);
 
   const [procStatus, setProcStatus] = useState('idle');
   const [resultId, setResultId] = useState(null);
@@ -84,15 +86,53 @@ export default function Transcriptor() {
   const attachFile = useCallback((f) => {
     if (!f) return;
     setFile({ name: f.name, size: f.size, raw: f });
+    setFileDurationSeconds(null);
     setError(null);
     setLabel(f.name.replace(/\.[^/.]+$/, ''));
   }, []);
 
   const removeFile = () => {
     setFile(null);
+    setFileDurationSeconds(null);
     setLabel('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  useEffect(() => {
+    if (!file?.raw) return;
+
+    let cancelled = false;
+    const audio = document.createElement('audio');
+    const objectUrl = URL.createObjectURL(file.raw);
+
+    const cleanup = () => {
+      audio.removeAttribute('src');
+      audio.load();
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    audio.preload = 'metadata';
+    audio.src = objectUrl;
+
+    audio.onloadedmetadata = () => {
+      if (!cancelled && Number.isFinite(audio.duration)) {
+        setFileDurationSeconds(audio.duration);
+      }
+      cleanup();
+    };
+
+    audio.onerror = () => {
+      if (!cancelled) {
+        setFileDurationSeconds(null);
+      }
+      cleanup();
+    };
+
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [file]);
 
   // ── Poll ────────────────────────────────────────────────────────────────────
   const pollStatus = (jobId, token) => {
@@ -111,7 +151,9 @@ export default function Transcriptor() {
           setStage('active');
           const pct = data.progress || 0;
           setProgress(pct);
-          if (pct < 20) setStageLabel(t('validatingBalance'));
+          if (data.progressLabel) {
+            setStageLabel(data.progressLabel);
+          } else if (pct < 20) setStageLabel(t('validatingBalance'));
           else if (pct < 40) setStageLabel(t('readingAudio'));
           else if (pct < 90) setStageLabel(t('transcribing'));
           else setStageLabel(t('savingTranscript'));
@@ -147,12 +189,7 @@ export default function Transcriptor() {
       form.append('file', file.raw);
       form.append('label', label);
       form.append('model', model);
-      form.append('vad', vadEnabled);
       form.append('outputFormat', outputFormat);
-
-      if (outputFormat === 'verbose_json' && diarization) {
-        form.append('diarization', 'true');
-      }
 
       const res = await fetch('/api/transcript/transcribe', {
         method: 'POST',
@@ -189,7 +226,11 @@ export default function Transcriptor() {
   };
 
   const selectedModelInfo = MODELS.find(m => m.value === model);
-  const estimatedPrice = selectedModelInfo?.price || '7';
+  const selectedRate = Number(selectedModelInfo?.price || '0.04');
+  const selectedHourlyRate = (selectedRate * 60).toFixed(1);
+  const estimatedPrice = fileDurationSeconds != null
+    ? ceilToTwoDecimals((fileDurationSeconds / 60) * selectedRate).toFixed(2)
+    : null;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
@@ -300,10 +341,10 @@ export default function Transcriptor() {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) attachFile(f); }} />
 
               {/* Config cards */}
-              <motion.div variants={itemVariants} className="grid flex-shrink-0 grid-cols-2 gap-3.5">
+              <motion.div variants={itemVariants} className="grid flex-shrink-0 grid-cols-1 gap-3.5 lg:grid-cols-2">
                 <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
                   <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
-                    {t('label')} <span className="normal-case tracking-normal opacity-60 text-[10px]">{t('optional')}</span>
+                    {t('label')}
                   </div>
                   <input type="text" value={label} onChange={(e) => setLabel(e.target.value)}
                     placeholder="e.g., AI Game Week 11"
@@ -331,7 +372,7 @@ export default function Transcriptor() {
                         )}
                         <div>{m.label.split(' ').slice(0, 3).join(' ')}</div>
                         <div className={`text-[10px] flex justify-center items-center mt-0.5 ${model === m.value ? 'text-[var(--accent)]/90' : 'text-[var(--fg-3)]'}`}>
-                          {m.price} <CreditIcon size={8} className='mx-0.5' color={model === m.value ? '#00d4c8' : 'var(--fg-2)'}/> /hr
+                          {(Number(m.price) * 60).toFixed(1)} <CreditIcon size={8} className='mx-0.5' color={model === m.value ? '#00d4c8' : 'var(--fg-2)'}/> /hr
                         </div>
                       </button>
                     ))}
@@ -342,160 +383,35 @@ export default function Transcriptor() {
                 </div>
               </motion.div>
 
-              {/* Advanced Options Toggle */}
-              <motion.div variants={itemVariants} className="flex-shrink-0">
-                <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-2 text-[11px] uppercase tracking-[0.07em] text-[var(--fg-3)] hover:text-[var(--fg)] transition-colors"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className={`h-3 w-3 stroke-current fill-none stroke-2 transition-transform ${showAdvanced ? 'rotate-90' : ''}`}
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                  {t('advancedOptions')}
-                </button>
-              </motion.div>
-
-              {/* Advanced Options Panel */}
-              <AnimatePresence>
-                {showAdvanced && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="grid grid-cols-2 gap-3.5 pb-1">
-                      {/* Output Format */}
-                      <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
-                        <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('outputFormat')}</div>
-                        <select
-                          value={outputFormat}
-                          onChange={(e) => {
-                            setOutputFormat(e.target.value);
-                            if (e.target.value !== 'verbose_json') {
-                              setDiarization(false);
-                            }
-                          }}
-                          className="w-full appearance-none rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-[7px] text-[13px] text-[var(--fg)] outline-none focus:border-[rgba(0,212,200,0.35)] transition-colors"
-                        >
-                          {OUTPUT_FORMATS.map(f => (
-                            <option key={f.value} value={f.value} className="bg-[var(--surface-raised)]">
-                              {f.label}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="text-[11px] text-[var(--fg-3)]">
-                          {t(OUTPUT_FORMATS.find(f => f.value === outputFormat)?.descKey ?? 'plainTextDesc')}
-                        </div>
-                      </div>
-
-                      {/* Speaker Diarization - Always visible */}
-                      <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
-                        <div className="flex items-center justify-between">
-                          <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('speakerDiarization')}</div>
-                          <button
-                            onClick={() => outputFormat === 'verbose_json' && setDiarization(!diarization)}
-                            className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200 ${outputFormat !== 'verbose_json' ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
-                              }`}
-                            style={{ backgroundColor: diarization && outputFormat === 'verbose_json' ? 'rgba(0, 212, 200, 0.2)' : 'var(--surface-deep)' }}
-                            disabled={outputFormat !== 'verbose_json'}
-                          >
-                            <div
-                              className={`absolute top-0.5 h-4 w-4 rounded-full transition-all duration-200 ${diarization && outputFormat === 'verbose_json'
-                                ? 'left-[18px] bg-[var(--accent)]'
-                                : 'left-0.5 bg-white/30'
-                                }`}
-                            />
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2 py-[5px]">
-                          <span className={`text-[13px] ${diarization && outputFormat === 'verbose_json'
-                            ? 'text-[var(--accent)]'
-                            : outputFormat !== 'verbose_json'
-                              ? 'text-[var(--fg-3)]/70'
-                              : 'text-[var(--fg-3)]'
-                            }`}>
-                            {outputFormat !== 'verbose_json'
-                              ? t('requiresTimestamps')
-                              : diarization
-                                ? t('enabled')
-                                : t('disabled')}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-[var(--fg-3)]">
-                          {outputFormat !== 'verbose_json'
-                            ? t('switchToTimestamps')
-                            : diarization
-                              ? model === 'whisper-v3-turbo'
-                                ? t('turboMayHallucinate')
-                                : t('identifiesSpeakers')
-                              : t('enableDiarization')}
-                        </div>
-                      </div>
-
-                      {/* Warning Banner */}
-                      <AnimatePresence>
-                        {diarization && model === 'whisper-v3-turbo' && outputFormat === 'verbose_json' && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="col-span-2 overflow-hidden"
-                          >
-                            <div className="flex items-center gap-3 rounded-xl border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.05)] px-4 py-3">
-                              <div className="flex-shrink-0">
-                                <svg viewBox="0 0 24 24" className="h-5 w-5 stroke-[#f59e0b] fill-none stroke-2">
-                                  <circle cx="12" cy="12" r="10" />
-                                  <line x1="12" y1="8" x2="12" y2="12" />
-                                  <circle cx="12" cy="16" r="0.5" fill="#f59e0b" stroke="none" />
-                                </svg>
-                              </div>
-                              <div className="flex-1">
-                                <div className="text-[13px] font-medium text-[#f59e0b]">{t('turboMayHallucinateBanner')}</div>
-                                <div className="text-[12px] text-[var(--fg-2)]"><span className="text-[var(--fg)] font-medium">{t('transcriptionModel')}</span> {t('whisperV3LargeAccurate')}</div>
-                              </div>
-                              <button
-                                onClick={() => setModel('whisper-v3')}
-                                className="flex-shrink-0 rounded-lg bg-[#f59e0b] px-3 py-1.5 text-[12px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-85"
-                              >
-                                {t('switchToV3')}
-                              </button>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {/* VAD Filter Toggle */}
-                      <div className="col-span-2 flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
-                        <div className="flex items-center justify-between">
-                          <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('vadFilter')}</div>
-                          <button
-                            onClick={() => setVadEnabled(!vadEnabled)}
-                            className="relative h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200"
-                            style={{ backgroundColor: vadEnabled ? 'rgba(0, 212, 200, 0.2)' : 'var(--surface-deep)' }}
-                          >
-                            <div
-                              className={`absolute top-0.5 h-4 w-4 rounded-full transition-all duration-200 ${vadEnabled ? 'left-[18px] bg-[var(--accent)]' : 'left-0.5 bg-white/30'
-                                }`}
-                            />
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2 py-[5px]">
-                          <span className={`text-[13px] ${vadEnabled ? 'text-[var(--accent)]' : 'text-[var(--fg-3)]'}`}>
-                            {vadEnabled ? t('enabled') : t('disabled')}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-[var(--fg-3)]">{t('silenceRemoval')}</div>
-                      </div>
+              <motion.div variants={itemVariants} className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('outputFormat')}</div>
+                    <div className="mt-1 text-[12px] text-[var(--fg-3)]">
+                      Choose whether you want a clean reading transcript or segment timestamps for navigation and subtitles.
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                  {OUTPUT_FORMATS.map((format) => (
+                    <button
+                      key={format.value}
+                      onClick={() => setOutputFormat(format.value)}
+                      className={`rounded-xl border px-4 py-3 text-left transition-all ${outputFormat === format.value
+                        ? 'border-[rgba(0,212,200,0.35)] bg-[rgba(0,212,200,0.08)]'
+                        : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-[var(--border-hover)]'
+                        }`}
+                    >
+                      <div className={`text-[13px] font-medium ${outputFormat === format.value ? 'text-[var(--accent)]' : 'text-[var(--fg)]'}`}>
+                        {format.label}
+                      </div>
+                      <div className="mt-1 text-[11px] text-[var(--fg-3)]">
+                        {t(format.descKey)}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
             </motion.div>
           </div>
 
@@ -514,9 +430,15 @@ export default function Transcriptor() {
               </div>
               <div className="flex flex-shrink-0 items-center gap-4">
                 <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('pricePerHour')}</div>
+                  <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
+                    {estimatedPrice ? 'Estimated cost' : 'Price per hour'}
+                  </div>
                   <div className="font-mono text-[15px] font-medium flex justify-end items-center ">
-                    <span className="text-[var(--accent)]">{estimatedPrice}<CreditIcon size={15.5} className='ml-1'/></span>
+                    {estimatedPrice ? (
+                      <span className="text-[var(--accent)]">{estimatedPrice}<CreditIcon size={15.5} className='ml-1'/></span>
+                    ) : (
+                      <span className="text-[var(--accent)]">{selectedHourlyRate}<CreditIcon size={15.5} className='ml-1'/> /hr</span>
+                    )}
                   </div>
                 </div>
                 <button onClick={handleTranscribe} disabled={!file || procStatus === 'processing'}

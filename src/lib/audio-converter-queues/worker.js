@@ -129,10 +129,8 @@ const worker = new Worker('audio-conversion', async (job) => {
         userId,
         label,
         model,
-        vad: 'true',
         fileName,
         outputFormat,
-        diarization: 'false',
         transcriptionPrice
       });
 

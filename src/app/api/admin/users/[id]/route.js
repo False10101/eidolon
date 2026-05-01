@@ -6,9 +6,9 @@ import { requireAdmin } from "../../_lib/requireAdmin";
 const MISTRAL_IN  = 0.30 / 1_000_000;
 const MISTRAL_OUT = 1.20 / 1_000_000;
 
-// Fireworks Whisper rates (per minute)
-const WHISPER_TURBO = 0.0009;
-const WHISPER_LARGE = 0.0015;
+// DeepInfra Whisper rates (per minute)
+const WHISPER_TURBO = 0.00020;
+const WHISPER_LARGE = 0.00045;
 
 function noteProfit(inputTokens, outputTokens, chargeCredits) {
   const revenue = chargeCredits / 100;

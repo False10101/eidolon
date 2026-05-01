@@ -18,10 +18,10 @@ const NOTE_TIERS = [
 ];
 
 const TRANSCRIPT_TIERS = [
-  { range: 'Under 1 hour', strong: 'Under 1 hour', badge: 'Tier 1', badgeClass: 'green', prem: 11, turbo: 7 },
-  { range: '1 – 2 hours', strong: '1 – 2 hours', badge: 'Tier 2', badgeClass: 'amber', prem: 22, turbo: 14 },
-  { range: '2 – 3 hours', strong: '2 – 3 hours', badge: 'Tier 3', badgeClass: 'orange', prem: 33, turbo: 21 },
-  { range: 'Over 3 hours', strong: 'Over 3 hours', badge: 'Tier 4', badgeClass: 'red', prem: null, turbo: null, perHrPrem: 11, perHrTurbo: 7, sub: 'Hard capped at 10 hours' },
+  { range: 'Under 1 hour', strong: 'Under 1 hour', badge: 'Tier 1', badgeClass: 'green', prem: 5.4, turbo: 2.4 },
+  { range: '1 – 2 hours', strong: '1 – 2 hours', badge: 'Tier 2', badgeClass: 'amber', prem: 10.8, turbo: 4.8 },
+  { range: '2 – 3 hours', strong: '2 – 3 hours', badge: 'Tier 3', badgeClass: 'orange', prem: 16.2, turbo: 7.2 },
+  { range: 'Over 3 hours', strong: 'Over 3 hours', badge: 'Tier 4', badgeClass: 'red', prem: null, turbo: null, perHrPrem: 5.4, perHrTurbo: 2.4, sub: 'Hard capped at 10 hours' },
 ];
 
 const GROUP_TIERS = [
@@ -125,14 +125,14 @@ function getNoteTierIdx(tokens) {
 
 // ─── Pricing Data ──────────────────────────────────────────────────────────────
 const TRANSCRIPT_PRICES = [
-  { prem: 11, turbo: 7 },
-  { prem: 22, turbo: 14 },
-  { prem: 33, turbo: 21 },
-  { prem: null, turbo: null, perHrPrem: 11, perHrTurbo: 7 },
+  { prem: 5.4, turbo: 2.4 },
+  { prem: 10.8, turbo: 4.8 },
+  { prem: 16.2, turbo: 7.2 },
+  { prem: null, turbo: null, perHrPrem: 5.4, perHrTurbo: 2.4 },
 ];
 
 function calcTranscriptCost(durIdx, exactHours, model) {
-  if (durIdx === 3) return Math.ceil(exactHours) * (model === 'prem' ? 11 : 7);
+  if (durIdx === 3) return Number((exactHours * (model === 'prem' ? 5.4 : 2.4)).toFixed(2));
   return model === 'prem' ? TRANSCRIPT_PRICES[durIdx].prem : TRANSCRIPT_PRICES[durIdx].turbo;
 }
 
@@ -263,10 +263,10 @@ export default function Pricing() {
   ];
 
   const TRANSCRIPT_TIERS = [
-    { range: t('under1hr'), strong: '1', badge: t('tier1'), badgeClass: 'green', prem: 11, turbo: 7 },
-    { range: t('1To2hr'), strong: '2', badge: t('tier2'), badgeClass: 'amber', prem: 22, turbo: 14 },
-    { range: t('2To3hr'), strong: '3', badge: t('tier3'), badgeClass: 'orange', prem: 33, turbo: 21 },
-    { range: t('over3hr'), strong: '3', badge: t('tier4'), badgeClass: 'red', prem: null, turbo: null, perHrPrem: 11, perHrTurbo: 7, sub: t('cap10hr'), perHrLabel: t('perHr') },
+    { range: t('under1hr'), strong: '1', badge: t('tier1'), badgeClass: 'green', prem: 5.4, turbo: 2.4 },
+    { range: t('1To2hr'), strong: '2', badge: t('tier2'), badgeClass: 'amber', prem: 10.8, turbo: 4.8 },
+    { range: t('2To3hr'), strong: '3', badge: t('tier3'), badgeClass: 'orange', prem: 16.2, turbo: 7.2 },
+    { range: t('over3hr'), strong: '3', badge: t('tier4'), badgeClass: 'red', prem: null, turbo: null, perHrPrem: 5.4, perHrTurbo: 2.4, sub: t('cap10hr'), perHrLabel: t('perHr') },
   ];
 
   const GROUP_TIERS = [
@@ -353,7 +353,7 @@ export default function Pricing() {
     calcCost = calcTranscriptCost(durIdx, exactHours, calcTxModel);
     calcTierLabel = `${t('tier1').replace('1', String(durIdx + 1))}`;
     calcTierRange = durIdx === 3
-      ? `${exactHours} ${t('hrs')} (${calcTxModel === 'prem' ? 11 : 7}${t('perHr')})`
+      ? `${exactHours} ${t('hrs')} (${calcTxModel === 'prem' ? 5.4 : 2.4}${t('perHr')})`
       : TRANSCRIPT_TIERS[durIdx].range;
     calcTierIdx = durIdx;
   } else {

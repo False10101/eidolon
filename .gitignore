@@ -53,3 +53,6 @@ src/.DS_Store
 /tmp
 /tmp-transcript
 /tmp-slips
+
+# local-only notes
+/LOCAL_NOTES.md

@@ -9,10 +9,47 @@ import { verifyUserData } from "@/lib/auth/verify";
 import getAudioDuration from "@/lib/audio-converter-queues/duration";
 import { rateLimit } from "@/lib/rateLimit";
 
-const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 5000 * 1024 * 1024;
 const ALLOWED_VIDEO_EXTS = new Set(['.mp4', '.mov', '.mkv', '.avi', '.webm']);
 const ALLOWED_FORMATS = ['MP3', 'WAV', 'M4A'];
 const ALLOWED_BITRATES = ['128 kbps', '192 kbps', '256 kbps'];
+const DEFAULT_MODEL = 'openai/whisper-large-v3-turbo';
+const PREMIUM_MODEL = 'openai/whisper-large-v3';
+const TURBO_MODEL = 'openai/whisper-large-v3-turbo';
+const PREMIUM_PER_MINUTE_RATE = 0.09;
+const TURBO_PER_MINUTE_RATE = 0.04;
+
+function normalizeTranscriptionModel(value) {
+    const model = String(value || '').trim().toLowerCase();
+
+    if (!model) return null;
+
+    if (
+        model === 'premium' ||
+        model === 'whisper-v3' ||
+        model === 'openai/whisper-large-v3'
+    ) {
+        return PREMIUM_MODEL;
+    }
+
+    if (
+        model === 'turbo' ||
+        model === 'whisper-v3-turbo' ||
+        model === 'openai/whisper-large-v3-turbo'
+    ) {
+        return TURBO_MODEL;
+    }
+
+    return null;
+}
+
+function getPerMinuteRate(model) {
+    return model === PREMIUM_MODEL ? PREMIUM_PER_MINUTE_RATE : TURBO_PER_MINUTE_RATE;
+}
+
+function ceilToTwoDecimals(value) {
+    return Math.ceil(value * 100) / 100;
+}
 
 async function cleanupTempFile(tempFilePath) {
     if (!tempFilePath) return;
@@ -64,7 +101,7 @@ export async function POST(req) {
         let start = null;
         let end = null;
         let postAction = null;
-        let model = 'whisper-v3-turbo';
+        let model = DEFAULT_MODEL;
         let outputFormat = 'text';
         let writeStream = null;
         let uploadError = null;
@@ -103,7 +140,10 @@ export async function POST(req) {
                 if (name === 'start' && val) start = val;
                 if (name === 'end' && val) end = val;
                 if (name === 'postAction' && val) postAction = val;
-                if (name === 'model' && ['whisper-v3-turbo', 'whisper-v3'].includes(val)) model = val;
+                if (name === 'model') {
+                    const normalizedModel = normalizeTranscriptionModel(val);
+                    if (normalizedModel) model = normalizedModel;
+                }
                 if (name === 'outputFormat' && ['text', 'verbose_json'].includes(val)) outputFormat = val;
             });
 
@@ -142,9 +182,10 @@ export async function POST(req) {
             return NextResponse.json({ error: "Invalid trim range or media duration." }, { status: 400 });
         }
 
-        const durationHours = Math.ceil(effectiveDurationSeconds / 3600);
-        const rate = model === 'whisper-v3-turbo' ? 7 : 11;
-        const transcriptionPrice = durationHours * rate;
+        const durationHours = effectiveDurationSeconds / 3600;
+        const durationMinutes = effectiveDurationSeconds / 60;
+        const rate = getPerMinuteRate(model);
+        const transcriptionPrice = ceilToTwoDecimals(durationMinutes * rate);
 
         if (durationHours >= 10) {
             await cleanupTempFile(tempFilePath);

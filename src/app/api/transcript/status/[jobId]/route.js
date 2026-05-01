@@ -35,7 +35,10 @@ export async function GET(req, { params }) {
 
     return NextResponse.json({
         state,
-        progress,
+        progress: typeof progress === 'object' && progress !== null ? (progress.percent ?? 0) : (progress ?? 0),
+        progressLabel: typeof progress === 'object' && progress !== null ? (progress.label ?? null) : null,
+        currentChunk: typeof progress === 'object' && progress !== null ? (progress.currentChunk ?? null) : null,
+        totalChunks: typeof progress === 'object' && progress !== null ? (progress.totalChunks ?? null) : null,
         publicId: result?.publicId || null,
         queuePosition
     });

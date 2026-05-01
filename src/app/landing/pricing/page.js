@@ -51,10 +51,10 @@ const NOTE_TIERS = [
 ];
 
 const TRANSCRIPT_TIERS = [
-    { tier: 'Tier 1', turbo: 7, premium: 11, range: 'Under 1 hour' },
-    { tier: 'Tier 2', turbo: 14, premium: 22, range: '1 – 2 hours' },
-    { tier: 'Tier 3', turbo: 21, premium: 33, range: '2 – 3 hours' },
-    { tier: 'Tier 4', turbo: '7', premium: '11', range: 'Over 3 hours', perHr: true },
+    { tier: 'Tier 1', turbo: 2.4, premium: 5.4, range: 'Under 1 hour' },
+    { tier: 'Tier 2', turbo: 4.8, premium: 10.8, range: '1 – 2 hours' },
+    { tier: 'Tier 3', turbo: 7.2, premium: 16.2, range: '2 – 3 hours' },
+    { tier: 'Tier 4', turbo: '2.4', premium: '5.4', range: 'Over 3 hours', perHr: true },
 ];
 
 const FAQS = [

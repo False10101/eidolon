@@ -65,7 +65,7 @@ export default function AudioConverter() {
 
   // Post-action
   const [postAction, setPostAction] = useState('download');
-  const [transcribeModel, setTranscribeModel] = useState('whisper-v3-turbo');
+  const [transcribeModel, setTranscribeModel] = useState('openai/whisper-large-v3-turbo');
   const [transcribeOutputFormat, setTranscribeOutputFormat] = useState('text');
 
   // Conversion
@@ -153,7 +153,9 @@ export default function AudioConverter() {
         } else if (data.state === 'active') {
           const pct = data.progress || 0;
           setProgress(pct);
-          if (pct < 40) setTranscriptStep(t('readingAudio'));
+          if (data.progressLabel) {
+            setTranscriptStep(data.progressLabel);
+          } else if (pct < 40) setTranscriptStep(t('readingAudio'));
           else if (pct < 90) setTranscriptStep(t('transcribing'));
           else setTranscriptStep(t('savingTranscript'));
         } else if (data.state === 'completed') {
@@ -633,8 +635,8 @@ export default function AudioConverter() {
                       <div className="text-[11px] text-[var(--fg-3)]">{t('model')}</div>
                       <div className="flex gap-1">
                         {[
-                          { id: 'whisper-v3-turbo', label: 'Turbo', sub: '7 /hr' },
-                          { id: 'whisper-v3', label: 'Large v3', sub: '11 /hr' },
+                          { id: 'openai/whisper-large-v3-turbo', label: 'Turbo', sub: '2.4 /hr' },
+                          { id: 'openai/whisper-large-v3', label: 'Large v3', sub: '5.4 /hr' },
                         ].map(m => (
                           <button key={m.id} onClick={() => setTranscribeModel(m.id)}
                             className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2 transition-all duration-100

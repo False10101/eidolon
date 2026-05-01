@@ -6,6 +6,6 @@ export const textClient = new OpenAI({
 });
 
 export const audioClient = new OpenAI({
-    apiKey: process.env.FIREWORKS_API_KEY,
-    baseURL: 'https://audio-prod.api.fireworks.ai/v1'
+    apiKey: process.env.DEEPINFRA_API_KEY,
+    baseURL: 'https://api.deepinfra.com/v1/openai'
 });

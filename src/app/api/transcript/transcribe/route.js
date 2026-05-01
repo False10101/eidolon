@@ -12,6 +12,43 @@ import { Readable } from 'stream';
 
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
 const ALLOWED_AUDIO_EXTS = new Set(['.mp3', '.wav', '.m4a', '.mp4', '.ogg', '.flac', '.aac', '.webm']);
+const DEFAULT_MODEL = 'openai/whisper-large-v3-turbo';
+const PREMIUM_MODEL = 'openai/whisper-large-v3';
+const TURBO_MODEL = 'openai/whisper-large-v3-turbo';
+const PREMIUM_PER_MINUTE_RATE = 0.09;
+const TURBO_PER_MINUTE_RATE = 0.04;
+
+function normalizeTranscriptionModel(value) {
+    const model = String(value || '').trim().toLowerCase();
+
+    if (!model) return null;
+
+    if (
+        model === 'premium' ||
+        model === 'whisper-v3' ||
+        model === 'openai/whisper-large-v3'
+    ) {
+        return PREMIUM_MODEL;
+    }
+
+    if (
+        model === 'turbo' ||
+        model === 'whisper-v3-turbo' ||
+        model === 'openai/whisper-large-v3-turbo'
+    ) {
+        return TURBO_MODEL;
+    }
+
+    return null;
+}
+
+function getPerMinuteRate(model) {
+    return model === PREMIUM_MODEL ? PREMIUM_PER_MINUTE_RATE : TURBO_PER_MINUTE_RATE;
+}
+
+function ceilToTwoDecimals(value) {
+    return Math.ceil(value * 100) / 100;
+}
 
 async function cleanupTempFile(inputPath) {
     if (!inputPath) return;
@@ -85,10 +122,8 @@ export async function POST(req) {
 
         let fileName = '';
         let label = '';
-        let model = 'whisper-v3-turbo';
-        let vad = 'true';
+        let model = DEFAULT_MODEL;
         let outputFormat = 'text';
-        let diarization = 'false';
         let sawFile = false;
         let writeStream = null;
         let uploadError = null;
@@ -125,10 +160,11 @@ export async function POST(req) {
 
             busboy.on('field', (name, val) => {
                 if (name === 'label' && val) label = String(val).slice(0, 255);
-                if (name === 'model' && ['whisper-v3-turbo', 'whisper-v3'].includes(val)) model = val;
-                if (name === 'vad' && val) vad = val;
+                if (name === 'model') {
+                    const normalizedModel = normalizeTranscriptionModel(val);
+                    if (normalizedModel) model = normalizedModel;
+                }
                 if (name === 'outputFormat' && ['text', 'verbose_json'].includes(val)) outputFormat = val;
-                if (name === 'diarization') diarization = val === 'true' ? 'true' : 'false';
             });
 
             busboy.on('filesLimit', () => reject(new Error('Only one file is allowed.')));
@@ -143,7 +179,8 @@ export async function POST(req) {
         nodeStream.pipe(busboy);
         await uploadPromise;
 
-        const durationHours = (await getAudioDuration(inputPath)) / 3600;
+        const durationSeconds = await getAudioDuration(inputPath);
+        const durationHours = durationSeconds / 3600;
 
         if (durationHours <= 0) {
             await cleanupTempFile(inputPath);
@@ -157,9 +194,9 @@ export async function POST(req) {
             return NextResponse.json({ error: "Audio duration exceeds our 10-hour limit." }, { status: 400 });
         }
 
-        const premiumModel = model === 'whisper-v3';
-        const rate = premiumModel ? 11 : 7;
-        const transcriptionPrice = Math.ceil(durationHours) * rate;
+        const durationMinutes = durationSeconds / 60;
+        const rate = getPerMinuteRate(model);
+        const transcriptionPrice = ceilToTwoDecimals(durationMinutes * rate);
 
         const [held] = await sql`UPDATE "user" SET balance = balance - ${transcriptionPrice} WHERE id = ${userId} AND balance >= ${transcriptionPrice} RETURNING id`;
         if (!held) {
@@ -173,10 +210,8 @@ export async function POST(req) {
             userId,
             label,
             model,
-            vad,
             fileName,
             outputFormat,
-            diarization,
             transcriptionPrice
         });
 

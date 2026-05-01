@@ -34,7 +34,7 @@ Eidolon v2 is a full rewrite of the original platform. Every major subsystem has
 - **Group Workspace System** — shared generation with cost splitting; membership snapshotted at generation time
 - **Top-Up System** — credit-based balance with Stripe card payments (auto-credited instantly)
 - **Admin Dashboard** — user management, activity logs, balance overview
-- **Transcriptor** — async BullMQ processing via Fireworks Whisper, history and detail views
+- **Transcriptor** — async BullMQ processing via DeepInfra Whisper, chunked progress, history and detail views
 - **Audio Converter** — multi-format extraction via FFmpeg, ephemeral by design (no DB persistence)
 - **Profile & Activity History** — per-user usage stats, token consumption, charge breakdown, balance history
 
@@ -64,7 +64,7 @@ The generated note is rendered as structured Markdown with a detail sidebar, ful
 
 ### Transcriptor
 
-Uploads audio files and queues async transcription jobs via Fireworks Whisper V3 / V3 Turbo. Supports files up to 500 MB and 10 hours of audio. Stores results with full history, timestamps, and optional speaker diarization.
+Uploads audio files and queues async transcription jobs via DeepInfra Whisper Large V3 / V3 Turbo. Supports files up to 500 MB and 10 hours of audio. Stores results with full history, optional timestamps, and chunk-based progress tracking.
 
 Accepted formats: `.mp3`, `.wav`, `.m4a`, `.ogg`, `.flac`, `.aac`, `.webm`
 
@@ -143,7 +143,7 @@ Full visibility into platform activity: user list, per-user balance and usage, a
 ### AI / ML
 - **Notes generation:** Fireworks AI (model configurable via `NOTE_MODEL`)
 - **Exam prep generation:** Fireworks AI (model configurable via `EXAM_MODEL`)
-- **Transcription:** Fireworks AI — Whisper V3 Turbo (fast) and Whisper V3 Large (premium)
+- **Transcription:** DeepInfra OpenAI-compatible speech API — Whisper Large V3 Turbo (fast) and Whisper Large V3 (premium)
 
 ### Payments
 - **Stripe** — card payments, webhook-verified, idempotent credit crediting
@@ -165,7 +165,7 @@ Nginx (TLS termination, upload limit)
             ├── Stripe Webhook Handler (instant credit crediting)
             └── BullMQ Producers
                     ├── audio-worker        (FFmpeg conversion, R2 upload)
-                    └── transcriptor-worker (Fireworks Whisper, cleanup)
+                    └── transcriptor-worker (DeepInfra Whisper, chunked progress, cleanup)
 
 Self-hosted Redis  ←→  BullMQ Workers
 PostgreSQL (postgres.js)
@@ -200,10 +200,10 @@ Key design decisions:
 
 | Tier | Duration | Turbo | Premium |
 |---|---|---|---|
-| Tier 1 | < 1 hour | 7 | 11 |
-| Tier 2 | 1 – 2 hours | 14 | 22 |
-| Tier 3 | 2 – 3 hours | 21 | 33 |
-| Tier 4 | 3+ hours | 7 / hr | 11 / hr |
+| Tier 1 | < 1 hour | 2.4 | 5.4 |
+| Tier 2 | 1 – 2 hours | 4.8 | 10.8 |
+| Tier 3 | 2 – 3 hours | 7.2 | 16.2 |
+| Tier 4 | 3+ hours | 2.4 / hr | 5.4 / hr |
 
 ### Credit Packages
 

@@ -62,7 +62,7 @@ export async function GET(req) {
   
   let transcriptCost = 0;
   transcriptData.forEach(r => {
-    const rate = r.model?.includes('turbo') ? 0.0009 : 0.0015;
+    const rate = r.model?.includes('turbo') ? 0.00020 : 0.00045;
     transcriptCost += (r.total_seconds / 60) * rate;
   });
 

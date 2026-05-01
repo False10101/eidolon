@@ -89,6 +89,13 @@ function DetailRow({ label, value }) {
   );
 }
 
+function normalizeTranscriptModel(model) {
+  const value = String(model || '').toLowerCase();
+  if (value.includes('turbo')) return 'turbo';
+  if (value.includes('large-v3') || value.includes('whisper-v3') || value.includes('premium')) return 'premium';
+  return 'unknown';
+}
+
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 function TranscriptSkeleton() {
   return (
@@ -276,8 +283,7 @@ export default function TranscriptViewer({ params }) {
                 </div>
 
                 <DetailRow label={t('formatType')} value={tx.output_format === 'verbose_json' ? t('formatSegmented') : tx.output_format === 'text' ? t('formatText') : tx.output_format ?? '—'} />
-                <DetailRow label={t('transcriptionModel')} value={tx.model === 'whisper-v3' ? t('whisperLargeV3') : tx.model === 'whisper-v3-turbo' ? t('whisperLargeV3Turbo') : tx.model ?? '-'} />
-                <DetailRow label={t('vad')} value={tx.vad_enabled === true ? t('enabled') : t('disabled')} />
+                <DetailRow label={t('transcriptionModel')} value={normalizeTranscriptModel(tx.model) === 'premium' ? t('whisperLargeV3') : normalizeTranscriptModel(tx.model) === 'turbo' ? t('whisperLargeV3Turbo') : tx.model ?? '-'} />
                 <DetailRow label={t('createdAt')} value={formatCreatedAt(tx.created_at, locale)} />
                 <DetailRow label={t('wordCount')} value={formatWordCount(tx.content, t)} />
 
@@ -291,7 +297,7 @@ export default function TranscriptViewer({ params }) {
                   <div className="flex justify-between text-[12.5px]">
                     <span className="text-[var(--fg-3)]">{t('rate')}</span>
                     <span className="font-mono text-[12px] text-[var(--fg)]">
-                      <CreditIcon size={12} className='mr-1' color='#b4b4c2' />{tx.model === 'whisper-v3-turbo' ? '7/hr' : '11/hr'}
+                      <CreditIcon size={12} className='mr-1' color='#b4b4c2' />{normalizeTranscriptModel(tx.model) === 'turbo' ? '2.4/hr' : normalizeTranscriptModel(tx.model) === 'premium' ? '5.4/hr' : '—'}
                     </span>
                   </div>
                   <div className="h-px bg-[var(--surface-tint)]" />

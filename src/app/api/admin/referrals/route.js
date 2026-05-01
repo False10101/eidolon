@@ -4,8 +4,8 @@ import { requireAdmin } from "../_lib/requireAdmin";
 
 const MISTRAL_IN    = 0.30 / 1_000_000;
 const MISTRAL_OUT   = 1.20 / 1_000_000;
-const WHISPER_TURBO = 0.0009;
-const WHISPER_LARGE = 0.0015;
+const WHISPER_TURBO = 0.00020;
+const WHISPER_LARGE = 0.00045;
 
 const INTERVAL_MAP = { '7D': '7 days', '30D': '30 days', '90D': '90 days', 'all': '100 years' };
 
