@@ -18,6 +18,48 @@ function formatDate(ts, locale) {
   });
 }
 
+async function copyToClipboard(text) {
+  if (!text) return false;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+  }
+
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return copied;
+  } catch {
+    return false;
+  }
+}
+
+function buildExamPrepCopyText(questions = [], includeSteps = false) {
+  return questions.map((q, i) => {
+    let out = `Q${i + 1} [${q.type.toUpperCase()}]: ${q.question}`;
+    if (q.options) out += '\n' + Object.entries(q.options).map(([l, t]) => `  ${l}. ${t}`).join('\n');
+    out += `\nAnswer: ${q.answer}`;
+    if (includeSteps && q.answer_steps) {
+      out += '\nSteps:\n' + q.answer_steps.map((s, j) => `  ${j + 1}. ${s}`).join('\n');
+    }
+    return out;
+  }).join('\n\n');
+}
+
 const TYPE_STYLES = {
   tf:          { label: 'T/F',      bg: 'bg-[rgba(34,197,94,0.1)]',  text: 'text-[#22c55e]', border: 'border-[rgba(34,197,94,0.2)]' },
   mcq:         { label: 'MCQ',      bg: 'bg-[rgba(139,92,246,0.1)]', text: 'text-[#a78bfa]', border: 'border-[rgba(139,92,246,0.2)]' },
@@ -283,15 +325,9 @@ function ReaderView({ data, onClose, t, locale }) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  const copyAll = () => {
-    const lines = data.questions.map((q, i) => {
-      let out = `Q${i + 1} [${q.type.toUpperCase()}]: ${q.question}`;
-      if (q.options) out += '\n' + Object.entries(q.options).map(([l, t]) => `  ${l}. ${t}`).join('\n');
-      out += `\nAnswer: ${q.answer}`;
-      if (q.answer_steps) out += '\nSteps:\n' + q.answer_steps.map((s, j) => `  ${j + 1}. ${s}`).join('\n');
-      return out;
-    }).join('\n\n');
-    navigator.clipboard.writeText(lines).catch(() => {});
+  const copyAll = async () => {
+    const copied = await copyToClipboard(buildExamPrepCopyText(data.questions, true));
+    if (!copied) return;
     setToast(true);
     setTimeout(() => setToast(false), 2000);
   };
@@ -448,15 +484,10 @@ export default function ExamPrepViewer() {
     }
   };
 
-  const copyAll = () => {
+  const copyAll = async () => {
     if (!data?.questions) return;
-    const lines = data.questions.map((q, i) => {
-      let out = `Q${i + 1} [${q.type.toUpperCase()}]: ${q.question}`;
-      if (q.options) out += '\n' + Object.entries(q.options).map(([l, t]) => `  ${l}. ${t}`).join('\n');
-      out += `\nAnswer: ${q.answer}`;
-      return out;
-    }).join('\n\n');
-    navigator.clipboard.writeText(lines).catch(() => {});
+    const copied = await copyToClipboard(buildExamPrepCopyText(data.questions));
+    if (!copied) return;
     setToast(true);
     setTimeout(() => setToast(false), 2000);
   };

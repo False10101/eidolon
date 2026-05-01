@@ -63,6 +63,36 @@ function formatTime(seconds) {
   return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+async function copyToClipboard(text) {
+  if (!text) return false;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+  }
+
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return copied;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Action button ─────────────────────────────────────────────────────────────
 function ActionBtn({ children, onClick, icon, danger, disabled }) {
   return (
@@ -178,8 +208,9 @@ export default function TranscriptViewer({ params }) {
     fetch_();
   }, [id]);
 
-  const copyTranscript = () => {
-    navigator.clipboard.writeText(tx?.content ?? '').catch(() => { });
+  const copyTranscript = async () => {
+    const copied = await copyToClipboard(formatTranscriptContent(tx));
+    if (!copied) return;
     setToast(true);
     setTimeout(() => setToast(false), 2000);
   };
