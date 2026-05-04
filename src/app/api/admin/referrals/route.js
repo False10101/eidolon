@@ -9,25 +9,40 @@ const WHISPER_LARGE = 0.00045;
 
 const INTERVAL_MAP = { '7D': '7 days', '30D': '30 days', '90D': '90 days', 'all': '100 years' };
 
-function calcProfit(noteRows, examRows, transcriptRows, groupNoteMemberCounts, groupExamMemberCounts, referredIds, fromDate = null) {
+function calcProfit(noteRows, groupNoteRows, examRows, groupExamRows, transcriptRows, referredIds, fromDate = null) {
   const profitByUser = {};
   for (const id of referredIds) profitByUser[id] = 0;
 
   for (const n of noteRows) {
     if (fromDate && new Date(n.created_at) < fromDate) continue;
-    const isGroup = n.generation_type === 'group';
-    const N       = isGroup ? (groupNoteMemberCounts[n.id] ?? 1) : 1;
-    const apiCost = (n.input_tokens * MISTRAL_IN + n.output_tokens * MISTRAL_OUT) / N;
-    const revenue = parseFloat(n.charge_amount) / (isGroup ? N : 1) / 100;
+    if (n.generation_type === 'group') continue;
+
+    const apiCost = (n.input_tokens * MISTRAL_IN + n.output_tokens * MISTRAL_OUT);
+    const revenue = parseFloat(n.charge_amount) / 100;
+    profitByUser[n.user_id] = (profitByUser[n.user_id] ?? 0) + (revenue - apiCost);
+  }
+
+  for (const n of groupNoteRows) {
+    if (fromDate && new Date(n.created_at) < fromDate) continue;
+
+    const apiCost = (n.input_tokens * MISTRAL_IN + n.output_tokens * MISTRAL_OUT) / (n.member_count ?? 1);
+    const revenue = parseFloat(n.paid_amount) / 100;
     profitByUser[n.user_id] = (profitByUser[n.user_id] ?? 0) + (revenue - apiCost);
   }
 
   for (const e of examRows) {
     if (fromDate && new Date(e.created_at) < fromDate) continue;
-    const isGroup = groupExamMemberCounts[e.id] !== undefined;
-    const N       = isGroup ? (groupExamMemberCounts[e.id] ?? 1) : 1;
-    const apiCost = (e.input_tokens * MISTRAL_IN + e.output_tokens * MISTRAL_OUT) / N;
-    const revenue = parseFloat(e.charge_amount) / (isGroup ? N : 1) / 100;
+
+    const apiCost = (e.input_tokens * MISTRAL_IN + e.output_tokens * MISTRAL_OUT);
+    const revenue = parseFloat(e.charge_amount) / 100;
+    profitByUser[e.user_id] = (profitByUser[e.user_id] ?? 0) + (revenue - apiCost);
+  }
+
+  for (const e of groupExamRows) {
+    if (fromDate && new Date(e.created_at) < fromDate) continue;
+
+    const apiCost = (e.input_tokens * MISTRAL_IN + e.output_tokens * MISTRAL_OUT) / (e.member_count ?? 1);
+    const revenue = parseFloat(e.paid_amount) / 100;
     profitByUser[e.user_id] = (profitByUser[e.user_id] ?? 0) + (revenue - apiCost);
   }
 
@@ -67,7 +82,7 @@ export async function GET(req) {
 
   // For unpaid mode we fetch all data and filter in JS per-referrer.
   // For period mode we push the date filter to SQL for efficiency.
-  const [noteRows, examRows, transcriptRows, noteAccessCounts, examAccessCounts] = await Promise.all([
+  const [noteRows, groupNoteRows, examRows, groupExamRows, transcriptRows] = await Promise.all([
     isUnpaid
       ? sql`
           SELECT n.id, n.user_id, n.input_tokens, n.output_tokens,
@@ -85,6 +100,53 @@ export async function GET(req) {
 
     isUnpaid
       ? sql`
+          SELECT
+            na.note_id AS id,
+            na.user_id,
+            na.paid_amount,
+            n.input_tokens,
+            n.output_tokens,
+            n.created_at,
+            counts.member_count
+          FROM note_access na
+          JOIN note n ON n.id = na.note_id
+          JOIN (
+            SELECT note_id, COUNT(*)::int AS member_count
+            FROM note_access
+            WHERE is_original = 1
+            GROUP BY note_id
+          ) counts ON counts.note_id = na.note_id
+          WHERE na.user_id = ANY(${referredIds})
+            AND na.is_original = 1
+            AND n.generation_type = 'group'
+            AND n.status = 'completed'
+            AND n.is_trial = false`
+      : sql`
+          SELECT
+            na.note_id AS id,
+            na.user_id,
+            na.paid_amount,
+            n.input_tokens,
+            n.output_tokens,
+            n.created_at,
+            counts.member_count
+          FROM note_access na
+          JOIN note n ON n.id = na.note_id
+          JOIN (
+            SELECT note_id, COUNT(*)::int AS member_count
+            FROM note_access
+            WHERE is_original = 1
+            GROUP BY note_id
+          ) counts ON counts.note_id = na.note_id
+          WHERE na.user_id = ANY(${referredIds})
+            AND na.is_original = 1
+            AND n.generation_type = 'group'
+            AND n.status = 'completed'
+            AND n.is_trial = false
+            AND n.created_at >= NOW() - ${interval}::interval`,
+
+    isUnpaid
+      ? sql`
           SELECT e.id, e.user_id, e.input_tokens, e.output_tokens,
                  e.charge_amount, e.created_at
           FROM exam_prep e
@@ -98,6 +160,49 @@ export async function GET(req) {
 
     isUnpaid
       ? sql`
+          SELECT
+            epa.exam_prep_id AS id,
+            epa.user_id,
+            epa.paid_amount,
+            e.input_tokens,
+            e.output_tokens,
+            e.created_at,
+            counts.member_count
+          FROM exam_prep_access epa
+          JOIN exam_prep e ON e.id = epa.exam_prep_id
+          JOIN (
+            SELECT exam_prep_id, COUNT(*)::int AS member_count
+            FROM exam_prep_access
+            WHERE is_original = 1
+            GROUP BY exam_prep_id
+          ) counts ON counts.exam_prep_id = epa.exam_prep_id
+          WHERE epa.user_id = ANY(${referredIds})
+            AND epa.is_original = 1
+            AND e.status = 'Completed'`
+      : sql`
+          SELECT
+            epa.exam_prep_id AS id,
+            epa.user_id,
+            epa.paid_amount,
+            e.input_tokens,
+            e.output_tokens,
+            e.created_at,
+            counts.member_count
+          FROM exam_prep_access epa
+          JOIN exam_prep e ON e.id = epa.exam_prep_id
+          JOIN (
+            SELECT exam_prep_id, COUNT(*)::int AS member_count
+            FROM exam_prep_access
+            WHERE is_original = 1
+            GROUP BY exam_prep_id
+          ) counts ON counts.exam_prep_id = epa.exam_prep_id
+          WHERE epa.user_id = ANY(${referredIds})
+            AND epa.is_original = 1
+            AND e.status = 'Completed'
+            AND e.created_at >= NOW() - ${interval}::interval`,
+
+    isUnpaid
+      ? sql`
           SELECT t.id, t.user_id, t.duration, t.model, t.charge_amount, t.created_at
           FROM transcript t
           WHERE t.user_id = ANY(${referredIds}) AND t.status = 'Completed'`
@@ -107,26 +212,7 @@ export async function GET(req) {
           WHERE t.user_id = ANY(${referredIds}) AND t.status = 'Completed'
             AND t.created_at >= NOW() - ${interval}::interval`,
 
-    sql`
-      SELECT na.note_id, COUNT(*)::int AS member_count
-      FROM note_access na
-      JOIN note n ON n.id = na.note_id
-      WHERE n.user_id = ANY(${referredIds})
-        AND n.generation_type = 'group' AND na.is_original = 1
-      GROUP BY na.note_id`,
-
-    sql`
-      SELECT epa.exam_prep_id, COUNT(*)::int AS member_count
-      FROM exam_prep_access epa
-      JOIN exam_prep e ON e.id = epa.exam_prep_id
-      WHERE e.user_id = ANY(${referredIds}) AND epa.is_original = 1
-      GROUP BY epa.exam_prep_id`,
   ]);
-
-  const groupNoteMemberCounts = {};
-  noteAccessCounts.forEach(r => { groupNoteMemberCounts[r.note_id] = r.member_count; });
-  const groupExamMemberCounts = {};
-  examAccessCounts.forEach(r => { groupExamMemberCounts[r.exam_prep_id] = r.member_count; });
 
   // Build referrer map first so we know each referrer's last_paid_at
   const referrerMeta = {};
@@ -149,12 +235,13 @@ export async function GET(req) {
     const fromDate = isUnpaid && r.lastPaidAt ? new Date(r.lastPaidAt) : null;
 
     const filteredNotes       = noteRows.filter(n => r.referredUserIds.includes(n.user_id));
+    const filteredGroupNotes  = groupNoteRows.filter(n => r.referredUserIds.includes(n.user_id));
     const filteredExams       = examRows.filter(e => r.referredUserIds.includes(e.user_id));
+    const filteredGroupExams  = groupExamRows.filter(e => r.referredUserIds.includes(e.user_id));
     const filteredTranscripts = transcriptRows.filter(t => r.referredUserIds.includes(t.user_id));
 
     const profitByUser = calcProfit(
-      filteredNotes, filteredExams, filteredTranscripts,
-      groupNoteMemberCounts, groupExamMemberCounts,
+      filteredNotes, filteredGroupNotes, filteredExams, filteredGroupExams, filteredTranscripts,
       r.referredUserIds, fromDate
     );
 

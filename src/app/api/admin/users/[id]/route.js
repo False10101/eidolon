@@ -27,10 +27,11 @@ export async function GET(req, { params }) {
   const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  const userId = parseInt(params.id);
+  const { id } = await params;
+  const userId = parseInt(id);
   if (!userId) return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
 
-  const [[user], activityRows, noteRows, examRows, transcriptRows, referrerRows] = await Promise.all([
+  const [[user], activityRows, noteRows, groupNoteRows, examRows, groupExamRows, transcriptRows, referrerRows] = await Promise.all([
     // User profile + referral info
     sql`
       SELECT u.id, u.username, u.email, u.balance, u.created_at, u.last_login,
@@ -50,7 +51,7 @@ export async function GET(req, { params }) {
       LIMIT 500
     `,
 
-    // Individual note gens for this user (need tokens for cost calc)
+    // Owned note rows (individual + group owner rows; group handled separately below)
     sql`
       SELECT n.id, n.input_tokens, n.output_tokens, n.charge_amount, n.generation_type, n.created_at
       FROM note n
@@ -59,11 +60,57 @@ export async function GET(req, { params }) {
         AND n.is_trial = false
     `,
 
-    // Exam prep gens for this user
+    // Group note memberships for this user (including generator as one of the original members)
+    sql`
+      SELECT
+        na.note_id AS id,
+        na.paid_amount,
+        n.input_tokens,
+        n.output_tokens,
+        n.created_at,
+        counts.member_count
+      FROM note_access na
+      JOIN note n ON n.id = na.note_id
+      JOIN (
+        SELECT note_id, COUNT(*)::int AS member_count
+        FROM note_access
+        WHERE is_original = 1
+        GROUP BY note_id
+      ) counts ON counts.note_id = na.note_id
+      WHERE na.user_id = ${userId}
+        AND na.is_original = 1
+        AND n.generation_type = 'group'
+        AND n.status = 'completed'
+        AND n.is_trial = false
+    `,
+
+    // Owned exam prep rows (individual + group owner rows; group handled separately below)
     sql`
       SELECT e.id, e.input_tokens, e.output_tokens, e.charge_amount, e.created_at
       FROM exam_prep e
       WHERE e.user_id = ${userId}
+        AND e.status = 'Completed'
+    `,
+
+    // Group exam prep memberships for this user (including generator as one of the original members)
+    sql`
+      SELECT
+        epa.exam_prep_id AS id,
+        epa.paid_amount,
+        e.input_tokens,
+        e.output_tokens,
+        e.created_at,
+        counts.member_count
+      FROM exam_prep_access epa
+      JOIN exam_prep e ON e.id = epa.exam_prep_id
+      JOIN (
+        SELECT exam_prep_id, COUNT(*)::int AS member_count
+        FROM exam_prep_access
+        WHERE is_original = 1
+        GROUP BY exam_prep_id
+      ) counts ON counts.exam_prep_id = epa.exam_prep_id
+      WHERE epa.user_id = ${userId}
+        AND epa.is_original = 1
         AND e.status = 'Completed'
     `,
 
@@ -85,64 +132,43 @@ export async function GET(req, { params }) {
 
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  // ── Per-service profit breakdown ────────────────────────────────────────────
-
-  // Group gens: need member count at gen time to split api cost
-  // For group notes: find all note_access rows to get N members at gen time
-  const groupNoteIds = noteRows.filter(n => n.generation_type === 'group').map(n => n.id);
-  const groupExamIds = examRows.map(e => e.id); // exam_prep doesn't store generation_type in query above, get all
-
-  // Get group member counts for group notes
-  let groupNoteMemberCounts = {};
-  if (groupNoteIds.length > 0) {
-    const counts = await sql`
-      SELECT note_id, COUNT(*)::int AS member_count
-      FROM note_access
-      WHERE note_id = ANY(${groupNoteIds})
-        AND is_original = 1
-      GROUP BY note_id
-    `;
-    counts.forEach(r => { groupNoteMemberCounts[r.note_id] = r.member_count; });
-  }
-
-  // Get which exam_preps were group gens and their member counts
-  let groupExamMemberCounts = {};
-  if (groupExamIds.length > 0) {
-    const counts = await sql`
-      SELECT exam_prep_id, COUNT(*)::int AS member_count
-      FROM exam_prep_access
-      WHERE exam_prep_id = ANY(${groupExamIds})
-        AND is_original = 1
-      GROUP BY exam_prep_id
-    `;
-    counts.forEach(r => { groupExamMemberCounts[r.exam_prep_id] = r.member_count; });
-  }
-
   // Notes profit
   let notesRevenue = 0, notesCost = 0, notesCount = 0;
   for (const n of noteRows) {
-    const isGroup = n.generation_type === 'group';
-    const N = isGroup ? (groupNoteMemberCounts[n.id] ?? 1) : 1;
+    if (n.generation_type === 'group') continue;
+
     const apiCost = (n.input_tokens * MISTRAL_IN + n.output_tokens * MISTRAL_OUT);
-    const userApiCost = apiCost / N;
-    // For group gens, charge_amount on note is the TOTAL finalPrice; user's activity has their split
-    // We use the note's full charge if individual, proportional if group handled via activity
-    const revenue = parseFloat(n.charge_amount) / (isGroup ? N : 1) / 100;
+    const revenue = parseFloat(n.charge_amount) / 100;
     notesRevenue += revenue;
-    notesCost    += userApiCost;
+    notesCost    += apiCost;
+    notesCount   += 1;
+  }
+
+  for (const n of groupNoteRows) {
+    const memberCount = n.member_count ?? 1;
+    const apiCost = (n.input_tokens * MISTRAL_IN + n.output_tokens * MISTRAL_OUT) / memberCount;
+    const revenue = parseFloat(n.paid_amount) / 100;
+    notesRevenue += revenue;
+    notesCost    += apiCost;
     notesCount   += 1;
   }
 
   // Exam profit
   let examRevenue = 0, examCost = 0, examCount = 0;
   for (const e of examRows) {
-    const isGroup = groupExamMemberCounts[e.id] !== undefined;
-    const N = isGroup ? (groupExamMemberCounts[e.id] ?? 1) : 1;
     const apiCost = (e.input_tokens * MISTRAL_IN + e.output_tokens * MISTRAL_OUT);
-    const userApiCost = apiCost / N;
-    const revenue = parseFloat(e.charge_amount) / (isGroup ? N : 1) / 100;
+    const revenue = parseFloat(e.charge_amount) / 100;
     examRevenue += revenue;
-    examCost    += userApiCost;
+    examCost    += apiCost;
+    examCount   += 1;
+  }
+
+  for (const e of groupExamRows) {
+    const memberCount = e.member_count ?? 1;
+    const apiCost = (e.input_tokens * MISTRAL_IN + e.output_tokens * MISTRAL_OUT) / memberCount;
+    const revenue = parseFloat(e.paid_amount) / 100;
+    examRevenue += revenue;
+    examCost    += apiCost;
     examCount   += 1;
   }
 
