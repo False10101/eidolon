@@ -3,7 +3,6 @@ import Stripe from 'stripe';
 import { sql } from '@/lib/storage/db';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const THB_RATE = Number(process.env.TOPUP_THB_RATE || 35);
 
 export async function POST(req) {
     const rawBody  = await req.text();
@@ -33,22 +32,10 @@ export async function POST(req) {
     }
 
     const userId = parseInt(session.metadata?.user_id);
-    const amountTotal = Number(session.amount_total);
-    const currency = String(session.currency || '').toLowerCase();
-    const trustedThbRate = Number.isFinite(THB_RATE) && THB_RATE > 0 ? THB_RATE : 35;
+    const amountUsd = Number(session.metadata?.amount_usd);
+    const credits = Number(session.metadata?.credits);
 
-    let amountUsd;
-    if (currency === 'usd') {
-        amountUsd = amountTotal / 100;
-    } else if (currency === 'thb') {
-        amountUsd = (amountTotal / 100) / trustedThbRate;
-    } else {
-        amountUsd = NaN;
-    }
-
-    const credits = Math.round(amountUsd * 100);
-
-    if (!userId || !Number.isFinite(amountTotal) || !Number.isFinite(amountUsd) || isNaN(credits)) {
+    if (!userId || !Number.isFinite(amountUsd) || !Number.isFinite(credits)) {
         console.error('Stripe webhook: missing metadata', session.metadata);
         return NextResponse.json({ error: 'Invalid metadata.' }, { status: 400 });
     }

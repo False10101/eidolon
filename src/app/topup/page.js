@@ -9,6 +9,7 @@ import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import CreditIcon from '../CreditIcon';
 import { useTranslations } from 'next-intl';
+import { TOPUP_PACKAGES, getTopupCredits } from '@/lib/topup/packages';
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {
@@ -21,12 +22,13 @@ const itemVariants = {
 };
 
 // ─── Packages ──────────────────────────────────────────────────────────────────
-const PACKAGES = [
-    { amount: 1.50, credits: 120,  label: '$1.50', desc: '~13 note generations',  badge: null },
-    { amount: 5,    credits: 500,  label: '$5',    desc: '~55 note generations',  badge: null },
-    { amount: 10,   credits: 1100, label: '$10',   desc: '~122 note generations', badge: { text: '+100 bonus', style: 'bonus' } },
-    { amount: 25,   credits: 3000, label: '$25',   desc: '~333 note generations', badge: { text: '+500 bonus', style: 'best'  } },
-];
+const PACKAGES = TOPUP_PACKAGES.map((pkg) => ({
+    amount: pkg.amountUsd,
+    credits: pkg.credits,
+    label: pkg.label,
+    desc: pkg.desc,
+    badge: pkg.badge,
+}));
 
 const BADGE_STYLES = {
     bonus: 'border border-[rgba(34,197,94,0.2)]  bg-[rgba(34,197,94,0.1)]  text-[#22c55e]',
@@ -52,7 +54,7 @@ function formatLocal(usdAmount, fx) {
 
 // {t("customAmount")} → estimated credits (base rate 100 cr/$1)
 function estimateCredits(usdAmount) {
-    return Math.round(usdAmount * 100);
+    return getTopupCredits(usdAmount);
 }
 
 // ─── Package Card ──────────────────────────────────────────────────────────────

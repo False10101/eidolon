@@ -8,6 +8,7 @@ import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import { useRouter } from 'next/navigation';
 import CreditIcon from '../CreditIcon';
+import { TOPUP_PACKAGES } from '@/lib/topup/packages';
 
 // ─── Pricing data ──────────────────────────────────────────────────────────────
 const NOTE_TIERS = [
@@ -90,12 +91,12 @@ const FAQ_ITEMS = [
   },
 ];
 
-const TOPUP_PRESETS = [
-  { amount: 120, label: '$1.50', hint: '~13 notes' },
-  { amount: 450, label: '$5', hint: '~50 notes' },
-  { amount: 1200, label: '$10', hint: '~133 notes', popular: true },
-  { amount: 2800, label: '$25', hint: '~311 notes' },
-];
+const TOPUP_PRESETS = TOPUP_PACKAGES.map((pkg) => ({
+  amount: pkg.credits,
+  label: pkg.label,
+  hint: pkg.hint,
+  popular: pkg.amountUsd === 10,
+}));
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const badgeColors = {
@@ -247,7 +248,7 @@ export default function Pricing() {
   const [pipeDurIdx, setPipeDurIdx] = useState(0);
   const [pipeTokens, setPipeTokens] = useState(20000);
   const [balancePipe, setBalancePipe] = useState(450);
-  const [selectedTopup, setSelectedTopup] = useState(1200);
+  const [selectedTopup, setSelectedTopup] = useState(1100);
   const [calcTxModel, setCalcTxModel] = useState('turbo');
   const [pipeTxModel, setPipeTxModel] = useState('turbo');
   const [pipeExactHours, setPipeExactHours] = useState(4);
@@ -335,12 +336,12 @@ export default function Pricing() {
     },
   ];
 
-  const TOPUP_PRESETS = [
-    { amount: 120, label: t('preset_120Label'), hint: t('preset_120Hint') },
-    { amount: 450, label: t('preset_450Label'), hint: t('preset_450Hint') },
-    { amount: 1200, label: t('preset_1200Label'), hint: t('preset_1200Hint'), popular: true },
-    { amount: 2800, label: t('preset_2800Label'), hint: t('preset_2800Hint') },
-  ];
+  const TOPUP_PRESETS = TOPUP_PACKAGES.map((pkg) => ({
+    amount: pkg.credits,
+    label: pkg.label,
+    hint: pkg.hint,
+    popular: pkg.amountUsd === 10,
+  }));
 
   // ── Calc results ─────────────────────────────────────────────────────────────
   let calcCost = 0, calcTierLabel = '', calcTierRange = '', calcTierIdx = 0, calcBreakdown = null;

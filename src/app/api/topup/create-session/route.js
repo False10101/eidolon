@@ -4,6 +4,7 @@ import { verifyUserData } from '@/lib/auth/verify';
 import { sql } from '@/lib/storage/db';
 import { rateLimit } from '@/lib/rateLimit';
 import { getFxRate } from '@/lib/topup/fx';
+import { getTopupCredits } from '@/lib/topup/packages';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -47,7 +48,7 @@ export async function POST(req) {
     }
 
     const amountUsd    = parseFloat(amount.toFixed(2));
-    const credits      = Math.round(amountUsd * 100);
+    const credits      = getTopupCredits(amountUsd);
 
     // The client may suggest a display currency, but the server alone decides the rate.
     const trustedThbRate = currency === 'THB' ? await getFxRate('THB') : null;
