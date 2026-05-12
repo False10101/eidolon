@@ -10,6 +10,25 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const MIN_AMOUNT = 1.50;
 const MAX_AMOUNT = 1000;
 
+function normalizeOrigin(value) {
+    return typeof value === 'string' ? value.trim().replace(/\/+$/, '') : '';
+}
+
+function isLocalOrigin(origin) {
+    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+}
+
+function resolveRequestOrigin(req) {
+    const forwardedProto = req.headers.get('x-forwarded-proto');
+    const forwardedHost = req.headers.get('x-forwarded-host');
+
+    if (forwardedProto && forwardedHost) {
+        return normalizeOrigin(`${forwardedProto}://${forwardedHost}`);
+    }
+
+    return normalizeOrigin(req.nextUrl?.origin);
+}
+
 export async function POST(req) {
     const userId = await verifyUserData(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -41,13 +60,18 @@ export async function POST(req) {
     const [user] = await sql`SELECT email FROM "user" WHERE id = ${userId}`;
     if (!user) return NextResponse.json({ error: 'User not found.' }, { status: 404 });
 
-    const configuredOrigin = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
-    if (!configuredOrigin) {
+    const configuredOrigin = normalizeOrigin(process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL);
+    const requestOrigin = resolveRequestOrigin(req);
+
+    const origin = (!isLocalOrigin(requestOrigin) && requestOrigin)
+        || (!isLocalOrigin(configuredOrigin) && configuredOrigin)
+        || requestOrigin
+        || configuredOrigin;
+
+    if (!origin) {
         console.error('Missing APP_URL or NEXT_PUBLIC_APP_URL for Stripe return URLs.');
         return NextResponse.json({ error: 'Top-up is temporarily unavailable.' }, { status: 500 });
     }
-
-    const origin = configuredOrigin.replace(/\/+$/, '');
 
     const productName = isThb
         ? `Eidolon Credits — ฿${Math.round(amountUsd * trustedThbRate)}`
