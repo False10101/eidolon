@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
 import MDEditor from '@uiw/react-md-editor';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import CreditIcon from '@/app/CreditIcon';
 
 // ─── Hardcoded Sample Data ─────────────────────────────────────────────────────
@@ -1908,6 +1910,7 @@ function SampleViewerContent() {
                       height="100%"
                       preview="edit"
                       style={{ background: 'var(--surface)', borderRadius: 0, border: 'none', height: '100%' }}
+                      previewOptions={{ remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] }}
                     />
                   ) : (
                     <div
@@ -1940,7 +1943,8 @@ function SampleViewerContent() {
                         <MDEditor.Markdown
                           source={note.content}
                           style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '14px', lineHeight: '2' }}
-                          rehypePlugins={[]}
+                          remarkPlugins={[remarkMath]}
+                          rehypePlugins={[rehypeKatex]}
                         />
                       </div>
                     </div>
@@ -2016,6 +2020,8 @@ function SampleViewerContent() {
                   <MDEditor.Markdown
                     source={note.content}
                     style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '15px', lineHeight: '1.95' }}
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
                   />
                 </div>
               </div>

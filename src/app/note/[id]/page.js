@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import Navbar from '../../navbar';
 import Sidebar from '../../sidebar';
 import MDEditor from '@uiw/react-md-editor';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import GeneratingOverlay from '@/app/GeneratingOverlays';
 import ConfirmModal from '@/app/ConfirmModal';
 import ErrorModal from '@/app/ErrorModal';
@@ -582,6 +584,7 @@ export default function NoteViewer({ params }) {
                         height="100%"
                         preview="edit"
                         style={{ background: 'var(--surface)', borderRadius: 0, border: 'none', height: '100%' }}
+                        previewOptions={{ remarkPlugins: [remarkMath], rehypePlugins: [rehypeKatex] }}
                       />
                     ) : (
                       <div
@@ -614,7 +617,8 @@ export default function NoteViewer({ params }) {
                           <MDEditor.Markdown
                             source={note.is_trial ? (note.content?.slice(0, Math.floor((note.content?.length || 0) * 0.3)) + '\n\n...') : note.content}
                             style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '14px', lineHeight: '2' }}
-                            rehypePlugins={[]}
+                            remarkPlugins={[remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
                           />
 
                           {note.is_trial && procStatus !== 'processing' && (
@@ -731,6 +735,8 @@ export default function NoteViewer({ params }) {
                   <MDEditor.Markdown
                     source={note.is_trial ? (note.content?.slice(0, Math.floor((note.content?.length || 0) * 0.3)) + '\n\n...') : note.content}
                     style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '15px', lineHeight: '1.95' }}
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
                   />
 
                   {note.is_trial && procStatus !== 'processing' && (

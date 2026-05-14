@@ -17,6 +17,7 @@ export const CHANGELOG = [
       'Note viewer content stuck in dark mode even when light mode was active',
       'Onboarding modals clipped on tablet viewports — Skip and Next buttons were unreachable',
       'Home page tutorial tooltip going off-screen on short viewports',
+      'LaTeX formulas ($$...$$) now render correctly in notes instead of showing raw code',
     ],
   },
 ];
