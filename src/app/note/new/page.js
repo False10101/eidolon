@@ -101,6 +101,7 @@ export default function NewNotePage() {
   const [procStatus, setProcStatus] = useState('idle');
   const [currentStatus, setCurrentStatus] = useState('pending');
   const [error, setError] = useState(null);
+  const [genMode, setGenMode] = useState('individual');
   const intervalRef = useRef(null);
 
   const isReady = (file || transcriptId) && courseName.trim().length > 0;
@@ -327,26 +328,41 @@ export default function NewNotePage() {
                 <span className="font-mono text-[20px] font-semibold text-[var(--accent)]">{costMap[compactness]} <CreditIcon size={20}/></span>
               </div>
               <div className="flex items-center gap-2">
+                {/* Mode toggle */}
+                <div className="flex rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] p-1">
+                  <button onClick={() => setGenMode('individual')}
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap
+                      ${genMode === 'individual'
+                        ? 'bg-[rgba(0,212,200,0.12)] text-[var(--accent)]'
+                        : 'text-[var(--fg-4)] hover:text-[var(--fg-2)]'}`}>
+                    <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[1.8]">
+                      <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                    </svg>
+                    {t('individual')}
+                  </button>
+                  <button onClick={() => setGenMode('group')}
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap
+                      ${genMode === 'group'
+                        ? 'bg-[rgba(0,212,200,0.12)] text-[var(--accent)]'
+                        : 'text-[var(--fg-4)] hover:text-[var(--fg-2)]'}`}>
+                    <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[1.8]">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    {t('group')}
+                  </button>
+                </div>
+
+                {/* Single generate button */}
                 <button
-                  onClick={() => handleGenerate('group')}
-                  disabled={!isReady || procStatus === 'processing'}
-                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-5 py-2.5 text-[13px] font-medium text-[var(--fg-2)] transition-all hover:border-[rgba(0,212,200,0.25)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap"
-                >
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                  {t("groupGenerate")}
-                </button>
-                <button
-                  onClick={() => handleGenerate('individual')}
+                  onClick={() => handleGenerate(genMode)}
                   disabled={!isReady || procStatus === 'processing'}
                   className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-7 py-2.5 text-[13px] font-semibold text-[var(--on-accent)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-current fill-none stroke-[2.2]">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
-                  {t("generateNote")}
+                  {t('generateNote')}
                 </button>
               </div>
             </motion.div>

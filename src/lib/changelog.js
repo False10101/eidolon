@@ -11,6 +11,7 @@ export const CHANGELOG = [
       'Note list redesigned — group and individual notes unified into one scrollable list with search and tab filter',
       'Exam prep list redesigned — same layout as the note list',
       'Home page tour expanded — now walks through all navbar icons (Groups, Profile, Language, What\'s New) before diving into the pipeline',
+      'Note and exam prep generation — Individual and Group modes now use a clear toggle instead of two separate buttons',
     ],
     fixed: [
       'Note viewer content stuck in dark mode even when light mode was active',
