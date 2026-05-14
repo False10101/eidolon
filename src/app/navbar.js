@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import CreditIcon from './CreditIcon';
 import ThemeToggle from './ThemeToggle';
 import LanguageSwitcher from './LanguageSwitcher';
+import WhatsNew from './WhatsNew';
 import { useTranslations } from 'next-intl';
 
 // ─── Route display names ────────────────────────────────────────────────────────
@@ -69,11 +70,12 @@ function LogoutModal({ onConfirm, onCancel }) {
 }
 
 // ─── Icon button ────────────────────────────────────────────────────────────────
-function NavIconBtn({ onClick, title, children }) {
+function NavIconBtn({ onClick, title, children, dataOnboard }) {
   return (
     <button
       onClick={onClick}
       title={title}
+      data-onboard={dataOnboard}
       className="group flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-all hover:border-[rgba(0,212,200,0.25)] hover:bg-[rgba(0,212,200,0.04)]"
     >
       {children}
@@ -169,8 +171,11 @@ export default function Navbar() {
               {/* Theme toggle */}
               <ThemeToggle />
 
+              {/* What's new */}
+              <WhatsNew />
+
               {/* Groups */}
-              <NavIconBtn onClick={() => router.push('/groups')} title="Groups">
+              <NavIconBtn onClick={() => router.push('/groups')} title="Groups" dataOnboard="nav-groups">
                 <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[var(--fg-3)] fill-none stroke-[1.8] transition-colors group-hover:stroke-[var(--accent)]">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
@@ -178,7 +183,7 @@ export default function Navbar() {
               </NavIconBtn>
 
               {/* Profile */}
-              <NavIconBtn onClick={() => router.push('/profile')} title="Profile">
+              <NavIconBtn onClick={() => router.push('/profile')} title="Profile" dataOnboard="nav-profile">
                 <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[var(--fg-3)] fill-none stroke-[1.8] transition-colors group-hover:stroke-[var(--accent)]">
                   <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
                 </svg>

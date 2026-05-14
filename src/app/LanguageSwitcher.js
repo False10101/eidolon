@@ -45,6 +45,7 @@ export default function LanguageSwitcher() {
       <button
         onClick={() => setOpen(v => !v)}
         title="Switch language"
+        data-onboard="nav-language"
         className="group flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 transition-all hover:border-[rgba(0,212,200,0.25)] hover:bg-[rgba(0,212,200,0.04)]"
       >
         <img src={`https://flagcdn.com/${currentLang.countryCode}.svg`} alt="" className="w-[14px] h-auto rounded-[2px] object-cover shadow-sm pointer-events-none" />

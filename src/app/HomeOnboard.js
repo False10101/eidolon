@@ -11,6 +11,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const STEPS = [
   {
+    target: 'nav-whats-new',
+    title: "What's new",
+    desc: "This icon shows release notes whenever we ship something. The teal dot means there's an update you haven't read yet — click it any time to catch up on what changed.",
+    placement: 'bottom',
+  },
+  {
+    target: 'nav-language',
+    title: 'Switch your language',
+    desc: "The interface supports 8 languages. Pick whichever you're most comfortable reading in — your notes and transcripts are always generated in the language of your source material.",
+    placement: 'bottom',
+  },
+  {
+    target: 'nav-groups',
+    title: 'Study groups',
+    desc: 'Groups let you access notes and exam preps shared by your lecturer or study group. If someone generates content from a shared source and adds you, it shows up here automatically.',
+    placement: 'bottom',
+  },
+  {
+    target: 'nav-profile',
+    title: 'Your profile',
+    desc: 'View your account details, usage history, and settings from here. You can also manage your account or sign out.',
+    placement: 'bottom',
+  },
+  {
     target: 'pipeline',
     title: 'This is how Eidolon works',
     desc: 'Four tools, one pipeline. Start with an audio file at Step 01 and follow through to exam prep at Step 04 — or jump in at any step if you already have a transcript or note.',
