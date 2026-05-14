@@ -58,6 +58,13 @@ export default function OnboardModal({ storageKey, slides, accentColor = '#00d4c
             }}
           />
 
+          {/* Scroll container — centers modal, scrolls when viewport is short */}
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflowY: 'auto',
+            padding: '16px',
+          }}>
           {/* Modal */}
           <motion.div
             key="modal"
@@ -66,15 +73,13 @@ export default function OnboardModal({ storageKey, slides, accentColor = '#00d4c
             exit={{ opacity: 0, scale: 0.94, y: 12 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
             style={{
-              position: 'fixed', zIndex: 9999,
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 'min(480px, calc(100vw - 32px))',
-              maxHeight: 'calc(100dvh - 32px)',
-              overflowY: 'auto',
+              width: '100%',
+              maxWidth: 480,
+              flexShrink: 0,
               background: 'var(--surface)',
               border: '1px solid var(--border-strong)',
               borderRadius: 16,
+              overflow: 'hidden',
               boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
             }}
           >
@@ -201,6 +206,7 @@ export default function OnboardModal({ storageKey, slides, accentColor = '#00d4c
               </div>
             </div>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

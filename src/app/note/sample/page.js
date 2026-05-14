@@ -1700,6 +1700,16 @@ function SampleViewerContent() {
 
   const progressBarRef = useRef(null);
 
+  const [colorMode, setColorMode] = useState('dark');
+  useEffect(() => {
+    const root = document.documentElement;
+    const read = () => setColorMode(root.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
   const handleReaderScroll = (e) => {
     const el = e.target;
     const pct = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100;
@@ -1890,7 +1900,7 @@ function SampleViewerContent() {
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-hidden" data-color-mode="dark">
+                <div className="flex-1 overflow-hidden" data-color-mode={colorMode}>
                   {isEditing ? (
                     <MDEditor
                       value={editContent}
@@ -2002,7 +2012,7 @@ function SampleViewerContent() {
                 <div className="text-[12px] text-[var(--fg-3)] mb-8 flex items-center gap-2 select-none">
                   {t('generatedByEidolon')} <span className="text-[var(--fg-3)]">·</span>{note.charge_amount} <CreditIcon size={14} color='#9a9aaa'/>
                 </div>
-                <div data-color-mode="dark">
+                <div data-color-mode={colorMode}>
                   <MDEditor.Markdown
                     source={note.content}
                     style={{ background: 'transparent', color: 'var(--fg-body)', fontSize: '15px', lineHeight: '1.95' }}
