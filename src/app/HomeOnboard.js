@@ -85,14 +85,33 @@ export default function HomeOnboard() {
 
   // Tooltip positioning
   const tooltipW = 320;
-  const tooltipH = 160; // approx
+  const tooltipH = 210; // conservative height estimate
   let tooltipLeft = rect.left + rect.width / 2 - tooltipW / 2;
-  let tooltipTop = step.placement === 'bottom'
-    ? rect.bottom + PAD + 12
-    : rect.top - tooltipH - PAD - 12;
 
-  // clamp horizontally
+  // Auto-flip placement if there isn't enough space on the preferred side
+  let placement = step.placement;
+  let tooltipTop;
+  if (placement === 'bottom') {
+    const below = rect.bottom + PAD + 12;
+    if (below + tooltipH > window.innerHeight - 8) {
+      placement = 'top';
+      tooltipTop = rect.top - tooltipH - PAD - 12;
+    } else {
+      tooltipTop = below;
+    }
+  } else {
+    const above = rect.top - tooltipH - PAD - 12;
+    if (above < 8) {
+      placement = 'bottom';
+      tooltipTop = rect.bottom + PAD + 12;
+    } else {
+      tooltipTop = above;
+    }
+  }
+
+  // clamp horizontally and vertically
   tooltipLeft = Math.max(12, Math.min(tooltipLeft, window.innerWidth - tooltipW - 12));
+  tooltipTop = Math.max(8, Math.min(tooltipTop, window.innerHeight - tooltipH - 8));
 
   return (
     <AnimatePresence>
@@ -145,7 +164,7 @@ export default function HomeOnboard() {
           {/* Tooltip */}
           <motion.div
             key={`tooltip-${cur}`}
-            initial={{ opacity: 0, y: step.placement === 'bottom' ? -8 : 8 }}
+            initial={{ opacity: 0, y: placement === 'bottom' ? -8 : 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
@@ -167,15 +186,15 @@ export default function HomeOnboard() {
             <div style={{
               position: 'absolute',
               left: '50%', transform: 'translateX(-50%)',
-              [step.placement === 'bottom' ? 'top' : 'bottom']: -6,
+              [placement === 'bottom' ? 'top' : 'bottom']: -6,
               width: 10, height: 10,
               background: 'var(--surface)',
               border: '1px solid var(--border-strong)',
-              borderRight: step.placement === 'bottom' ? 'none' : undefined,
-              borderBottom: step.placement === 'bottom' ? 'none' : undefined,
-              borderTop: step.placement === 'top' ? 'none' : undefined,
-              borderLeft: step.placement === 'top' ? 'none' : undefined,
-              transform: step.placement === 'bottom'
+              borderRight: placement === 'bottom' ? 'none' : undefined,
+              borderBottom: placement === 'bottom' ? 'none' : undefined,
+              borderTop: placement === 'top' ? 'none' : undefined,
+              borderLeft: placement === 'top' ? 'none' : undefined,
+              transform: placement === 'bottom'
                 ? 'translateX(-50%) rotate(45deg)'
                 : 'translateX(-50%) rotate(225deg)',
             }} />
