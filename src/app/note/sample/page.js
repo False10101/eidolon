@@ -10,6 +10,7 @@ import MDEditor from '@uiw/react-md-editor';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import CreditIcon from '@/app/CreditIcon';
+import LocalCreditPrice from '@/app/LocalCreditPrice';
 
 // ─── Hardcoded Sample Data ─────────────────────────────────────────────────────
 const SAMPLE_NOTES = {
@@ -2014,7 +2015,7 @@ function SampleViewerContent() {
                   {formatCreatedAt(note.created_at)}
                 </div>
                 <div className="text-[12px] text-[var(--fg-3)] mb-8 flex items-center gap-2 select-none">
-                  {t('generatedByEidolon')} <span className="text-[var(--fg-3)]">·</span>{note.charge_amount} <CreditIcon size={14} color='#9a9aaa'/>
+                  {t('generatedByEidolon')} <span className="text-[var(--fg-3)]">·</span>{note.charge_amount} <CreditIcon size={14} color='#9a9aaa'/> <LocalCreditPrice credits={note.charge_amount} />
                 </div>
                 <div data-color-mode={colorMode}>
                   <MDEditor.Markdown

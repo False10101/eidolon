@@ -5,7 +5,13 @@ import { generateExamPrepGroup } from "@/lib/exam-prep/group/generate";
 import { getGroupTierPrice } from "@/app/api/note/generate/group/route";
 import { rateLimit } from "@/lib/rateLimit";
 
+const EXAM_PREP_AVAILABLE = false;
+
 export async function POST(req) {
+    if (!EXAM_PREP_AVAILABLE) {
+        return NextResponse.json({ error: 'Exam Prep is coming soon.' }, { status: 503 });
+    }
+
     try {
         const userId = await verifyUserData(req);
         if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

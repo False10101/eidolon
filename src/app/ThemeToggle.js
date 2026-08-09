@@ -24,7 +24,7 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="group flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-all hover:border-[rgba(0,212,200,0.25)] hover:bg-[rgba(0,212,200,0.04)]"
+      className="btn-icon group flex h-8 w-8 items-center justify-center rounded-lg transition-all"
     >
       {theme === 'dark' ? (
         // Sun icon — shown in dark mode, click to go light

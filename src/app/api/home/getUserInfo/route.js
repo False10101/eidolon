@@ -8,17 +8,28 @@ export async function GET(req) {
         if (userId === null) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const [user] = await sql`
-            SELECT username, balance, last_login, avatar_url
+            SELECT username, balance, last_login, avatar_url, free_generations_remaining
             FROM "user" WHERE id = ${userId}
         `;
 
         const activity = await sql`
             SELECT 
-                a.id, a.type, a.title, a.status, a.date, a.charge_amount, a.balance_after,
+                a.id,
+                a.type,
+                CASE
+                    WHEN a.type = 'note' AND a.title = 'Unlocked group note' THEN CONCAT('Unlocked note: ', COALESCE(n.name, a.title))
+                    WHEN a.type = 'exam_prep' AND a.title = 'Unlocked group exam prep' THEN CONCAT('Unlocked exam prep: ', COALESCE(e.label, a.title))
+                    WHEN a.type = 'rebate' AND a.title = 'Group note unlocked by new member' THEN CONCAT('Unlock rebate: ', COALESCE(rebate_note.name, a.title))
+                    WHEN a.type = 'rebate' AND a.title = 'Group exam prep unlocked by new member' THEN CONCAT('Unlock rebate: ', COALESCE(rebate_exam.label, a.title))
+                    ELSE a.title
+                END AS title,
+                a.status, a.date, a.charge_amount, a.balance_after,
                 COALESCE(n.public_id, e.public_id, t.public_id) as public_id
             FROM "activity" a
             LEFT JOIN "note" n ON n.id = a.respective_table_id AND a.type = 'note'
             LEFT JOIN "exam_prep" e ON e.id = a.respective_table_id AND a.type = 'exam_prep'
+            LEFT JOIN "note" rebate_note ON rebate_note.id = a.respective_table_id AND a.type = 'rebate' AND a.title = 'Group note unlocked by new member'
+            LEFT JOIN "exam_prep" rebate_exam ON rebate_exam.id = a.respective_table_id AND a.type = 'rebate' AND a.title = 'Group exam prep unlocked by new member'
             LEFT JOIN "transcript" t ON t.id = a.respective_table_id AND a.type = 'transcript'
             WHERE a.user_id = ${userId}
             ORDER BY a.date DESC
@@ -57,6 +68,7 @@ export async function GET(req) {
             userData: {
                 username: user.username,
                 balance: user.balance,
+                free_generations_remaining: user.free_generations_remaining,
                 last_login: user.last_login,
                 avatar_url: user.avatar_url,
                 totalTokenSent: tokenTotals[0].total_input,

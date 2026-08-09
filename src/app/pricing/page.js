@@ -8,6 +8,7 @@ import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import { useRouter } from 'next/navigation';
 import CreditIcon from '../CreditIcon';
+import LocalCreditPrice from '../LocalCreditPrice';
 import { TOPUP_PACKAGES } from '@/lib/topup/packages';
 
 // ─── Pricing data ──────────────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ const GROUP_TIERS = [
 const FAQ_ITEMS = [
   {
     q: 'When does my balance get charged?',
-    a: <>Your credit balance is checked and deducted <strong className="text-[var(--fg)] font-medium">at the moment you generate</strong> a note or run transcription. If your balance is too low, <strong className="text-[var(--fg)] font-medium">the generation won't start</strong> — you'll see an error asking you to top up first.</>,
+    a: <>Your credit balance is checked and deducted <strong className="text-[var(--fg)] font-medium">at the moment you generate</strong> a note or run transcription. If your balance is too low, <strong className="text-[var(--fg)] font-medium">the generation won&apos;t start</strong> — you&apos;ll see an error asking you to top up first.</>,
   },
   {
     q: 'Do credits expire?',
@@ -75,11 +76,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How does group billing work?',
-    a: <>Costs are split automatically across all group members. If anyone lacks sufficient credits, the generation won't run. The member who clicks generate gets a <strong className="text-[var(--fg)] font-medium">50% discount</strong> on their share, subsidized by the rest of the group.</>,
+    a: <>Only the <strong className="text-[var(--fg)] font-medium">selected participants</strong> are charged. Each selected participant pays the base price with the group discount applied: 0% for 1–4, 15% for 5–9, 25% for 10–24, 40% for 25–49, and 60% for 50+. The generator receives no separate discount.</>,
   },
   {
     q: 'Why do note costs vary? What determines my tier?',
-    a: <>Notes are charged based on <strong className="text-[var(--fg)] font-medium">total token count</strong> (input transcript + AI output combined). Longer lectures with denser content produce more tokens. A typical 2–3 hour lecture usually falls in <strong className="text-[var(--fg)] font-medium">Tier 2 (17 credits)</strong>.</>,
+    a: <>Notes are charged based on <strong className="text-[var(--fg)] font-medium">total token count</strong> (input transcript + AI output combined). Longer lectures with denser content produce more tokens. A typical 2–3 hour lecture usually falls in <strong className="text-[var(--fg)] font-medium">Tier 2 (17 credits <LocalCreditPrice credits={17} />)</strong>.</>,
   },
   {
     q: 'Why is transcription priced separately from notes?',
@@ -93,6 +94,7 @@ const FAQ_ITEMS = [
 
 const TOPUP_PRESETS = TOPUP_PACKAGES.map((pkg) => ({
   amount: pkg.credits,
+  amountUsd: pkg.amountUsd,
   label: pkg.label,
   hint: pkg.hint,
   popular: pkg.amountUsd === 10,
@@ -107,11 +109,12 @@ const badgeColors = {
 };
 
 // Inline credit display: number + icon side by side
-function Cr({ amount, size = 13, iconSize = 12, className = '' }) {
+function Cr({ amount, size = 13, iconSize = 12, className = '', showLocal = true }) {
   return (
     <span className={`inline-flex items-center gap-1 font-mono font-medium text-[var(--accent)] ${className}`} style={{ fontSize: size }}>
       {amount}
       <CreditIcon size={iconSize} />
+      {showLocal && <LocalCreditPrice credits={amount} />}
     </span>
   );
 }
@@ -176,7 +179,7 @@ function TierRow({ t, model }) {
       <span className={`rounded-full border px-[7px] py-0.5 text-[10px] uppercase tracking-[0.06em] ${badgeColors[t.badgeClass]}`}>
         {t.badge}
       </span>
-      <span className="w-[90px] flex items-center justify-end gap-1 font-mono text-[13px] font-medium text-[var(--accent)]">
+      <span className="w-[170px] flex items-center justify-end gap-1 font-mono text-[13px] font-medium text-[var(--accent)]">
         {isT4 ? (
           <><Cr amount={perHr} size={13} iconSize={12} /><span className="text-[var(--fg-3)] font-normal text-[11px]">{t.perHrLabel || '/hr'}</span></>
         ) : (
@@ -270,45 +273,6 @@ export default function Pricing() {
     { range: t('over3hr'), strong: '3', badge: t('tier4'), badgeClass: 'red', prem: null, turbo: null, perHrPrem: 5.4, perHrTurbo: 2.4, sub: t('cap10hr'), perHrLabel: t('perHr') },
   ];
 
-  const GROUP_TIERS = [
-    {
-      name: t('small'), members: 5, perMemberOff: '15%',
-      tiers: [
-        { badge: t('tier1'), badgeClass: 'green', range: t('under25k'), price: 37 },
-        { badge: t('tier2'), badgeClass: 'amber', range: t('25kTo50k'), price: 74 },
-        { badge: t('tier3'), badgeClass: 'orange', range: t('50kTo75k'), price: 120 },
-        { badge: t('tier4'), badgeClass: 'red', range: t('75kTo100k'), price: 160 },
-      ],
-    },
-    {
-      name: t('study'), members: 10, perMemberOff: '25%',
-      tiers: [
-        { badge: t('tier1'), badgeClass: 'green', range: t('under25k'), price: 65 },
-        { badge: t('tier2'), badgeClass: 'amber', range: t('25kTo50k'), price: 130 },
-        { badge: t('tier3'), badgeClass: 'orange', range: t('50kTo75k'), price: 215 },
-        { badge: t('tier4'), badgeClass: 'red', range: t('75kTo100k'), price: 280 },
-      ],
-    },
-    {
-      name: t('class'), members: 25, perMemberOff: '40%',
-      tiers: [
-        { badge: t('tier1'), badgeClass: 'green', range: t('under25k'), price: 130 },
-        { badge: t('tier2'), badgeClass: 'amber', range: t('25kTo50k'), price: 255 },
-        { badge: t('tier3'), badgeClass: 'orange', range: t('50kTo75k'), price: 430 },
-        { badge: t('tier4'), badgeClass: 'red', range: t('75kTo100k'), price: 555 },
-      ],
-    },
-    {
-      name: t('faculty'), members: 50, perMemberOff: '60%',
-      tiers: [
-        { badge: t('tier1'), badgeClass: 'green', range: t('under25k'), price: 170 },
-        { badge: t('tier2'), badgeClass: 'amber', range: t('25kTo50k'), price: 345 },
-        { badge: t('tier3'), badgeClass: 'orange', range: t('50kTo75k'), price: 570 },
-        { badge: t('tier4'), badgeClass: 'red', range: t('75kTo100k'), price: 745 },
-      ],
-    },
-  ];
-
   const FAQ_ITEMS = [
     {
       q: t('q1'),
@@ -319,12 +283,12 @@ export default function Pricing() {
       a: <>{t('a2p1')} <strong className="text-[var(--fg)] font-medium">{t('a2h1')}</strong> {t('a2p2')}</>,
     },
     {
-      q: t('q3'),
-      a: <>{t('a3p1')} <strong className="text-[var(--fg)] font-medium">{t('a3h1')}</strong> {t('a3p2')}</>,
+      q: 'How does group billing work now?',
+      a: <>Groups can have unlimited members, but each generation only charges the <strong className="text-[var(--fg)] font-medium">selected participants</strong>. The per-participant discounts are 0% for 1–4, 15% for 5–9, 25% for 10–24, 40% for 25–49, and 60% for 50+ selected participants. The generator receives no separate discount.</>,
     },
     {
       q: t('q4'),
-      a: <>{t('a4p1')} <strong className="text-[var(--fg)] font-medium">{t('a4h1')}</strong> {t('a4p2')} <strong className="text-[var(--fg)] font-medium">{t('a4h2')}</strong>.</>,
+      a: <>{t('a4p1')} <strong className="text-[var(--fg)] font-medium">{t('a4h1')}</strong> {t('a4p2')} <strong className="text-[var(--fg)] font-medium">{t('a4h2')} <LocalCreditPrice credits={17} /></strong>.</>,
     },
     {
       q: t('q5'),
@@ -338,6 +302,7 @@ export default function Pricing() {
 
   const TOPUP_PRESETS = TOPUP_PACKAGES.map((pkg) => ({
     amount: pkg.credits,
+    amountUsd: pkg.amountUsd,
     label: pkg.label,
     hint: pkg.hint,
     popular: pkg.amountUsd === 10,
@@ -412,7 +377,7 @@ export default function Pricing() {
                       {['turbo', 'prem'].map((m) => (
                         <button key={m} onClick={() => setTxModel(m)}
                           className={`rounded px-2.5 py-0.5 text-[10px] uppercase tracking-[0.05em] font-medium transition-all
-                            ${txModel === m ? 'bg-[var(--surface-raised)] text-[var(--accent)] border border-[var(--border)]' : 'text-[var(--fg-3)] hover:text-[var(--fg-2)]'}`}>
+                            ${txModel === m ? 'btn-option-active' : 'text-[var(--fg-3)] hover:text-[var(--fg-2)]'}`}>
                           {m === 'prem' ? 'Premium' : 'Turbo'}
                         </button>
                       ))}
@@ -427,55 +392,102 @@ export default function Pricing() {
             {/* Group plans */}
             <motion.div variants={itemVariants}>
               <SectionLabel>{t('sectionGroup')}</SectionLabel>
-              <div className="grid grid-cols-4 gap-3">
-                {GROUP_TIERS.map((group) => {
-                  const t2Cost = group.tiers[1].price;
-                  const genCost = Math.round((t2Cost / group.members) * 0.5);
-                  const otherCost = Math.round(t2Cost / group.members);
-                  return (
-                    <div key={group.name} className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col surface noise">
-                      <div className="flex items-center justify-between border-b border-[var(--border)] px-[18px] py-3.5">
-                        <div className="flex items-center gap-2">
-                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[var(--accent)] fill-none stroke-[1.8]">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                          </svg>
-                          <span className="text-[13px] font-medium text-[var(--fg)]">{group.name}</span>
-                        </div>
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className="text-[11px] text-[var(--fg-3)]">≤ {group.members} {t('members')}</span>
-                          <span className="text-[10px] text-[#22c55e]">{t('offMember').replace('15%', group.perMemberOff).replace('off/member', group.perMemberOff + ' ' + t('offMember'))}</span>
-                        </div>
-                      </div>
-                      {group.tiers.map((t, i) => (
-                        <div key={i} className="flex items-center justify-between border-b border-[var(--border-faint)] px-[18px] py-2 last:border-0 hover:bg-[var(--surface-tint-faint)] transition-colors">
-                          <span className={`rounded-full border px-[7px] py-0.5 text-[10px] uppercase tracking-[0.06em] ${badgeColors[t.badgeClass]}`}>{t.badge}</span>
-                          <span className="flex-1 mx-3 text-[11.5px] text-[var(--fg-3)]">{t.range}</span>
-                          <Cr amount={t.price} size={13} iconSize={12} />
-                        </div>
-                      ))}
-                      <div className="border-t border-[var(--border-faint)] px-[18px] py-3 bg-[var(--surface-tint-faint)] mt-auto">
-                        <div className="text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--fg-2)] mb-1.5 opacity-90">{t('t2SplitExample')}</div>
-                        <div className="flex flex-col gap-1 text-[11px] text-[var(--fg-3)]">
-                          <div className="flex justify-between items-center">
-                            <span>{t('generatorPays')}</span>
-                            <Cr amount={genCost} size={12} iconSize={11} />
-                          </div>
-                          <div className="flex justify-between items-center">
-                          <span>{t('othersPay', { count: group.members - 1 })}</span>
-                            <span className="inline-flex items-center gap-1 font-mono text-[12px] text-[var(--fg)]">
-                              {otherCost}<CreditIcon size={11} />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+              <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] surface noise">
+                <div className="border-b border-[var(--border)] px-[20px] py-4">
+                  <div className="flex items-center gap-2 text-[13px] font-medium text-[var(--fg)]">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[var(--accent)] fill-none stroke-[1.8]">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    Group pricing now follows the selected participants on each generation
+                  </div>
+                  <p className="mt-2 max-w-[760px] text-[12.5px] leading-relaxed text-[var(--fg-3)]">
+                    Groups can have unlimited members, but each group note or transcript generation only charges the people included for that specific run.
+                    The discount tier is based on that selected participant count, not on the total number of people sitting in the group.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 p-[18px] sm:grid-cols-2 xl:grid-cols-5">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-[13px] font-medium text-[var(--fg)]">1–4 selected</span>
+                      <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
+                        0% off
+                      </span>
                     </div>
-                  );
-                })}
+                    <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
+                      The generation uses normal individual pricing. This is useful when only a few people want in on a note.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[rgba(0,212,200,0.16)] bg-[rgba(0,212,200,0.05)] p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-[13px] font-medium text-[var(--fg)]">5–9 selected</span>
+                      <span className="rounded-full border border-[rgba(0,212,200,0.2)] px-2 py-0.5 text-[10px] uppercase tracking-[0.06em] text-[var(--accent)]">
+                        15% off
+                      </span>
+                    </div>
+                    <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
+                      Each selected participant pays 85% of the normal base price.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[rgba(34,197,94,0.18)] bg-[rgba(34,197,94,0.06)] p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-[13px] font-medium text-[var(--fg)]">10–24 selected</span>
+                      <span className="rounded-full border border-[rgba(34,197,94,0.22)] px-2 py-0.5 text-[10px] uppercase tracking-[0.06em] text-[#22c55e]">
+                        25% off
+                      </span>
+                    </div>
+                    <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
+                      Each selected participant pays 75% of the normal base price.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[rgba(59,130,246,0.2)] bg-[rgba(59,130,246,0.06)] p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-[13px] font-medium text-[var(--fg)]">25–49 selected</span>
+                      <span className="rounded-full border border-[rgba(59,130,246,0.24)] px-2 py-0.5 text-[10px] uppercase tracking-[0.06em] text-[#60a5fa]">
+                        40% off
+                      </span>
+                    </div>
+                    <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
+                      Each selected participant pays 60% of the normal base price.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[rgba(168,85,247,0.2)] bg-[rgba(168,85,247,0.06)] p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-[13px] font-medium text-[var(--fg)]">50+ selected</span>
+                      <span className="rounded-full border border-[rgba(168,85,247,0.24)] px-2 py-0.5 text-[10px] uppercase tracking-[0.06em] text-[#c084fc]">
+                        60% off
+                      </span>
+                    </div>
+                    <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
+                      Each selected participant pays 40% of the normal base price.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 border-t border-[var(--border-faint)] px-[18px] py-[18px] bg-[var(--surface-tint-faint)]">
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                    <div className="mb-1 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--fg-2)] opacity-90">
+                      How this works in practice
+                    </div>
+                    <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
+                      Before confirming, the generator picks who is included. The UI should show selected members, participant count, applied tier, and each person’s share.
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                    <div className="mb-1 text-[10.5px] font-medium uppercase tracking-[0.05em] text-[var(--fg-2)] opacity-90">
+                      Important rule
+                    </div>
+                    <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
+                      Only selected participants are charged and recorded for access. If a later unlock crosses a discount threshold, existing participants receive the price difference as a rebate and the new participant pays the discounted price.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <p className="mt-2.5 text-[11.5px] text-[var(--fg-3)] opacity-90">
-                {t('groupGenSubtext')} <span className="text-[var(--fg)] font-medium">{t('groupGenSubtextHighlight')}</span> {t('groupGenSubtextEnd')}
-              </p>
             </motion.div>
 
             {/* Calculator */}
@@ -493,7 +505,7 @@ export default function Pricing() {
                     {['notes', 'transcript', 'pipeline'].map((tab) => (
                       <button key={tab} onClick={() => setCalcTab(tab)}
                         className={`rounded-md px-3.5 py-[5px] text-[12px] transition-all duration-150
-                          ${calcTab === tab ? 'bg-[var(--surface-raised)] text-[var(--fg)] border border-[var(--border)]' : 'text-[var(--fg-3)] hover:text-[var(--fg-2)]'}`}>
+                          ${calcTab === tab ? 'btn-option-active text-[var(--fg)]' : 'text-[var(--fg-3)] hover:text-[var(--fg-2)]'}`}>
                         {tab === 'notes' ? t('notesTab') : tab === 'transcript' ? t('transcriptionTab') : t('pipelineTab')}
                       </button>
                     ))}
@@ -532,9 +544,7 @@ export default function Pricing() {
                             {['turbo', 'prem'].map((m) => (
                               <button key={m} onClick={() => setCalcTxModel(m)}
                                 className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] uppercase tracking-[0.05em] font-medium transition-all
-                                  ${calcTxModel === m
-                                    ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
-                                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
+                                  ${calcTxModel === m ? 'btn-option-active' : 'btn-option'}`}>
                                 {m === 'prem' ? t('premium') : t('turbo')}
                               </button>
                             ))}
@@ -546,9 +556,7 @@ export default function Pricing() {
                             {[t('under1hr_short'), t('1To2hr_short'), t('2To3hr_short'), t('3hrPlus_short')].map((label, i) => (
                               <button key={i} onClick={() => setDurIdx(i)}
                                 className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] transition-all
-                                  ${durIdx === i
-                                    ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
-                                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
+                                  ${durIdx === i ? 'btn-option-active' : 'btn-option'}`}>
                                 {label}
                               </button>
                             ))}
@@ -577,9 +585,7 @@ export default function Pricing() {
                             {['turbo', 'prem'].map((m) => (
                               <button key={m} onClick={() => setPipeTxModel(m)}
                                 className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] uppercase tracking-[0.05em] font-medium transition-all
-                                  ${pipeTxModel === m
-                                    ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
-                                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
+                                  ${pipeTxModel === m ? 'btn-option-active' : 'btn-option'}`}>
                                 {m === 'prem' ? t('premium') : t('turbo')}
                               </button>
                             ))}
@@ -591,9 +597,7 @@ export default function Pricing() {
                             {[t('under1hr_short'), t('1To2hr_short'), t('2To3hr_short'), t('3hrPlus_short')].map((label, i) => (
                               <button key={i} onClick={() => setPipeDurIdx(i)}
                                 className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] transition-all
-                                  ${pipeDurIdx === i
-                                    ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
-                                    : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
+                                  ${pipeDurIdx === i ? 'btn-option-active' : 'btn-option'}`}>
                                 {label}
                               </button>
                             ))}
@@ -636,6 +640,7 @@ export default function Pricing() {
                       <div className="flex items-center gap-2 my-1.5">
                         <span className="font-mono text-[36px] font-medium leading-none text-[var(--accent)]">{calcCost}</span>
                         <CreditIcon size={24} />
+                        <LocalCreditPrice credits={calcCost} className="text-[12px]" />
                       </div>
                       <div className="text-[12px] text-[var(--fg-3)]">
                         {calcTierLabel} — <strong className="text-[var(--fg-2)] font-medium">{calcTierRange}</strong>
@@ -650,12 +655,12 @@ export default function Pricing() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2.5">
-                        <span className="text-[12px] text-[var(--fg-3)]">{t('genWith')} <Cr amount={activeBalance} size={12} iconSize={11} /></span>
+                        <span className="text-[12px] text-[var(--fg-3)]">{t('genWith')} <Cr amount={activeBalance} size={12} iconSize={11} showLocal={false} /></span>
                         <span className="font-mono text-[13px] text-[var(--accent)]">{gens} {calcTab === 'pipeline' ? t('pipelines') : t('gens')}</span>
                       </div>
                       <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2.5">
                         <span className="text-[12px] text-[var(--fg-3)]">{t('balanceAfter')}</span>
-                        <Cr amount={balAfter} size={13} iconSize={12} className="text-[var(--fg)]" />
+                        <Cr amount={balAfter} size={13} iconSize={12} className="text-[var(--fg)]" showLocal={false} />
                       </div>
                       {calcBreakdown && (
                         <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2.5">
@@ -686,10 +691,8 @@ export default function Pricing() {
                 <div className="grid grid-cols-4 gap-2">
                   {TOPUP_PRESETS.map((p) => (
                     <button key={p.amount} onClick={() => setSelectedTopup(p.amount)}
-                      className={`relative rounded-lg border py-3.5 text-center transition-all
-                        ${selectedTopup === p.amount
-                          ? 'border-[rgba(0,212,200,0.4)] bg-[rgba(0,212,200,0.07)]'
-                          : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-[var(--border-hover)]'}`}>
+                      className={`relative overflow-visible rounded-lg border py-3.5 text-center transition-all
+                        ${selectedTopup === p.amount ? 'btn-option-active' : 'btn-option'}`}>
                       {p.popular && (
                         <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[var(--accent)] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--on-accent)] whitespace-nowrap">
                           {t('popular')}
@@ -699,12 +702,14 @@ export default function Pricing() {
                         {p.amount}
                         <CreditIcon size={16} color={selectedTopup === p.amount ? '#00d4c8' : 'var(--fg)'} />
                       </div>
-                      <div className="text-[11px] text-[var(--fg-3)] mt-0.5">{p.label} · {p.hint}</div>
+                      <div className="text-[11px] text-[var(--fg-3)] mt-0.5">
+                        {p.label} <LocalCreditPrice usdAmount={p.amountUsd} hideWhenUsd /> · {p.hint}
+                      </div>
                     </button>
                   ))}
                 </div>
                 <button onClick={() => router.push('/topup')}
-                  className="flex w-fit items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-[13px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-85">
+                  className="btn-accent flex w-fit items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium transition-all">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-2">
                     <path d="M12 5v14M5 12l7-7 7 7" />
                   </svg>

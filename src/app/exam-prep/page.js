@@ -9,6 +9,8 @@ import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import ErrorModal from '../ErrorModal';
 import CreditIcon from '../CreditIcon';
+import LocalCreditPrice from '../LocalCreditPrice';
+import ExamPrepComingSoonPage from './ComingSoonPage';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const TYPE_STYLES = {
@@ -108,6 +110,7 @@ function ExamPrepRow({ ep, onOpen, onUnlock, unlocking }) {
                 <path d="M7 11V7a5 5 0 0 1 9.9-1" />
               </svg>
               {t('unlock')} · {ep.unlock_price} <CreditIcon size={11} />
+              <LocalCreditPrice credits={ep.unlock_price} />
             </>
           )}
         </button>
@@ -165,8 +168,8 @@ function ExamPrepRow({ ep, onOpen, onUnlock, unlocking }) {
       )}
 
       {/* Cost */}
-      <span className="flex-shrink-0 w-16 text-right font-mono text-[12px] text-[var(--accent)]">
-        {ep.charge_amount != null ? <>{ep.charge_amount}<CreditIcon size={11} className="ml-0.5" /></> : '—'}
+      <span className="flex w-28 flex-shrink-0 flex-col items-end text-right font-mono text-[12px] text-[var(--accent)] pr-[18px]">
+        {ep.charge_amount != null ? <><span>{ep.charge_amount}<CreditIcon size={11} className="ml-0.5" /></span><LocalCreditPrice credits={ep.charge_amount} /></> : '—'}
       </span>
 
       {/* Date */}
@@ -258,7 +261,7 @@ function EmptyState({ message, sub }) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 const TABS = ['all', 'individual', 'group'];
 
-export default function ExamPrepListPage() {
+export function ExamPrepListPageLegacy() {
   const router = useRouter();
   const t = useTranslations('examPrep');
   const { getAccessTokenSilently } = useAuth0();
@@ -385,7 +388,7 @@ export default function ExamPrepListPage() {
             </div>
             <button
               onClick={() => router.push('/exam-prep/new')}
-              className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[13px] font-semibold text-[var(--on-accent)] transition-opacity hover:opacity-90"
+              className="btn-accent flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-semibold transition-all"
             >
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[2.5]">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -443,7 +446,7 @@ export default function ExamPrepListPage() {
                   <div className="w-9 flex-shrink-0" />
                   <SortHeader label={t('labelHeader')} col="label" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-1 min-w-0" />
                   <SortHeader label={t('difficultyHeader')} col="difficulty" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-shrink-0 w-20 justify-center" />
-                  <SortHeader label={t('costHeader')} col="charge_amount" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-shrink-0 w-16 justify-end" />
+                  <SortHeader label={t('costHeader')} col="charge_amount" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-shrink-0 w-28 justify-end" />
                   <SortHeader label={t('dateHeader')} col="created_at" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-shrink-0 w-28 justify-end" />
                   <div className="w-3.5 flex-shrink-0" />
                 </div>
@@ -486,4 +489,8 @@ export default function ExamPrepListPage() {
       </div>
     </div>
   );
+}
+
+export default function ExamPrepListPage() {
+  return <ExamPrepComingSoonPage />;
 }

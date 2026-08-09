@@ -43,6 +43,35 @@
     "newTranscript": "แปลงข้อความใหม่",
     "newExamPrep": "เตรียมสอบใหม่"
   },
+  "categoryPairs": {
+    "label": "คู่หมวดหมู่",
+    "helper": "ใช้คู่ `course_name` + `period_label` ที่บันทึกไว้ซ้ำ หรือสร้างคู่ใหม่",
+    "manage": "จัดการคู่หมวดหมู่",
+    "noneSelected": "ยังไม่ได้เลือกคู่หมวดหมู่",
+    "optionalHint": "ตอนนี้ยังเป็นตัวเลือกเสริม แต่ตรงนี้จะเป็นที่อยู่ของการจัดหมวดหมู่หลักและรองแบบใหม่",
+    "title": "จัดการคู่หมวดหมู่",
+    "description": "สร้างคู่ course + period ที่ใช้ซ้ำได้และแชร์ข้าม notes, transcripts และ exam prep ได้",
+    "savedPairs": "คู่ที่บันทึกไว้",
+    "newPair": "คู่ใหม่",
+    "empty": "ยังไม่มีคู่หมวดหมู่",
+    "updatedShort": "อัปเดต {date}",
+    "courseName": "ชื่อวิชา",
+    "courseNamePlaceholder": "เช่น CSC531 Data Mining",
+    "periodLabel": "ป้ายช่วงเวลา",
+    "periodLabelPlaceholder": "เช่น ปี 3 เทอม 2",
+    "color": "สี",
+    "preview": "ตัวอย่าง",
+    "courseNameFallback": "ชื่อวิชา",
+    "periodLabelFallback": "ป้ายช่วงเวลา",
+    "created": "สร้างเมื่อ",
+    "updated": "อัปเดตเมื่อ",
+    "user": "ผู้ใช้",
+    "hex": "Hex",
+    "footer": "เลือกคู่ที่บันทึกไว้จากรายการ หรือสร้างคู่ใหม่ที่ใช้ซ้ำได้ที่นี่",
+    "useThisPair": "ใช้คู่นี้",
+    "saveChanges": "บันทึกการเปลี่ยนแปลง",
+    "createPair": "สร้างคู่"
+  },
   "auth": {
     "signIn": "เข้าสู่ระบบ",
     "subtitle": "ใช้บัญชี Google ของมหาวิทยาลัยของคุณเพื่อเริ่มต้น ไม่ต้องใช้รหัสผ่าน",
@@ -207,7 +236,9 @@
     "searchTranscriptsPlaceholder": "ค้นหาบทถอดความ…",
     "noTranscriptsYetPicker": "ยังไม่มีบทถอดความ",
     "noResultsFound": "ไม่พบผลลัพธ์",
-    "courseNamePlaceholder": "เช่น CSC531 Data Mining"
+    "courseNamePlaceholder": "เช่น CSC531 Data Mining",
+    "noteTitleLabel": "ชื่อโน้ต",
+    "noteTitlePlaceholder": "เช่น สัปดาห์ 7 - เลกเชอร์ Data Mining"
   },
   "transcriptor": {
     "title": "ตัวแปลงเสียงเป็นข้อความ",
@@ -287,7 +318,9 @@
     "whisperLargeV3Turbo": "Whisper Large V3 Turbo",
     "words": "คำ",
     "errorDelete": "เกิดข้อผิดพลาด โปรดลองอีกครั้ง",
-    "vad": "การตรวจจับเสียง (VAD)"
+    "vad": "การตรวจจับเสียง (VAD)",
+    "group": "กลุ่ม",
+    "individual": "รายบุคคล"
   },
   "audioConverter": {
     "title": "ตัวแปลงไฟล์เสียง",

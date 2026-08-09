@@ -10,6 +10,10 @@ export async function POST(req) {
         }
 
         const { invite_code } = await req.json();
+        const inviteCode = String(invite_code || '').trim();
+        if (!inviteCode) {
+            return NextResponse.json({ error: "Invite code is required." }, { status: 400 });
+        }
 
         const existing = await sql`SELECT 1 FROM "group_member" WHERE user_id = ${userId} LIMIT 1`;
         if (existing.length > 0) {
@@ -18,20 +22,27 @@ export async function POST(req) {
 
         const result = await sql.begin(async (tx) => {
             const [group] = await tx`
-                SELECT id, max_members FROM "student_group" WHERE invite_code = ${invite_code} LIMIT 1
+                SELECT id
+                FROM "student_group"
+                WHERE invite_code = ${inviteCode}
+                LIMIT 1
+                FOR UPDATE
             `;
             if (!group) throw { status: 404, message: "Invalid invite code." };
 
-            const [{ count }] = await tx`
-                SELECT COUNT(*) as count FROM "group_member" WHERE group_id = ${group.id}
+            await tx`
+                INSERT INTO "group_member" (group_id, user_id, role)
+                VALUES (${group.id}, ${userId}, 'member')
             `;
-            if (parseInt(count) >= group.max_members) {
-                throw { status: 400, message: "Group is full." };
-            }
 
             await tx`
-                INSERT INTO "group_member" (group_id, user_id, role, invite_code)
-                VALUES (${group.id}, ${userId}, 'member', ${invite_code})
+                UPDATE "student_group" sg
+                SET member_count = (
+                    SELECT COUNT(*)::int
+                    FROM "group_member" gm
+                    WHERE gm.group_id = sg.id
+                )
+                WHERE sg.id = ${group.id}
             `;
 
             return { group_id: group.id };
@@ -42,6 +53,9 @@ export async function POST(req) {
     } catch (error) {
         if (error.status) {
             return NextResponse.json({ error: error.message }, { status: error.status });
+        }
+        if (error.code === '23505') {
+            return NextResponse.json({ error: "You are already in a group." }, { status: 400 });
         }
         console.error("POST /group/join error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

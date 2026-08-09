@@ -6,6 +6,10 @@ import { generateGroup } from "@/lib/note/group/generate";
 import { franc } from "franc-min";
 import languageMap from "@/lib/languageMap";
 import { rateLimit } from "@/lib/rateLimit";
+import { resolveCategorization } from "@/lib/categories";
+import { normalizeParticipantIds } from "@/lib/groupGeneration";
+import { getGroupPerParticipantPrice, getGroupTotalPrice } from "@/lib/groupPricing";
+import { WORST_CASE_NOTE_PRICE } from "@/lib/notePricing";
 
 // Exported so the worker can calculate the final price
 export function getGroupTierPrice(totalTokens, groupTier) {
@@ -43,18 +47,29 @@ export async function POST(req) {
     `;
     if (inProgress.length > 0) return NextResponse.json({ error: 'You already have a generation in progress. Please wait.' }, { status: 400 });
 
-    const [membership] = await sql`
-        SELECT gm.group_id, gm.role, sg.tier, sg.max_members, sg.id as group_id
-        FROM "group_member" gm
-        JOIN "student_group" sg ON sg.id = gm.group_id
-        WHERE gm.user_id = ${userId}
-        LIMIT 1
-    `;
-    if (!membership) return NextResponse.json({ error: "You are not in a group." }, { status: 400 });
-
     const formData = await req.formData();
     const file = formData.get('file') || null;
     const transcript_id = formData.get('transcript_id') || null;
+    let selectedMemberIds = [];
+
+    try {
+        selectedMemberIds = JSON.parse(formData.get('member_ids') || '[]');
+    } catch {
+        return NextResponse.json({ error: "Invalid participant selection." }, { status: 400 });
+    }
+    selectedMemberIds = normalizeParticipantIds(selectedMemberIds, userId);
+
+    if (selectedMemberIds.length === 0) {
+        return NextResponse.json({ error: "Please select at least one participant." }, { status: 400 });
+    }
+
+    const [membership] = await sql`
+        SELECT group_id
+        FROM "group_member"
+        WHERE user_id = ${userId}
+        LIMIT 1
+    `;
+    if (!membership) return NextResponse.json({ error: "You are not in a group." }, { status: 400 });
 
     if (file === null && transcript_id === null) return NextResponse.json({ error: "Please upload/select a transcript file!" }, { status: 400 });
     if (file !== null && transcript_id !== null) return NextResponse.json({ error: "Please upload/select only one file!" }, { status: 400 });
@@ -62,6 +77,11 @@ export async function POST(req) {
     const name = formData.get('name');
     let language = formData.get('target_language') || null;
     const style = formData.get('style') || 'standard';
+    const requestedCategorizationId = formData.get('categorization_id') || null;
+    const categorizationId = await resolveCategorization(userId, requestedCategorizationId);
+    if (requestedCategorizationId && !categorizationId) {
+        return NextResponse.json({ error: 'Invalid category.' }, { status: 400 });
+    }
     const publicId = uuidv4();
 
     let sourceContent = null;
@@ -69,7 +89,20 @@ export async function POST(req) {
     let transcriptDbId = null;
 
     if (transcript_id) {
-        const rows = await sql`SELECT id, content FROM "transcript" WHERE public_id = ${transcript_id} AND user_id = ${userId}`;
+        const rows = await sql`
+            SELECT t.id, t.content
+            FROM "transcript" t
+            WHERE t.public_id = ${transcript_id}
+            AND t.status = 'Completed'
+            AND (
+                t.user_id = ${userId}
+                OR EXISTS (
+                    SELECT 1
+                    FROM transcript_access ta
+                    WHERE ta.transcript_id = t.id AND ta.user_id = ${userId}
+                )
+            )
+        `;
         if (!rows[0]) return NextResponse.json({ error: "Transcript not found" }, { status: 404 });
         transcriptDbId = rows[0].id;
         sourceContent = rows[0].content;
@@ -91,48 +124,63 @@ export async function POST(req) {
 
     if (estimatedInputTokens > 65000) return NextResponse.json({ error: "Transcript is too long. Maximum input is ~65,000 tokens." }, { status: 400 });
 
-    // 1. Calculate the MAXIMUM possible tier price for the hold
-    const maxPriceHold = getGroupTierPrice(Infinity, membership.tier);
-
     const members = await sql`
         SELECT gm.user_id, u.balance
         FROM "group_member" gm
         JOIN "user" u ON u.id = gm.user_id
         WHERE gm.group_id = ${membership.group_id}
+        AND gm.user_id = ANY(${selectedMemberIds}::bigint[])
     `;
 
-    const maxSplit = parseFloat((maxPriceHold / members.length).toFixed(2));
-    const maxGeneratorCharge = parseFloat((maxSplit * 0.5).toFixed(2));
+    if (members.length !== selectedMemberIds.length) {
+        return NextResponse.json({ error: "Some selected members are not in this group." }, { status: 400 });
+    }
 
-    // 2. Ensure all members can afford the MAX hold
-    const broke = members.find(m => {
-        const charge = m.user_id === userId ? maxGeneratorCharge : maxSplit;
-        return parseFloat(m.balance) < charge;
-    });
+    const perParticipantHold = getGroupPerParticipantPrice(WORST_CASE_NOTE_PRICE, members.length);
+    const totalHold = getGroupTotalPrice(WORST_CASE_NOTE_PRICE, members.length);
+
+    const broke = members.find(m => parseFloat(m.balance) < perParticipantHold);
     if (broke) {
-        return NextResponse.json({ error: "A group member has insufficient balance to authorize the generation." }, { status: 400 });
+        return NextResponse.json({ error: "A selected participant has insufficient balance." }, { status: 400 });
     }
 
     let noteId;
 
-    // 3. Deduct the max hold UPFRONT in a transaction
     await sql.begin(async (tx) => {
-        for (const member of members) {
-            const charge = member.user_id === userId ? maxGeneratorCharge : maxSplit;
-            const [held] = await tx`UPDATE "user" SET balance = balance - ${charge} WHERE id = ${member.user_id} AND balance >= ${charge} RETURNING id`;
-            if (!held) throw new Error(`Member ${member.user_id} has insufficient balance.`);
-        }
-
         const result = await tx`
-            INSERT INTO "note" (name, created_at, user_id, group_id, status, public_id, style, transcript_id, uploaded_filename, source_content, generation_type, language)
-            VALUES (${name}, NOW(), ${userId}, ${membership.group_id}, 'pending', ${publicId}, ${style}, ${transcriptDbId}, ${uploadedFilename}, ${sourceContent}, 'group', ${language})
+            INSERT INTO "note" (
+                name, created_at, user_id, group_id, status, public_id, style,
+                transcript_id, uploaded_filename, source_content, generation_type,
+                language, categorization_id, charge_amount, is_trial
+            )
+            VALUES (
+                ${name}, NOW(), ${userId}, ${membership.group_id}, 'pending', ${publicId}, ${style},
+                ${transcriptDbId}, ${uploadedFilename}, ${sourceContent}, 'group',
+                ${language}, ${categorizationId}, ${totalHold}, false
+            )
             RETURNING id
         `;
         noteId = result[0].id;
+
+        for (const member of members) {
+            const [held] = await tx`
+                UPDATE "user"
+                SET balance = balance - ${perParticipantHold}
+                WHERE id = ${member.user_id} AND balance >= ${perParticipantHold}
+                RETURNING id
+            `;
+            if (!held) throw new Error(`Member ${member.user_id} has insufficient balance.`);
+
+            await tx`
+                INSERT INTO note_access (
+                    note_id, user_id, paid_amount, is_original, unlocked_at
+                )
+                VALUES (${noteId}, ${member.user_id}, ${perParticipantHold}, 1, NOW())
+            `;
+        }
     });
 
-    // Pass the tier and the maxHold so the worker can calculate refunds
-    generateGroup(noteId, userId, membership.group_id, membership.tier, maxPriceHold, language).catch(err => console.error('Group gen error:', err));
+    generateGroup(noteId, userId, language).catch(err => console.error('Group gen error:', err));
 
     return NextResponse.json({ publicId });
 }

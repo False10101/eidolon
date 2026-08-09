@@ -23,11 +23,11 @@ export default function ConfirmModal({ title, message, confirmLabel = 'Confirm',
         <p className="relative mb-6 text-[13px] leading-[1.7] text-[var(--fg-3)]">{message}</p>
         <div className="relative flex gap-2">
           <button onClick={onCancel} disabled={loading}
-            className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] py-2.5 text-[13px] text-[var(--fg-3)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)] disabled:opacity-40 disabled:cursor-not-allowed">
+            className="btn-surface flex-1 rounded-lg py-2.5 text-[13px] transition-all disabled:opacity-40 disabled:cursor-not-allowed">
             Cancel
           </button>
           <button onClick={onConfirm} disabled={loading}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] py-2.5 text-[13px] font-medium text-[#ef4444] transition-all hover:bg-[rgba(239,68,68,0.14)] disabled:opacity-60 disabled:cursor-not-allowed">
+            className="btn-danger flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-[13px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed">
             {loading && <div className="h-3.5 w-3.5 animate-spin rounded-full border border-transparent border-t-[#ef4444]" />}
             {loading ? (loadingLabel ?? confirmLabel) : confirmLabel}
           </button>

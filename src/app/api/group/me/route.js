@@ -17,7 +17,9 @@ export async function GET(req) {
         }
 
         const [group] = await sql`
-            SELECT id, name, tier, max_members, invite_code FROM "student_group" WHERE id = ${membership.group_id}
+            SELECT id, name, member_count, invite_code
+            FROM "student_group"
+            WHERE id = ${membership.group_id}
         `;
 
         const members = await sql`

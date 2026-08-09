@@ -9,6 +9,7 @@ import Sidebar from '../sidebar';
 import GeneratingOverlay from '../GeneratingOverlays';
 import ErrorModal from '../ErrorModal';
 import CreditIcon from '../CreditIcon';
+import LocalCreditPrice from '../LocalCreditPrice';
 import { useTranslations } from 'next-intl';
 import ConverterOnboard from './ConverterOnboard';
 
@@ -406,12 +407,12 @@ export default function AudioConverter() {
                   </div>
                   <div className="flex flex-shrink-0 gap-1.5">
                     <button onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-3)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)]">
+                      className="btn-surface flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] transition-all">
                       <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
                       {t('replace')}
                     </button>
                     <button onClick={removeFile}
-                      className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-3)] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444]">
+                      className="btn-danger flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] transition-all">
                       <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                       {t('remove')}
                     </button>
@@ -434,8 +435,8 @@ export default function AudioConverter() {
                     <button key={f} onClick={() => handleSetFormat(f)}
                       className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] transition-all duration-100
             ${format === f
-                          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
-                          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
+                          ? 'btn-option-active'
+                          : 'btn-option'}`}>
                       {f}
                     </button>
                   ))}
@@ -451,8 +452,8 @@ export default function AudioConverter() {
                     <button key={b} onClick={() => setBitrate(b)}
                       className={`flex-1 rounded-lg border py-[7px] text-center text-[12px] transition-all duration-100
             ${bitrate === b
-                          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
-                          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
+                          ? 'btn-option-active'
+                          : 'btn-option'}`}>
                       {b}
                     </button>
                   ))}
@@ -505,8 +506,8 @@ export default function AudioConverter() {
                     onClick={() => handleSetPostAction('download')}
                     className={`group relative flex flex-col gap-2 overflow-hidden rounded-xl border px-4 py-3.5 text-left transition-all duration-150
           ${postAction === 'download'
-                        ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.05)]'
-                        : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-white/[0.13] hover:bg-[var(--input-hover)]'}`}
+                        ? 'btn-option-active'
+                        : 'btn-option'}`}
                   >
                     {postAction === 'download' && (
                       <div className="pointer-events-none absolute inset-0"
@@ -544,8 +545,8 @@ export default function AudioConverter() {
                     onClick={() => handleSetPostAction('transcribe')}
                     className={`group relative flex flex-col gap-2 overflow-hidden rounded-xl border px-4 py-3.5 text-left transition-all duration-150
           ${postAction === 'transcribe'
-                        ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.05)]'
-                        : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-white/[0.13] hover:bg-[var(--input-hover)]'}`}
+                        ? 'btn-option-active'
+                        : 'btn-option'}`}
                   >
                     {postAction === 'transcribe' && (
                       <div className="pointer-events-none absolute inset-0"
@@ -581,8 +582,8 @@ export default function AudioConverter() {
                     onClick={() => handleSetPostAction('both')}
                     className={`group relative flex flex-col gap-2 overflow-hidden rounded-xl border px-4 py-3.5 text-left transition-all duration-150
           ${postAction === 'both'
-                        ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.05)]'
-                        : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-white/[0.13] hover:bg-[var(--input-hover)]'}`}
+                        ? 'btn-option-active'
+                        : 'btn-option'}`}
                   >
                     {postAction === 'both' && (
                       <div className="pointer-events-none absolute inset-0"
@@ -641,10 +642,13 @@ export default function AudioConverter() {
                           <button key={m.id} onClick={() => setTranscribeModel(m.id)}
                             className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2 transition-all duration-100
                   ${transcribeModel === m.id
-                                ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
-                                : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
+                                ? 'btn-option-active'
+                                : 'btn-option'}`}>
                             <span className="text-[12px]">{m.label}</span>
-                            <span className={`font-mono text-[10px] ${transcribeModel === m.id ? 'text-[var(--accent)]' : 'text-[var(--fg-3)]'}`}> <CreditIcon size={10} color={transcribeModel === m.id ? '#00d4c8' : 'var(--fg-2)'} /> {m.sub}</span>
+                            <span className={`flex flex-col items-end font-mono text-[10px] ${transcribeModel === m.id ? 'text-[var(--accent)]' : 'text-[var(--fg-3)]'}`}>
+                              <span><CreditIcon size={10} color={transcribeModel === m.id ? '#00d4c8' : 'var(--fg-2)'} /> {m.sub}</span>
+                              <LocalCreditPrice credits={m.sub} suffix="/hr" />
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -662,8 +666,8 @@ export default function AudioConverter() {
                           <button key={f.id} onClick={() => setTranscribeOutputFormat(f.id)}
                             className={`flex-1 rounded-lg border py-2 text-center text-[12px] transition-all duration-100
                   ${transcribeOutputFormat === f.id
-                                ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] text-[var(--accent)]'
-                                : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'}`}>
+                                ? 'btn-option-active'
+                                : 'btn-option'}`}>
                             {f.label}
                           </button>
                         ))}
@@ -701,7 +705,7 @@ export default function AudioConverter() {
               <button
                 onClick={handleConvert}
                 disabled={!file || status === 'converting'}
-                className="flex flex-shrink-0 items-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-2.5 text-[13px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25"
+                className="btn-accent flex flex-shrink-0 items-center gap-2 rounded-lg px-6 py-2.5 text-[13px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-25"
               >
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[2.2]">
                   <polyline points="23 4 23 10 17 10" />

@@ -10,33 +10,36 @@ import GeneratingOverlay from '../../GeneratingOverlays';
 import TranscriptSourcePicker from '@/app/TranscriptSourcePicker';
 import ErrorModal from '@/app/ErrorModal';
 import CreditIcon from '@/app/CreditIcon';
+import LocalCreditPrice from '@/app/LocalCreditPrice';
 import { useTranslations } from 'next-intl';
 import NotesOnboard from '../NotesOnboard';
+import GroupMemberModal from '@/app/GroupMemberModal';
+import CategorizationPicker from '@/app/CategorizationPicker';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const COMPACTNESS_OPTIONS = [
   {
     value: 'stripped',
     label: 'Exam Note', labelKey: 'examNote', badgeKey: 'compact',
-    
+
     description: 'Ultra-condensed for limited exam note allowances. Definitions, key terms, and formulas only — no elaboration.',
   },
   {
     value: 'standard',
     label: 'Standard', labelKey: 'standard', badgeKey: 'recap',
-    
+
     description: 'A high-level overview of the lecture. Perfect for quick reviews, but heavily summarizes complex concepts and skips granular details.',
   },
   {
     value: 'textbook',
     label: 'Textbook', labelKey: 'textbook', badgeKey: 'recommended',
-    
+
     description: 'The go-to choice for learning the material. A comprehensive, detailed breakdown with full explanations and examples. Nothing gets left behind.',
   },
 ];
 
 const costMap = {
-  exam: '9',
+  stripped: '9',
   standard: '9 – 17',
   textbook: '9 – 29',
 };
@@ -69,11 +72,11 @@ const NOTE_STEPS_KEYS = ['stepReadingTranscript', 'stepGeneratingNote', 'stepSav
 const stepMap = { pending: 0, reading: 0, generating: 1, saving: 2 };
 
 const stageCeilings = {
-  pending:    15,
-  reading:    35,
+  pending: 15,
+  reading: 35,
   generating: 88,
-  saving:     96,
-  completed:  100,
+  saving: 96,
+  completed: 100,
 };
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
@@ -90,21 +93,63 @@ const itemVariants = {
 export default function NewNotePage() {
   const router = useRouter();
   const t = useTranslations("notes");
-  const { getAccessTokenSilently } = useAuth0();
+  const { getAccessTokenSilently, user } = useAuth0();
 
   const [file, setFile] = useState(null);
-  const [courseName, setCourseName] = useState('');
+  const [noteTitle, setNoteTitle] = useState('');
   const [outputLanguage, setOutputLanguage] = useState('auto');
   const [compactness, setCompactness] = useState('standard');
   const [transcriptId, setTranscriptId] = useState(null);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [categorization, setCategorization] = useState(null);
+  const [freeGenerations, setFreeGenerations] = useState(0);
+  const [isTranscriptFree, setIsTranscriptFree] = useState(false);
 
   const [procStatus, setProcStatus] = useState('idle');
   const [currentStatus, setCurrentStatus] = useState('pending');
   const [error, setError] = useState(null);
   const [genMode, setGenMode] = useState('individual');
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const intervalRef = useRef(null);
 
-  const isReady = (file || transcriptId) && courseName.trim().length > 0;
+  const isReady = (file || transcriptId) && noteTitle.trim().length > 0;
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        const res = await fetch('/api/user/getBalance', { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          setFreeGenerations(data.free_generations_remaining || 0);
+        }
+      } catch (err) {}
+    };
+    fetchUserData();
+
+    const fetchMembers = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        const res = await fetch('/api/group/group-members', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error ?? t('errorGeneric'));
+          return;
+        }
+
+        setGroupMembers(data.group_members ?? []);
+      } catch (err) {
+        console.error('Failed to fetch group members:', err);
+        setError(t('errorGeneric'));
+      }
+    };
+
+    fetchMembers();
+  }, [getAccessTokenSilently, t]);
 
   useEffect(() => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
@@ -137,7 +182,7 @@ export default function NewNotePage() {
   };
 
   // Unified generate — endpoint is the only difference between individual and group
-  const handleGenerate = async (mode = 'individual') => {
+  const handleGenerate = async (mode = 'individual', selectedMemberIds = []) => {
     if (!isReady) return;
     setError(null);
     setProcStatus('processing');
@@ -147,9 +192,16 @@ export default function NewNotePage() {
       const form = new FormData();
       if (file) form.append('file', file);
       if (transcriptId) form.append('transcript_id', transcriptId);
-      form.append('name', courseName);
+      form.append('name', noteTitle);
       form.append('style', compactness);
       form.append('target_language', outputLanguage);
+      if (categorization) {
+        form.append('categorization_id', categorization.id);
+      }
+
+      if (mode === 'group' && selectedMemberIds.length > 0) {
+        form.append('member_ids', JSON.stringify(selectedMemberIds));
+      }
 
       const endpoint = mode === 'group'
         ? '/api/note/generate/group'
@@ -222,22 +274,22 @@ export default function NewNotePage() {
             {/* Source picker */}
             <motion.div variants={itemVariants}>
               <TranscriptSourcePicker
-                onFileChange={(f) => setFile(f)}
-                onTranscriptChange={(id) => setTranscriptId(id)}
-                onLabelChange={(label) => setCourseName(label)}
+                onFileChange={(f) => { setFile(f); setIsTranscriptFree(false); }}
+                onTranscriptChange={(id, freeNoteAvailable) => { setTranscriptId(id); setIsTranscriptFree(freeNoteAvailable || false); }}
+                onLabelChange={(l) => { if (!noteTitle) setNoteTitle(l); }}
               />
             </motion.div>
 
             {/* Metadata fields (2 Columns) */}
             <motion.div variants={itemVariants} className="grid flex-shrink-0 grid-cols-2 gap-3.5">
 
-              {/* Course Name */}
+              {/* Note Title */}
               <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
                 <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
-                  {t('courseNameLabel')} <span className="text-[#ef4444]">*</span>
+                  {t('noteTitleLabel')} <span className="text-[#ef4444]">*</span>
                 </div>
-                <input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value)}
-                  placeholder={t('courseNamePlaceholder')}
+                <input type="text" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)}
+                  placeholder={t('noteTitlePlaceholder')}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-[13px] text-[var(--fg)] outline-none placeholder:text-[var(--fg-3)] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
               </div>
 
@@ -269,6 +321,14 @@ export default function NewNotePage() {
 
             </motion.div>
 
+            <motion.div variants={itemVariants} className="flex-shrink-0">
+              <CategorizationPicker
+                value={categorization}
+                onChange={setCategorization}
+                userId={user?.sub ?? 'local-user'}
+              />
+            </motion.div>
+
             {/* Note style */}
             <motion.div variants={itemVariants} className="flex-shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
               <div className="mb-3 text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('noteStyleLabel')}</div>
@@ -279,8 +339,8 @@ export default function NewNotePage() {
                     <button key={opt.value} onClick={() => setCompactness(opt.value)}
                       className={`flex flex-col gap-2 rounded-lg border px-4 py-3.5 text-left transition-all duration-150
                         ${active
-                          ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.06)]'
-                          : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-[var(--border-hover)]'}`}>
+                          ? 'btn-option-active'
+                          : 'btn-option'}`}>
                       <div className="flex items-center justify-between">
                         <span className={`text-[13px] font-medium transition-colors ${active ? 'text-[var(--accent)]' : 'text-[var(--fg-2)]'}`}>
                           {t(opt.labelKey)}
@@ -292,8 +352,9 @@ export default function NewNotePage() {
                       </div>
                       <p className="flex-1 text-[11.5px] leading-[1.6] text-[var(--fg-3)]">{t(opt.labelKey + 'Desc')}</p>
                       <div className="mt-1 flex items-center justify-between">
-                        <span className={`text-[11px] font-mono transition-colors ${active ? 'text-[var(--accent)]' : 'text-[var(--fg-3)]'}`}>
-                          {costMap[opt.value]} <CreditIcon size={12}/>
+                        <span className={`flex flex-col text-[11px] font-mono transition-colors ${active ? 'text-[var(--accent)]' : 'text-[var(--fg-3)]'}`}>
+                          <span>{costMap[opt.value]} <CreditIcon size={12} /></span>
+                          <LocalCreditPrice credits={costMap[opt.value]} className="mt-0.5" />
                         </span>
 
                         <span
@@ -324,8 +385,25 @@ export default function NewNotePage() {
               className="flex flex-shrink-0 items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3.5 surface shadow-xl shadow-black/40"
             >
               <div className="flex flex-col gap-0.5">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('estimatedCostLabel')}</div>
-                <span className="font-mono text-[20px] font-semibold text-[var(--accent)]">{costMap[compactness]} <CreditIcon size={20}/></span>
+                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
+                  {(genMode === 'individual' && (isTranscriptFree || freeGenerations > 0)) ? 'Cost (Trial)' : t('estimatedCostLabel')}
+                </div>
+                {(genMode === 'individual' && (isTranscriptFree || freeGenerations > 0)) ? (
+                  <div className="flex flex-col">
+                    <span className="font-mono text-[14px] font-semibold text-[var(--fg-4)] line-through decoration-1 leading-none">
+                      {costMap[compactness]} <CreditIcon size={12} className="opacity-50 inline-block mb-0.5" />
+                    </span>
+                    <LocalCreditPrice credits={costMap[compactness]} className="mt-1" />
+                    <span className="font-mono text-[22px] font-bold text-[#22c55e] leading-none uppercase mt-0.5">
+                      FREE
+                    </span>
+                  </div>
+                ) : (
+                  <span className="flex flex-col font-mono text-[20px] font-semibold text-[var(--accent)]">
+                    <span>{costMap[compactness]} <CreditIcon size={20} /></span>
+                    <LocalCreditPrice credits={costMap[compactness]} className="mt-0.5 text-[11px]" />
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {/* Mode toggle */}
@@ -333,7 +411,7 @@ export default function NewNotePage() {
                   <button onClick={() => setGenMode('individual')}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap
                       ${genMode === 'individual'
-                        ? 'bg-[rgba(0,212,200,0.12)] text-[var(--accent)]'
+                        ? 'bg-[rgba(var(--accent-rgb),0.18)] text-[var(--accent)]'
                         : 'text-[var(--fg-4)] hover:text-[var(--fg-2)]'}`}>
                     <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[1.8]">
                       <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
@@ -343,7 +421,7 @@ export default function NewNotePage() {
                   <button onClick={() => setGenMode('group')}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap
                       ${genMode === 'group'
-                        ? 'bg-[rgba(0,212,200,0.12)] text-[var(--accent)]'
+                        ? 'bg-[rgba(var(--accent-rgb),0.18)] text-[var(--accent)]'
                         : 'text-[var(--fg-4)] hover:text-[var(--fg-2)]'}`}>
                     <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[1.8]">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
@@ -353,17 +431,35 @@ export default function NewNotePage() {
                   </button>
                 </div>
 
-                {/* Single generate button */}
                 <button
-                  onClick={() => handleGenerate(genMode)}
+                  onClick={() => {
+                    if (genMode === 'group') {
+                      setIsGroupModalOpen(true);
+                    } else {
+                      handleGenerate('individual');
+                    }
+                  }}
                   disabled={!isReady || procStatus === 'processing'}
-                  className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-7 py-2.5 text-[13px] font-semibold text-[var(--on-accent)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap"
+                  className="btn-accent flex items-center gap-2 rounded-lg px-7 py-2.5 text-[13px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-20 whitespace-nowrap"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-current fill-none stroke-[2.2]">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
                   {t('generateNote')}
                 </button>
+
+                {/* Place the modal right before the closing tag of your component wrapper */}
+                <GroupMemberModal
+                  isOpen={isGroupModalOpen}
+                  onClose={() => setIsGroupModalOpen(false)}
+                  members={groupMembers} // Pass your JSON here
+                  estimatedCost={37}
+                  costLabel="Maximum Hold Per User"
+                  onConfirm={(selectedIds) => {
+                    setIsGroupModalOpen(false);
+                    handleGenerate('group', selectedIds);
+                  }}
+                />
               </div>
             </motion.div>
 

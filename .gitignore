@@ -56,3 +56,14 @@ src/.DS_Store
 
 # local-only notes
 /LOCAL_NOTES.md
+
+# local development artifacts and one-off utilities
+.DS_Store
+/eslint.config.mjs
+/fix-translations.cjs
+/get_schema.js
+/plan.md
+/scratch.js
+/scripts/migrate.js
+/migrations/20260809_selected_participants.sql
+/src/app/home/page.before-recalibration.js

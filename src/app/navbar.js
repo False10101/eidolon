@@ -56,11 +56,11 @@ function LogoutModal({ onConfirm, onCancel }) {
         </p>
         <div className="relative flex gap-2">
           <button onClick={onCancel}
-            className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] py-2.5 text-[13px] text-[var(--fg-2)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)]">
+            className="btn-surface flex-1 rounded-lg py-2.5 text-[13px] transition-all">
             {t('cancel')}
           </button>
           <button onClick={onConfirm}
-            className="flex-1 rounded-lg border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] py-2.5 text-[13px] font-medium text-[#ef4444] transition-all hover:bg-[rgba(239,68,68,0.14)]">
+            className="btn-danger flex-1 rounded-lg py-2.5 text-[13px] font-medium transition-all">
             {t('signOut')}
           </button>
         </div>
@@ -76,7 +76,7 @@ function NavIconBtn({ onClick, title, children, dataOnboard }) {
       onClick={onClick}
       title={title}
       data-onboard={dataOnboard}
-      className="group flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-all hover:border-[rgba(0,212,200,0.25)] hover:bg-[rgba(0,212,200,0.04)]"
+      className="btn-icon group flex h-8 w-8 items-center justify-center rounded-lg transition-all"
     >
       {children}
     </button>
@@ -101,7 +101,7 @@ export default function Navbar() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        setBalance(data.balance?.balance ?? '—');
+        setBalance(data.balance ?? '—');
       } catch {
         setBalance('—');
       }
@@ -152,18 +152,20 @@ export default function Navbar() {
           {isAuthenticated ? (
             <>
               {/* Balance pill */}
-              <div className="flex items-center gap-2 rounded-full align-middle border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-1.5 text-[12px] text-[var(--fg-2)] surface select-none">
-                {t('balance')}:
-                <span className="font-mono text-[13px] font-medium text-[var(--accent)]">
-                 {balance ?? '—'} <CreditIcon size={13} />
-                </span>
-                <button
-                  onClick={() => router.push('/topup')}
-                  className="border-l border-[var(--border)] pl-2 text-[11px] text-[var(--fg-2)] transition-colors hover:text-[var(--accent)]"
-                >
-                  {t('topUp')}
-                </button>
-              </div>
+              {pathname !== '/home' && (
+                <div className="flex items-center gap-2 rounded-full align-middle border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-1.5 text-[12px] text-[var(--fg-2)] surface select-none">
+                  {t('balance')}:
+                  <span className="font-mono text-[13px] font-medium text-[var(--accent)]">
+                   {balance ?? '—'} <CreditIcon size={13} />
+                  </span>
+                  <button
+                    onClick={() => router.push('/topup')}
+                    className="border-l border-[var(--border)] pl-2 text-[11px] text-[var(--fg-2)] transition-colors hover:text-[var(--accent)]"
+                  >
+                    {t('topUp')}
+                  </button>
+                </div>
+              )}
 
               {/* Language switcher */}
               <LanguageSwitcher />
@@ -207,7 +209,7 @@ export default function Navbar() {
               {/* Public Actions */}
               <button
                 onClick={() => loginWithRedirect({ authorizationParams: { connection: 'google-oauth2' } })}
-                className="ml-2 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-[12px] font-semibold text-[var(--on-accent)] transition-all hover:bg-[var(--accent)]/90"
+                className="btn-accent ml-2 rounded-lg px-4 py-1.5 text-[12px] font-semibold text-[var(--accent)] transition-all"
               >
                 Sign in
               </button>

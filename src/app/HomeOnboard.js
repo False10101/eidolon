@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LocalCreditPrice from './LocalCreditPrice';
 
 // ─── HomeOnboard ───────────────────────────────────────────────────────────────
 // Tooltip-based walkthrough for the home page.
@@ -43,7 +44,7 @@ const STEPS = [
   {
     target: 'balance',
     title: 'Your credit balance',
-    desc: 'Eidolon runs on credits. Top up here — most notes cost ฿9–17. Credits never expire, so load up once and spend at your pace.',
+    desc: <>Eidolon runs on credits. Most notes cost 9–17 credits <LocalCreditPrice credits="9–17" />. Credits never expire, so load up once and spend at your pace.</>,
     placement: 'bottom',
   },
   {

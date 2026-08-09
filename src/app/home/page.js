@@ -3,7 +3,6 @@
 import {
   DocumentTextIcon,
   PencilSquareIcon,
-  EyeIcon,
   HomeIcon,
 } from '@heroicons/react/24/outline';
 import { MusicalNoteIcon, LanguageIcon } from '@heroicons/react/24/solid';
@@ -13,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth0 } from '@auth0/auth0-react';
 import Navbar from '../navbar';
 import CreditIcon from '../CreditIcon';
+import LocalCreditPrice from '../LocalCreditPrice';
 import { useTranslations, useLocale } from 'next-intl';
 import HomeOnboard from '../HomeOnboard';
 
@@ -31,13 +31,6 @@ function formatLastLogin(dateString, t, locale) {
 
   const timeLabel = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: true });
   return t('bangkokTime', { day: dayLabel, time: timeLabel });
-}
-
-function formatNumber(n) {
-  if (!n) return '0';
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-  return String(n);
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -73,7 +66,7 @@ const pipeline = [
   },
   {
     step: 'Step 04', nameKey: 'pipeline4Name', href: '/exam-prep',
-    descKey: 'pipeline4Desc', priceKey: 'pipeline4Price', isFree: false, isNew: true,
+    descKey: 'pipeline4Desc', priceKey: 'pipeline4Price', isFree: false, isNew: false, comingSoon: true,
     icon: (
       <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[var(--accent)] fill-none stroke-[1.8]">
         <path d="M9 11l3 3L22 4" />
@@ -109,75 +102,72 @@ const itemVariants = {
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 function HomeSkeleton() {
   return (
-    <div className="flex flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden p-6 md:p-8 min-w-0">
-
-      {/* Welcome row */}
-      <div className="flex items-end justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <div className="skeleton h-7 w-64 rounded-lg" />
-          <div className="skeleton h-3.5 w-44 rounded" />
+    <div className="flex flex-1 flex-col gap-6 md:gap-8 overflow-y-auto overflow-x-hidden p-6 md:p-8 min-w-0">
+      {/* Dashboard Header Skeleton */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex-1 w-full flex flex-col justify-center">
+          <div className="skeleton h-3 w-40 rounded mb-3" />
+          <div className="skeleton h-8 md:h-10 w-64 rounded-lg mb-2.5" />
+          <div className="skeleton h-3 w-52 rounded" />
         </div>
-        <div className="skeleton h-9 w-28 rounded-xl" />
-      </div>
-
-      {/* Metric cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 flex flex-col gap-2">
-            <div className="skeleton h-2.5 w-24 rounded" />
-            <div className="skeleton h-7 w-20 rounded" />
+        <div className="w-full md:w-auto md:min-w-[340px] flex items-center justify-between gap-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="flex flex-col">
+            <div className="skeleton h-2.5 w-24 rounded mb-2" />
+            <div className="skeleton h-7 w-20 rounded mb-2.5" />
             <div className="skeleton h-2.5 w-32 rounded" />
           </div>
-        ))}
+          <div className="flex flex-col gap-2 w-full md:w-auto min-w-[120px]">
+            <div className="skeleton h-8 w-full rounded-lg" />
+            <div className="skeleton h-8 w-full rounded-lg" />
+          </div>
+        </div>
       </div>
 
-      {/* Pipeline */}
+      {/* Pipeline Skeleton */}
       <div>
-        <div className="skeleton h-2.5 w-24 rounded mb-3.5" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="skeleton h-3 w-28 rounded" />
+          <div className="h-px flex-1 bg-[var(--border)]"></div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col gap-2.5">
-              <div className="skeleton h-9 w-9 rounded-lg" />
-              <div className="skeleton h-2 w-12 rounded" />
-              <div className="skeleton h-3.5 w-28 rounded" />
-              <div className="skeleton h-2.5 w-full rounded" />
-              <div className="skeleton h-2.5 w-4/5 rounded" />
-              <div className="skeleton h-5 w-16 rounded mt-1" />
+            <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 flex flex-col">
+              <div className="skeleton h-10 w-10 rounded-lg mb-5" />
+              <div className="skeleton h-2.5 w-16 rounded mb-2" />
+              <div className="skeleton h-4 w-28 rounded mb-2.5" />
+              <div className="skeleton h-3 w-full rounded mb-1" />
+              <div className="skeleton h-3 w-4/5 rounded mb-6" />
+              <div className="skeleton h-6 w-20 rounded-md mt-auto" />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Bottom grid */}
+      {/* Bottom grid skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 flex-1 min-h-0">
-
         {/* Activity table skeleton */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden flex flex-col">
-          {/* Table header bar */}
           <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3.5">
             <div className="skeleton h-3 w-24 rounded" />
           </div>
-          {/* Column headers */}
           <div className="flex gap-4 border-b border-[var(--border)] px-4 py-2.5">
-            {[80, 60, 56, 72, 28].map((w, i) => (
+            {[80, 60, 56, 72].map((w, i) => (
               <div key={i} className="skeleton h-2 rounded" style={{ width: w }} />
             ))}
           </div>
-          {/* Rows */}
           <div className="flex flex-col">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 border-b border-[var(--border-faint)] px-4 py-3 last:border-0">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 border-b border-[var(--border-faint)] px-4 py-3.5 last:border-0">
                 <div className="skeleton h-3 rounded" style={{ width: `${100 + (i % 3) * 30}px` }} />
                 <div className="skeleton h-4 w-20 rounded" />
                 <div className="skeleton h-4 w-16 rounded" />
                 <div className="skeleton h-3 w-24 rounded" />
-                <div className="skeleton h-3 w-8 rounded ml-auto" />
               </div>
             ))}
           </div>
         </div>
 
-        {/* {t("monthlyUsage")} skeleton */}
+        {/* Monthly usage skeleton */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col overflow-hidden">
           <div className="border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 flex items-center justify-between">
             <div className="skeleton h-3 w-24 rounded" />
@@ -208,7 +198,6 @@ function HomeSkeleton() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -252,8 +241,6 @@ export default function Home() {
     fetchUserData();
   }, [isLoading, getAccessTokenSilently]);
 
-  const totalTokens   = (Number(userData.totalTokenSent) || 0) + (Number(userData.totalTokenReceived) || 0);
-  const noteCount     = activityList.filter(a => a.type === 'note').length;
   const estimatedGens = Math.floor((userData.balance ?? 0) / 6);
 
   return (
@@ -265,63 +252,92 @@ export default function Home() {
           <HomeSkeleton />
         ) : (
           <motion.main
-            className="flex flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden p-6 md:p-8 min-w-0"
+            className="flex flex-1 flex-col gap-6 md:gap-8 overflow-y-auto overflow-x-hidden p-6 md:p-8 min-w-0"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
-            {/* ── Welcome row ── */}
-            <motion.div variants={itemVariants} className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h1 className="font-serif text-[26px] font-normal tracking-[-0.02em] text-[var(--fg)] mb-1">
+            {/* ── Dashboard Header ── */}
+            <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+
+              {/* Left Box: Welcome */}
+              <div className="flex-1 w-full flex flex-col justify-center">
+
+                {/* Decorative Status Pill */}
+                <div className="mb-3 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.15em] text-[var(--accent)]">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]"></span>
+                  </span>
+                  System Online <span className="text-[var(--fg-4)]">|</span> {new Date().toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase()}
+                </div>
+
+                <h1 className="font-serif text-[28px] md:text-[34px] font-normal tracking-[-0.02em] text-[var(--fg)] mb-2.5 leading-none">
                   {t("welcomeBack")} <span className="text-[var(--accent)]">{userData.username}</span>
                 </h1>
-                <p className="text-[12px] text-[var(--fg-3)]">
-                  { t("lastLogin") } <span className="text-[var(--fg-2)]">{formatLastLogin(userData.last_login, t, locale)}</span>
-                </p>
-              </div>
-              <button
-                onClick={() => router.push('/pricing')}
-                className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 transition-all hover:border-[rgba(0,212,200,0.2)] hover:bg-[rgba(0,212,200,0.03)]"
-              >
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[var(--accent)] fill-none stroke-[1.8]">
-                  <line x1="12" y1="1" x2="12" y2="23" />
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-                <span className="text-[12px] text-[var(--fg)]">{ t("viewPricing") }</span>
-              </button>
-            </motion.div>
 
-            {/* ── Metric cards ── */}
-            <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <MetricCard label={t("notesGeneratedLabel")}   value={String(noteCount)}              change={userData.weeklyComparison?.tokenSent?.change} />
-              <MetricCard label={t("tokensProcessedLabel")}  value={formatNumber(totalTokens)}      change={userData.weeklyComparison?.tokenReceived?.change} />
-              {/* Passed the icon layout directly into the value string here! */}
-              <MetricCard 
-                label={t("thisMonthSpent")}  
-                value={<span className="inline-flex items-center gap-1.5"><CreditIcon size={20} color="#00d4c8" />{userData.totalCost ?? 0}</span>} 
-                change={userData.weeklyComparison?.cost?.change} 
-                cyan 
-              />
-              <div data-onboard="balance">
-                <MetricCard 
-                  label={t("balanceRemaining")} 
-                  value={<span className="inline-flex items-center gap-1.5"><CreditIcon size={20} color="#00d4c8" />{userData.balance ?? '—'}</span>} 
-                  sub={`~${estimatedGens} ${t('generationsLeft')}`} 
-                  cyan 
-                />
+                {/* Clean inline meta info */}
+                <div className="flex items-center gap-4 text-[11px] font-mono text-[var(--fg-3)]">
+                  <p>
+                    { t("lastLogin") } <span className="text-[var(--fg-2)]">{formatLastLogin(userData.last_login, t, locale)}</span>
+                  </p>
+                  <span className="text-[var(--border)]">{'//'}</span>
+                  <p>
+                    PLAN: <span className="text-[var(--fg-2)]">{userData.plan ? String(userData.plan).toUpperCase() : 'PAY-AS-YOU-GO'}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Box: Balance & Actions (Flattened) */}
+              <div data-onboard="balance" className="w-full md:w-auto md:min-w-[340px] flex items-center justify-between gap-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+                <div className="flex flex-col">
+                  <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fg-3)]">{t("balanceRemaining")}</div>
+                  <div className="flex items-center gap-2 font-mono text-[24px] font-medium leading-none text-[var(--accent)]">
+                    <CreditIcon size={20} color="var(--accent)" />
+                    {userData.balance ?? '—'}
+                  </div>
+                  <div className="mt-1.5 text-[11px] text-[var(--fg-2)]">
+                    ~{estimatedGens} {t('generationsLeft')}
+                  </div>
+                </div>
+
+              <div className="flex flex-col gap-2 w-full md:w-auto">
+                <button
+                  onClick={() => router.push('/topup')}
+                  className="btn-accent flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-medium transition-all whitespace-nowrap"
+                >
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[2.2]">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Top Up
+                </button>
+                <button
+                  onClick={() => router.push('/pricing')}
+                  className="btn-surface flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-medium transition-all whitespace-nowrap"
+                >
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[1.8]">
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                  {t('viewPricing')}
+                </button>
+              </div>
               </div>
             </motion.div>
 
             {/* ── Pipeline ── */}
             <motion.div variants={itemVariants}>
-              <div className="mb-3.5 text-[11px] uppercase tracking-[0.08em] text-[var(--fg-3)]">{ t("yourPipeline") }</div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5" data-onboard="pipeline">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="text-[11px] uppercase tracking-[0.08em] text-[var(--fg-3)]">{ t("yourPipeline") }</span>
+                <span className="h-px flex-1 bg-[var(--border)]"></span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-onboard="pipeline">
                 {pipeline.map((p) => {
                   let dataOnboard = null;
                   if (p.href === '/audio-converter') dataOnboard = "step-01";
                   if (p.href === '/note') dataOnboard = "step-03";
-                  return <PipelineCard key={p.href} {...p} dataOnboard={dataOnboard} onClick={() => router.push(p.href)} />;
+                  return <PipelineCard key={p.href} {...p} dataOnboard={dataOnboard} onClick={p.comingSoon ? undefined : () => router.push(p.href)} />;
                 })}
               </div>
             </motion.div>
@@ -330,7 +346,7 @@ export default function Home() {
             <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 flex-1 min-h-0">
 
               {/* Activity table */}
-              <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] surface">
+              <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                 <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3.5">
                   <span className="text-[12px] font-medium tracking-[0.02em] text-[var(--fg-2)]">{t("recentActivity")}</span>
                 </div>
@@ -338,7 +354,7 @@ export default function Home() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr>
-                        {[t('colTitle'), t('colType'), t('colStatus'), t('colDate'), ''].map((h) => (
+                        {[t('colTitle'), t('colType'), t('colStatus'), t('colDate')].map((h) => (
                           <th key={h} className="border-b border-[var(--border)] px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.08em] text-[var(--fg-3)] font-normal whitespace-nowrap">
                             {h}
                           </th>
@@ -352,10 +368,11 @@ export default function Home() {
                             key={activity.id || index}
                             activity={activity}
                             index={index}
-                            onView={() => {
-                              const base = routeMap[activity.type];
-                              if (base && activity.public_id) router.push(`${base}/${activity.public_id}`);
-                            }}
+                            onView={
+                              routeMap[activity.type] && activity.public_id
+                                ? () => router.push(`${routeMap[activity.type]}/${activity.public_id}`)
+                                : null
+                            }
                           />
                         ))}
                       </AnimatePresence>
@@ -394,6 +411,7 @@ function ActivityRow({ activity, index, onView }) {
     statusLower === 'failed'     ? 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]' :
     statusLower === 'processing' ? 'bg-[rgba(245,158,11,0.1)] text-[#f59e0b]' :
     statusLower === 'pending'    ? 'bg-[rgba(245,158,11,0.1)] text-[#f59e0b]' : '';
+  const clickable = typeof onView === 'function';
 
   return (
     <motion.tr
@@ -401,34 +419,37 @@ function ActivityRow({ activity, index, onView }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ delay: Math.min(index, 5) * 0.04, duration: 0.3, ease: 'easeOut' }}
-      className="border-b border-[var(--border-faint)] last:border-0 transition-colors hover:bg-[var(--surface-tint-faint)]"
+      onClick={clickable ? onView : undefined}
+      onKeyDown={clickable ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onView();
+        }
+      } : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      role={clickable ? 'button' : undefined}
+      className={`border-b border-[var(--border-faint)] last:border-0 transition-colors ${
+        clickable ? 'cursor-pointer hover:bg-[var(--surface-raised)] focus-visible:bg-[var(--surface-raised)] focus-visible:outline-none' : ''
+      }`}
     >
-      <td className="max-w-[180px] truncate px-4 py-2.5 text-[13px] text-[var(--fg)]">{activity.title}</td>
-      <td className="px-4 py-2.5">
+      <td className="max-w-[180px] truncate px-4 py-3 text-[13px] text-[var(--fg)]">{activity.title}</td>
+      <td className="px-4 py-3">
         <span className="rounded border border-[var(--border)] bg-[var(--surface-raised)] px-1.5 py-0.5 capitalize font-mono text-[10px] text-[var(--fg-2)] whitespace-nowrap">
           {typeDisplayMap[activity.type] ?? activity.type}
         </span>
       </td>
-      <td className="px-4 py-2.5">
+      <td className="px-4 py-3">
         <span className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 font-mono text-[10px] capitalize font-medium ${statusStyle}`}>
           <span className="h-[5px] w-[5px] flex-shrink-0 rounded-full bg-current" />
           {activity.status}
         </span>
       </td>
-      <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[11px] text-[var(--fg-3)]">
+      <td className="whitespace-nowrap px-4 py-3 font-mono text-[11px] text-[var(--fg-3)]">
         {new Date(activity.date).toLocaleString(locale, { day: '2-digit', month: '2-digit', year: '2-digit' })}
         {' '}
         <span className="text-[var(--fg-4)]">
           {new Date(activity.date).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
-      </td>
-      <td className="px-4 py-2.5">
-        <button
-          onClick={onView}
-          className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-[var(--accent)] opacity-80 transition-opacity hover:opacity-100"
-        >
-          <EyeIcon className="h-3.5 w-3.5" /> { t("view") }
-        </button>
       </td>
     </motion.tr>
   );
@@ -446,7 +467,7 @@ function MonthlyUsage({ data }) {
   const max = Math.max(...counts.map(c => c.count), 1);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col h-full surface">
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col h-full">
       <div className="border-b border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 flex items-center justify-between">
         <span className="text-[12px] font-medium tracking-[0.02em] text-[var(--fg-2)]">{t("monthlyUsage")}</span>
         <span className="text-[10px] text-[var(--fg-3)] font-mono">
@@ -465,7 +486,7 @@ function MonthlyUsage({ data }) {
               <div className="h-[3px] w-full overflow-hidden rounded-full bg-[var(--surface-raised)]">
                 <div
                   className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${pct}%`, background: c.count > 0 ? '#00d4c8' : 'rgba(255,255,255,0.06)' }}
+                  style={{ width: `${pct}%`, background: c.count > 0 ? 'var(--accent)' : 'transparent' }}
                 />
               </div>
             </div>
@@ -484,78 +505,42 @@ function MonthlyUsage({ data }) {
   );
 }
 
-// ─── MetricCard ────────────────────────────────────────────────────────────────
-function MetricCard({ label, value, change, cyan, sub }) {
-  const t = useTranslations("home");
-  const hasChange = change !== undefined;
-  const up = (change ?? 0) >= 0;
- 
-  return (
-    <div className={`group relative overflow-hidden rounded-xl border px-4 py-4 noise
-      ${cyan
-        ? 'border-[rgba(0,212,200,0.12)] bg-[var(--surface)] surface-teal'
-        : 'border-[var(--border)] bg-[var(--surface)] surface'
-      }`}
-    >
-      {/* Top-edge shimmer on hover */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-50" />
- 
-      {/* Corner radial — fills the dead space, gives cards warmth */}
-      <div
-        className="pointer-events-none absolute -bottom-6 -right-6 h-28 w-28 rounded-full blur-2xl"
-        style={{ background: cyan ? 'rgba(0,212,200,0.07)' : 'rgba(255,255,255,0.025)' }}
-      />
- 
-      <div className="relative">
-        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-[var(--fg-3)]">{label}</div>
-        <div className={`mb-1.5 font-mono text-[22px] font-medium leading-none ${cyan ? 'text-[var(--accent)]' : 'text-[var(--fg)]'}`}>
-          {value}
-        </div>
-        {hasChange ? (
-          <div className={`flex items-center gap-1 text-[11px] ${up ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
-            <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 stroke-current fill-none stroke-2">
-              {up
-                ? <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></>
-                : <><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></>
-              }
-            </svg>
-            {Math.abs(change)}% {t('vsLastWeek')}
-          </div>
-        ) : sub ? (
-          <div className="text-[11px] text-[var(--fg-2)]">{sub}</div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 // ─── PipelineCard ──────────────────────────────────────────────────────────────
-function PipelineCard({ step, nameKey, descKey, priceKey, isFree, isNew, icon, onClick, dataOnboard }) {
+function PipelineCard({ step, nameKey, descKey, priceKey, isFree, isNew, comingSoon, icon, onClick, dataOnboard }) {
   const t = useTranslations("home");
   return (
     <button
       onClick={onClick}
+      disabled={comingSoon}
       data-onboard={dataOnboard}
-      className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-left transition-all duration-200 hover:border-[rgba(0,212,200,0.2)] surface noise"
+      // Flat, solid background. Hover effect relies entirely on border color now.
+      className={`group relative flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 text-left transition-colors duration-200 ${comingSoon ? 'cursor-not-allowed opacity-65' : 'hover:border-[rgba(0,212,200,0.5)] hover:bg-[var(--surface-raised)]'}`}
     >
-      <div className="absolute inset-0 bg-[rgba(0,212,200,0.08)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
- 
       {isNew && (
-        <span className="absolute right-3 top-3 z-10 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-medium tracking-[0.04em] text-[var(--on-accent)]">
+        <span className="absolute right-4 top-4 z-10 rounded border border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.1)] px-1.5 py-0.5 text-[9px] font-medium tracking-[0.04em] text-[var(--accent)]">
           {t('newBadge')}
         </span>
       )}
-      <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-colors group-hover:border-[rgba(0,212,200,0.3)]">
+      {comingSoon && (
+        <span className="absolute right-4 top-4 z-10 rounded border border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.08)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.05em] text-[var(--accent)]">
+          Coming Soon
+        </span>
+      )}
+
+      {/* Flattened Icon Container: no gradients, just a solid dark box with a border */}
+      <div className="relative z-10 mb-5 flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-colors duration-200 group-hover:border-[rgba(0,212,200,0.3)]">
         {icon}
       </div>
-      <div className="relative z-10 mb-1 text-[9px] uppercase tracking-[0.1em] text-[var(--fg-3)]">{step}</div>
-      <div className="relative z-10 mb-1 text-[13px] font-medium text-[var(--fg)]">{t(nameKey)}</div>
-      <div className="relative z-10 mb-2.5 text-[11px] leading-snug text-[var(--fg-2)]">{t(descKey)}</div>
-      
-      {/* Changed to inline-flex items-center and conditionally rendering the icon! */}
-      <span className="relative z-10 inline-flex items-center gap-1 rounded bg-[rgba(0,212,200,0.08)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--accent)]">
-        {!isFree && <CreditIcon size={12} color="#00d4c8" />}
-        {t(priceKey)}
+
+      <div className="relative z-10 mb-1 text-[10px] uppercase tracking-[0.1em] text-[var(--accent)] font-medium">{step}</div>
+      <div className="relative z-10 mb-1.5 text-[15px] font-medium text-[var(--fg)]">{t(nameKey)}</div>
+      <div className="relative z-10 mb-5 text-[12px] leading-relaxed text-[var(--fg-2)]">{t(descKey)}</div>
+
+      {/* Flat pill badge at the bottom */}
+      <span className="relative z-10 mt-auto self-start w-fit inline-flex items-center gap-1.5 rounded-md border border-[rgba(0,212,200,0.15)] bg-[rgba(0,212,200,0.05)] px-2.5 py-1 font-mono text-[10px] text-[var(--accent)]">
+        {!comingSoon && !isFree && <CreditIcon size={12} color="var(--accent)" />}
+        {comingSoon ? 'Coming Soon' : t(priceKey)}
+        {!comingSoon && !isFree && <LocalCreditPrice credits={t(priceKey)} />}
       </span>
     </button>
   );

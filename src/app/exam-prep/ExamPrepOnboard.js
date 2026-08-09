@@ -1,5 +1,7 @@
 'use client';
 
+import LocalCreditPrice from '@/app/LocalCreditPrice';
+
 import OnboardModal from "../OnboardModal";
 
 function SourcesVisual() {
@@ -126,7 +128,7 @@ const SLIDES = [
   {
     label: 'Output',
     title: 'Get a full exam question set with answers',
-    desc: 'Exam Prep generates questions, model answers, and explanations. Great for self-testing before exams. Cost is 17–37 credits depending on how much source material you feed in.',
+    desc: <>Exam Prep generates questions, model answers, and explanations. Great for self-testing before exams. Cost is 17–37 credits <LocalCreditPrice credits="17–37" /> depending on how much source material you feed in.</>,
     visual: <OutputVisual />,
   },
 ];

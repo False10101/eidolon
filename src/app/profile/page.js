@@ -6,10 +6,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import CreditIcon from '../CreditIcon';
+import LocalCreditPrice from '../LocalCreditPrice';
 import { useTranslations } from 'next-intl';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const PERIODS = ['1W', '1M', '6M', '1Y'];
+
+function getTopupUsdAmount(description) {
+  const match = String(description ?? '').match(/Topped up \$(\d+(?:\.\d+)?)/i);
+  return match ? Number(match[1]) : null;
+}
 
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {
@@ -353,11 +359,12 @@ export default function Profile() {
                   { label: t('notesGenerated'), value: stats?.notes ?? '—', sub: `${t('across')} ${stats?.courses ?? 0} ${t('courses')}` },
                   { label: t('transcriptions'), value: stats?.transcriptions ?? '—', sub: `~${stats?.audio_hours ?? 0} ${t('audioHours')}` },
                   { label: t('tokensProcessed'), value: stats?.tokens ?? '—', sub: t('inputOutput'), small: true },
-                  { label: t('totalSpent'), value: `${stats?.total_spent?.toFixed(0) ?? '—'}`, sub: `${t('since')} ${new Date(profile?.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`, cyan: true, small: true },
-                ].map(({ label, value, sub, cyan, small }) => (
+                  { label: t('totalSpent'), value: `${stats?.total_spent?.toFixed(0) ?? '—'}`, sub: `${t('since')} ${new Date(profile?.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`, cyan: true, small: true, costCredits: stats?.total_spent },
+                ].map(({ label, value, sub, cyan, small, costCredits }) => (
                   <div key={label} className={`rounded-lg border px-4 py-3.5 ${cyan ? 'border-[rgba(0,212,200,0.12)] bg-[rgba(0,212,200,0.04)]' : 'border-[var(--border)] bg-[var(--surface-raised)]'}`}>
                     <div className="mb-1.5 text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{label}</div>
-                    <div className={`flex items-center font-mono font-medium ${small ? 'text-[16px]' : 'text-[20px]'} ${cyan ? 'text-[var(--accent)]' : 'text-[var(--fg)]'}`}>{value}{label=== 'Total spent' ? <CreditIcon size={14} className='ml-1'/> : ""}</div>
+                    <div className={`flex items-center font-mono font-medium ${small ? 'text-[16px]' : 'text-[20px]'} ${cyan ? 'text-[var(--accent)]' : 'text-[var(--fg)]'}`}>{value}{costCredits != null ? <CreditIcon size={14} className='ml-1'/> : ""}</div>
+                    {costCredits != null && <LocalCreditPrice credits={costCredits} className="mt-0.5 block" />}
                     <div className="mt-0.5 text-[11px] text-[var(--fg-3)]">{sub}</div>
                   </div>
                 ))}
@@ -398,6 +405,13 @@ export default function Profile() {
                           <span className={`font-mono flex items-center text-[13px] font-medium ${tx.type === 'topup' || tx.type === 'rebate' ? 'text-[#22c55e]' : 'text-[var(--fg-2)]'}`}>
                             {tx.type === 'rebate' || tx.type === 'topup' ? '+' : '-'} {Math.abs(tx.charge_amount).toFixed(2)} <CreditIcon size={12} className='ml-2' color={tx.type === 'topup' || tx.type === 'rebate'? '#22c55e' : 'var(--fg-3)'}/>
                           </span>
+                          {tx.type === 'topup' ? (
+                            getTopupUsdAmount(tx.description) != null && (
+                              <LocalCreditPrice usdAmount={getTopupUsdAmount(tx.description)} className="mt-0.5 block" />
+                            )
+                          ) : (
+                            <LocalCreditPrice credits={Math.abs(tx.charge_amount)} className="mt-0.5 block" />
+                          )}
                         </td>
                         <td className="px-3.5 py-3 font-mono text-[12px] text-[var(--fg-2)]">{parseFloat(tx.balance_after)?.toFixed(2)} <CreditIcon size={12} color='#b4b4c2'/></td>
                         <td className="px-3.5 py-3 text-[12.5px] text-[var(--fg-2)]">

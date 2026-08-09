@@ -34,7 +34,7 @@ export default function WhatsNew() {
         onClick={openModal}
         title="What's new"
         data-onboard="nav-whats-new"
-        className="group relative flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-all hover:border-[rgba(0,212,200,0.25)] hover:bg-[rgba(0,212,200,0.04)]"
+        className="btn-icon group relative flex h-8 w-8 items-center justify-center rounded-lg transition-all"
       >
         <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] stroke-[var(--fg-3)] fill-none stroke-[1.8] transition-colors group-hover:stroke-[var(--accent)]">
           <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
@@ -83,18 +83,18 @@ export default function WhatsNew() {
                 <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-[var(--border)]">
                   <div>
                     <div className="font-serif text-[18px] font-normal tracking-[-0.02em] text-[var(--fg)]">
-                      What's new
+                      What&apos;s new
                     </div>
                     <div className="mt-0.5 flex items-center gap-2">
                       <span className="rounded border border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.07)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--accent)]">
                         v{LATEST_VERSION}
                       </span>
-                      <span className="text-[11px] text-[var(--fg-4)]">{CHANGELOG[0].date}</span>
+                      <span className="text-[11px] text-[var(--fg-4)]">{CHANGELOG.length} releases</span>
                     </div>
                   </div>
                   <button
                     onClick={() => setOpen(false)}
-                    className="group flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-all hover:border-[rgba(239,68,68,0.3)]"
+                    className="btn-icon-danger group flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all"
                   >
                     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[var(--fg-3)] fill-none stroke-[2] transition-colors group-hover:stroke-[#ef4444]">
                       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -103,27 +103,48 @@ export default function WhatsNew() {
                 </div>
 
                 {/* Entries */}
-                <div className="px-6 py-5 flex flex-col gap-5">
-                  {(['new', 'improved', 'fixed']).map(section => {
-                    const entries = CHANGELOG[0][section];
-                    if (!entries?.length) return null;
-                    const cfg = SECTION_CONFIG[section];
-                    return (
-                      <div key={section}>
-                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 mb-3 text-[10px] font-semibold uppercase tracking-[0.07em] ${cfg.color} ${cfg.border} ${cfg.bg}`}>
-                          {cfg.label}
-                        </span>
-                        <ul className="flex flex-col gap-2.5">
-                          {entries.map((entry, i) => (
-                            <li key={i} className="flex items-start gap-2.5">
-                              <span className={`mt-[5px] h-1.5 w-1.5 flex-shrink-0 rounded-full ${cfg.color.replace('text-', 'bg-')}`} style={{ background: 'currentColor' }} />
-                              <span className="text-[13px] leading-[1.65] text-[var(--fg-2)]">{entry}</span>
-                            </li>
-                          ))}
-                        </ul>
+                <div className="px-6 py-5 flex flex-col gap-6">
+                  {CHANGELOG.map((release, releaseIndex) => (
+                    <div
+                      key={release.version}
+                      className={`flex flex-col gap-5 ${releaseIndex > 0 ? 'border-t border-[var(--border)] pt-5' : ''}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded border border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.07)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--accent)]">
+                            v{release.version}
+                          </span>
+                          <span className="text-[11px] text-[var(--fg-4)]">{release.date}</span>
+                        </div>
+                        {releaseIndex === 0 && (
+                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 text-[10px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
+                            Latest
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
+
+                      {(['new', 'improved', 'fixed']).map(section => {
+                        const entries = release[section];
+                        if (!entries?.length) return null;
+                        const cfg = SECTION_CONFIG[section];
+                        return (
+                          <div key={`${release.version}-${section}`}>
+                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 mb-3 text-[10px] font-semibold uppercase tracking-[0.07em] ${cfg.color} ${cfg.border} ${cfg.bg}`}>
+                              {cfg.label}
+                            </span>
+                            <ul className="flex flex-col gap-2.5">
+                              {entries.map((entry, i) => (
+                                <li key={i} className="flex items-start gap-2.5">
+                                  <span className={`mt-[5px] h-1.5 w-1.5 flex-shrink-0 rounded-full ${cfg.color.replace('text-', 'bg-')}`} style={{ background: 'currentColor' }} />
+                                  <span className="text-[13px] leading-[1.65] text-[var(--fg-2)]">{entry}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
 
                 {/* Footer */}

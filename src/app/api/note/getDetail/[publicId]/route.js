@@ -2,35 +2,71 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
 
+function sameUser(left, right) {
+    return String(left) === String(right);
+}
+
 export async function GET(req, { params }) {
     try {
         const userId = await verifyUserData(req);
         if (userId === null) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const { publicId } = await params;
-
-        // own note
-        let rows = await sql`SELECT * FROM "note" WHERE user_id = ${userId} AND public_id = ${publicId}`;
-        let detail = rows[0];
-
-        // if not found, check if they have access via note_access
-        if (!detail) {
-            const accessRows = await sql`
-                SELECT n.* FROM "note" n
-                JOIN "note_access" na ON na.note_id = n.id
-                WHERE na.user_id = ${userId} AND n.public_id = ${publicId}
-            `;
-            detail = accessRows[0];
-        }
+        const [detail] = await sql`
+            SELECT n.*,
+                sg.owner_id AS group_owner_id,
+                EXISTS (
+                    SELECT 1 FROM note_access na
+                    WHERE na.note_id = n.id AND na.user_id = ${userId}
+                ) AS has_access,
+                EXISTS (
+                    SELECT 1 FROM group_member gm
+                    WHERE gm.group_id = n.group_id AND gm.user_id = ${userId}
+                ) AS is_group_member
+            FROM note n
+            LEFT JOIN student_group sg ON sg.id = n.group_id
+            WHERE n.public_id = ${publicId}
+        `;
 
         if (!detail) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-        if (detail.transcript_id && !detail.uploaded_filename) {
-            const transcriptRow = await sql`SELECT label from "transcript" WHERE id = ${detail.transcript_id}`
+        const isGenerator = sameUser(detail.user_id, userId);
+        const isGroupNote = detail.generation_type === 'group';
+        const isGroupOwner = isGroupNote && sameUser(detail.group_owner_id, userId);
+        const hasAccess = Boolean(detail.has_access);
+        const isGroupMember = Boolean(detail.is_group_member);
 
-            if (transcriptRow[0]) {
-                detail = { ...detail, transcriptName: transcriptRow[0].label };
+        if (isGroupNote) {
+            if (!isGenerator && !isGroupOwner && !hasAccess && !isGroupMember) {
+                return NextResponse.json({ error: "Not found" }, { status: 404 });
             }
+
+            detail.can_manage = isGenerator || isGroupOwner;
+            detail.is_unlocked = isGenerator || isGroupOwner || hasAccess;
+
+            if (!detail.is_unlocked) {
+                detail.content = null;
+                detail.markdown_content = null;
+                detail.blocks = null;
+                detail.source_content = null;
+            }
+        } else {
+            if (!isGenerator) return NextResponse.json({ error: "Not found" }, { status: 404 });
+            detail.can_manage = true;
+            detail.is_unlocked = true;
+        }
+
+        delete detail.group_owner_id;
+        delete detail.has_access;
+        delete detail.is_group_member;
+
+        if (detail.transcript_id && !detail.uploaded_filename) {
+            const [transcript] = await sql`
+                SELECT label
+                FROM transcript
+                WHERE id = ${detail.transcript_id}
+            `;
+            if (transcript) detail.transcriptName = transcript.label;
         }
 
         return NextResponse.json({ detail });

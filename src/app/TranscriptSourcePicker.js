@@ -41,11 +41,11 @@ export default function TranscriptSourcePicker({ onFileChange, onTranscriptChang
         const fetchTranscripts = async () => {
             try {
                 const token = await getAccessTokenSilently();
-                const res = await fetch('/api/transcript/getHistory', {
+                const res = await fetch('/api/transcript/getPickerHistory', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
-                setTranscripts(data.history ?? []);
+                setTranscripts(data);
             } catch (err) {
                 console.error('Failed to fetch transcripts:', err);
             } finally {
@@ -76,7 +76,7 @@ export default function TranscriptSourcePicker({ onFileChange, onTranscriptChang
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
         onFileChange?.(null);
-        onTranscriptChange?.(tx.public_id);
+        onTranscriptChange?.(tx.public_id, tx.free_note_available);
         onLabelChange?.((tx.label ?? tx.filename ?? '').replace(/\.[^/.]+$/, ''));
         setOpen(false);
     };
@@ -87,12 +87,13 @@ export default function TranscriptSourcePicker({ onFileChange, onTranscriptChang
         setSelectedTranscript(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
         onFileChange?.(null);
-        onTranscriptChange?.(null);
+        onTranscriptChange?.(null, false);
     };
 
-    const filtered = transcripts.filter(tx =>
-        (tx.label ?? tx.filename ?? '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filtered = transcripts.filter(tx => {
+        const searchTarget = (tx.label || tx.filename || 'Untitled Transcript').toLowerCase();
+        return searchTarget.includes(searchQuery.toLowerCase());
+    });
 
     return (
         <>
@@ -134,7 +135,7 @@ export default function TranscriptSourcePicker({ onFileChange, onTranscriptChang
                             <div className="mt-0.5 text-[12px] text-[var(--fg-3)]">{(file.size / 1024).toFixed(1)} KB · TXT</div>
                         </div>
                         <button onClick={clearSelection}
-                            className="flex-shrink-0 flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-3)] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444]">
+                            className="btn-danger flex-shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] transition-all">
                             {t('remove')}
                         </button>
                     </>
@@ -159,7 +160,7 @@ export default function TranscriptSourcePicker({ onFileChange, onTranscriptChang
                             </div>
                         </div>
                         <button onClick={clearSelection}
-                            className="flex-shrink-0 flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-3)] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444]">
+                            className="btn-danger flex-shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] transition-all">
                             {t('remove')}
                         </button>
                     </>
@@ -195,7 +196,7 @@ export default function TranscriptSourcePicker({ onFileChange, onTranscriptChang
                                 </div>
                                 <button
                                     onClick={() => setOpen(false)}
-                                    className="group flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] transition-all hover:border-[rgba(239,68,68,0.3)]"
+                                    className="btn-icon-danger group flex h-8 w-8 items-center justify-center rounded-lg transition-all"
                                 >
                                     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[var(--fg-3)] fill-none stroke-[2] group-hover:stroke-[#ef4444] transition-colors">
                                         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -281,7 +282,7 @@ export default function TranscriptSourcePicker({ onFileChange, onTranscriptChang
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="truncate text-[12.5px] font-medium text-[var(--fg)] group-hover:text-[var(--accent)] transition-colors">
-                                                        {tx.label ?? tx.filename}
+                                                        {tx.label || tx.filename || 'Untitled Transcript'}
                                                     </div>
                                                     <div className="flex items-center gap-1.5 mt-0.5">
                                                         {formatDuration(tx.duration) && (
@@ -291,6 +292,18 @@ export default function TranscriptSourcePicker({ onFileChange, onTranscriptChang
                                                             </>
                                                         )}
                                                         <span className="text-[11px] text-[var(--fg-3)]">{formatDate(tx.created_at)}</span>
+                                                        {tx.free_note_available && (
+                                                            <>
+                                                                <span className="text-[var(--fg-3)]">·</span>
+                                                                <span className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-wide bg-[rgba(0,212,200,0.1)] px-1.5 py-0.5 rounded-md border border-[rgba(0,212,200,0.2)]">Free Note</span>
+                                                            </>
+                                                        )}
+                                                        {tx.generation_type === 'group' && (
+                                                            <>
+                                                                <span className="text-[var(--fg-3)]">·</span>
+                                                                <span className="text-[10px] font-semibold text-[#a855f7] uppercase tracking-wide bg-[rgba(168,85,247,0.1)] px-1.5 py-0.5 rounded-md border border-[rgba(168,85,247,0.2)]">Group</span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <svg viewBox="0 0 24 24"

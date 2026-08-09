@@ -33,7 +33,7 @@ export default function ErrorModal({ message, onClose }) {
           {/* Button */}
           <button
             onClick={onClose}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] py-2.5 text-[13px] font-medium text-[var(--fg-3)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)]"
+            className="btn-surface w-full rounded-xl py-2.5 text-[13px] font-medium transition-all"
           >
             Got it
           </button>

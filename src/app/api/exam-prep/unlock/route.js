@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
 import { rateLimit } from "@/lib/rateLimit";
- 
+import { getGroupTierPrice } from "@/app/api/note/generate/group/route";
+
+const EXAM_PREP_AVAILABLE = false;
+
 export async function POST(req) {
+    if (!EXAM_PREP_AVAILABLE) {
+        return NextResponse.json({ error: 'Exam Prep is coming soon.' }, { status: 503 });
+    }
+
     try {
         const userId = await verifyUserData(req);
         if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -15,7 +22,7 @@ export async function POST(req) {
         if (!publicId) return NextResponse.json({ error: 'Missing publicId.' }, { status: 400 });
  
         const [examPrep] = await sql`
-            SELECT id, user_id, status
+            SELECT id, label, user_id, status, total_tokens
             FROM exam_prep WHERE public_id = ${publicId}
         `;
  
@@ -48,53 +55,60 @@ export async function POST(req) {
         `;
         if (!membership) return NextResponse.json({ error: 'You are not in the same group.' }, { status: 403 });
  
-        const totalRebatePool = unlockPrice * 0.70;
-
         await sql.begin(async (tx) => {
+            const existingAccess = await tx`
+                SELECT id, user_id, paid_amount FROM exam_prep_access WHERE exam_prep_id = ${examPrep.id}
+            `;
+            const currentCount = existingAccess.length;
+            const newCount = currentCount + 1;
+            const newPerPerson = getGroupTierPrice(examPrep.total_tokens, newCount);
+
             const [updated] = await tx`
-                UPDATE "user" SET balance = balance - ${unlockPrice}
-                WHERE id = ${userId} AND balance >= ${unlockPrice}
+                UPDATE "user" SET balance = balance - ${newPerPerson}
+                WHERE id = ${userId} AND balance >= ${newPerPerson}
                 RETURNING balance
             `;
             if (!updated) throw new Error('Insufficient balance.');
  
             await tx`
                 INSERT INTO exam_prep_access (exam_prep_id, user_id, paid_amount, is_original, unlock_price)
-                VALUES (${examPrep.id}, ${userId}, ${unlockPrice}, 0, ${unlockPrice})
+                VALUES (${examPrep.id}, ${userId}, ${newPerPerson}, 0, ${newPerPerson})
             `;
  
             await tx`
                 INSERT INTO "activity" (type, title, status, user_id, respective_table_id, date, charge_amount, balance_after)
-                VALUES ('exam_prep', 'Unlocked group exam prep', 'completed', ${userId}, ${examPrep.id}, NOW(), ${unlockPrice}, ${updated.balance})
+                VALUES ('exam_prep', ${`Unlocked exam prep: ${examPrep.label}`}, 'completed', ${userId}, ${examPrep.id}, NOW(), ${newPerPerson}, ${updated.balance})
             `;
 
-            const allOriginalGenners = await tx`
-                SELECT user_id FROM exam_prep_access WHERE exam_prep_id = ${examPrep.id} AND is_original = 1
-            `;
+            // Refund existing members if the price dropped or 1st generator gets 2nd member
+            for (const member of existingAccess) {
+                const paid = parseFloat(member.paid_amount);
+                const isGenerator = examPrep.user_id === member.user_id;
+                const expectedCost = isGenerator ? parseFloat((newPerPerson * 0.5).toFixed(2)) : newPerPerson;
 
-            if (allOriginalGenners.length > 0) {
-                const userCut = parseFloat((totalRebatePool / allOriginalGenners.length).toFixed(2));
+                if (paid > expectedCost) {
+                    const refund = parseFloat((paid - expectedCost).toFixed(2));
 
-                const activeOriginalGenners = await tx`
-                    SELECT epa.user_id 
-                    FROM exam_prep_access epa
-                    JOIN "group_member" gm ON gm.user_id = epa.user_id AND gm.group_id = ${membership.group_id}
-                    WHERE epa.exam_prep_id = ${examPrep.id} AND epa.is_original = 1
-                `;
-
-                for (const genner of activeOriginalGenners) {
                     const [ownerUpdated] = await tx`
-                        UPDATE "user" SET balance = balance + ${userCut}
-                        WHERE id = ${genner.user_id}
+                        UPDATE "user" SET balance = balance + ${refund}
+                        WHERE id = ${member.user_id}
                         RETURNING balance
                     `;
 
                     await tx`
+                        UPDATE exam_prep_access SET paid_amount = ${expectedCost}
+                        WHERE id = ${member.id}
+                    `;
+
+                    await tx`
                         INSERT INTO "activity" (type, title, status, user_id, respective_table_id, date, charge_amount, balance_after)
-                        VALUES ('rebate', 'Group exam prep unlocked by new member', 'completed', ${genner.user_id}, ${examPrep.id}, NOW(), ${-userCut}, ${ownerUpdated.balance})
+                        VALUES ('rebate', ${`Tier discount refund: ${examPrep.label}`}, 'completed', ${member.user_id}, ${examPrep.id}, NOW(), ${-refund}, ${ownerUpdated.balance})
                     `;
                 }
             }
+
+            // Update the global unlock price for the next person
+            await tx`UPDATE exam_prep SET unlock_price = ${newPerPerson} WHERE id = ${examPrep.id}`;
         });
  
         return NextResponse.json({ success: true });

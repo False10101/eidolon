@@ -1,242 +1,320 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../navbar';
 import Sidebar from '../sidebar';
-import GeneratingOverlay from '../GeneratingOverlays';
 import ErrorModal from '../ErrorModal';
 import CreditIcon from '../CreditIcon';
-import { useTranslations } from 'next-intl';
-import TranscriptorOnboard from './TranscriptorOnboard';
+import LocalCreditPrice from '../LocalCreditPrice';
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
-const MODELS = [
-  {
-    value: 'openai/whisper-large-v3-turbo',
-    label: 'Whisper v3 Turbo',
-    descKey: 'turboDesc',
-    price: '0.04',
-    badge: null
-  },
-  {
-    value: 'openai/whisper-large-v3',
-    label: 'Whisper v3 Large',
-    descKey: 'premiumDesc',
-    price: '0.09',
-    badge: 'Premium'
-  },
-];
+const TABS = ['all', 'individual', 'group'];
 
-const OUTPUT_FORMATS = [
-  { value: 'text', label: 'Plain Text', descKey: 'plainTextDesc' },
-  { value: 'verbose_json', label: 'With Timestamps', descKey: 'withTimestampsDesc' },
-];
-
-function formatBytes(bytes) {
-  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+function formatDate(ts, locale) {
+  if (!ts) return '—';
+  const str = ts.toString().replace(' ', 'T').split('.')[0] + 'Z';
+  return new Date(str).toLocaleString(locale || 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Bangkok',
+    hour12: false,
+  });
 }
 
-function ceilToTwoDecimals(value) {
-  return Math.ceil(value * 100) / 100;
+function formatDuration(seconds) {
+  if (!seconds && seconds !== 0) return '—';
+  const total = Math.max(0, Number(seconds) || 0);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = Math.floor(total % 60);
+
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${secs}s`;
 }
 
-// ─── Motion ────────────────────────────────────────────────────────────────────
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
-};
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-};
+function TranscriptRow({ transcript, onOpen, onUnlock, unlocking }) {
+  const locale = useLocale();
+  const t = useTranslations('transcriptor');
+  const isGroup = transcript._type === 'group';
 
-const stageProgress = {
-  idle: 0,
-  uploading: 10,
-  waiting: 10,
-};
+  if (transcript._locked) {
+    return (
+      <div className="relative flex w-full items-center gap-4 rounded-xl border border-[var(--border-faint)] bg-[var(--surface)] px-5 py-3.5">
+        <div className="pointer-events-none absolute inset-0 rounded-xl bg-[var(--bg)]/25" />
 
-// ─── Component ─────────────────────────────────────────────────────────────────
-export default function Transcriptor() {
+        {/* Lock icon */}
+        <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)]">
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-[var(--fg-4)] fill-none stroke-[1.6]">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </div>
+
+        {/* Label + group badge */}
+        <div className="relative flex-1 min-w-0 flex items-center gap-2">
+          <div className="truncate text-[13.5px] font-medium text-[var(--fg-3)]">
+            {transcript.label}
+          </div>
+          <span className="flex-shrink-0 rounded border border-[rgba(0,212,200,0.15)] bg-[rgba(0,212,200,0.04)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--fg-4)]">
+            {t('group')}
+          </span>
+        </div>
+
+        {/* Duration — muted */}
+        <span className="relative w-20 flex-shrink-0 text-right font-mono text-[12px] text-[var(--fg-4)] pr-[18px]">
+          {formatDuration(transcript.duration)}
+        </span>
+
+        {/* Unlock button */}
+        <button
+          onClick={() => onUnlock(transcript)}
+          disabled={unlocking}
+          className="relative flex flex-shrink-0 w-[142px] justify-center items-center gap-1.5 rounded-lg border border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.07)] px-3 py-1.5 text-[11.5px] font-medium text-[var(--accent)] transition-all hover:bg-[rgba(0,212,200,0.12)] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {unlocking ? (
+            <>
+              <div className="h-3 w-3 animate-spin rounded-full border border-transparent border-t-[#00d4c8]" />
+              Unlock...
+            </>
+          ) : (
+            <>
+              <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[2]">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+              </svg>
+              Unlock · {transcript.unlock_price} <CreditIcon size={11} />
+              <LocalCreditPrice credits={transcript.unlock_price} />
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={onOpen}
+      className="group flex w-full items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3.5 text-left transition-colors duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--card-hover)] surface noise"
+    >
+      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition-colors group-hover:border-[rgba(0,212,200,0.2)] group-hover:bg-[rgba(0,212,200,0.05)]">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[var(--fg-3)] fill-none stroke-[1.6] transition-colors group-hover:stroke-[var(--accent)]">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="23" />
+          <line x1="8" y1="23" x2="16" y2="23" />
+        </svg>
+      </div>
+
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <div className="truncate text-[13.5px] font-medium text-[var(--fg)] transition-colors group-hover:text-[var(--accent)]">
+          {transcript.label}
+        </div>
+        {isGroup && (
+          <span className="flex-shrink-0 rounded border border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.07)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--accent)]">
+            {t('group')}
+          </span>
+        )}
+      </div>
+
+      <span className="w-20 flex-shrink-0 text-right font-mono text-[12px] text-[var(--accent)] pr-[18px]">
+        {formatDuration(transcript.duration)}
+      </span>
+
+      <span className="w-28 flex-shrink-0 text-right text-[11.5px] text-[var(--fg-3)] pr-3">
+        {formatDate(transcript.created_at, locale)}
+      </span>
+
+      <svg
+        viewBox="0 0 24 24"
+        className="h-3.5 w-3.5 flex-shrink-0 stroke-[var(--fg-3)] fill-none stroke-[1.8] opacity-0 transition-all duration-150 -translate-x-1 group-hover:translate-x-0 group-hover:opacity-100"
+      >
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </button>
+  );
+}
+
+function SortHeader({ label, col, sortKey, sortDir, onSort, className = '' }) {
+  const active = sortKey === col;
+
+  return (
+    <div
+      onClick={() => onSort(col)}
+      className={`group flex cursor-pointer items-center gap-1.5 select-none text-[10px] uppercase tracking-[0.07em] transition-colors
+        ${active ? 'text-[var(--accent)]' : 'text-[var(--fg-3)] hover:text-[var(--fg-2)]'}
+        ${className}`}
+    >
+      {label}
+      <svg viewBox="0 0 24 24" className={`h-3 w-3 flex-shrink-0 stroke-current fill-none stroke-[2.5] transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}>
+        {active && sortDir === 'asc'
+          ? <polyline points="18 15 12 9 6 15" />
+          : <polyline points="6 9 12 15 18 9" />
+        }
+      </svg>
+    </div>
+  );
+}
+
+function TranscriptListSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col gap-3 overflow-hidden px-8 py-4">
+      <div className="flex flex-shrink-0 items-center gap-3">
+        <div className="skeleton h-8 flex-1 rounded-lg" />
+      </div>
+      <div className="flex flex-shrink-0 items-center gap-4 px-5">
+        {[36, 140, 80, 112, 14].map((w, i) => (
+          <div key={i} className="skeleton h-2 rounded" style={{ width: w }} />
+        ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3.5">
+            <div className="skeleton h-9 w-9 rounded-lg flex-shrink-0" />
+            <div className="flex-1">
+              <div className="skeleton h-3.5 rounded" style={{ width: `${140 + (i % 5) * 28}px` }} />
+            </div>
+            <div className="skeleton h-3 w-14 rounded flex-shrink-0" />
+            <div className="skeleton h-3 w-24 rounded flex-shrink-0" />
+            <div className="skeleton h-3.5 w-3.5 rounded flex-shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ message, sub }) {
+  return (
+    <div className="select-none py-16 text-center">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] mx-auto">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[var(--fg-3)] fill-none stroke-[1.6]">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="23" />
+          <line x1="8" y1="23" x2="16" y2="23" />
+        </svg>
+      </div>
+      <p className="text-[12.5px] text-[var(--fg-3)]">{message}</p>
+      {sub && <p className="mt-1 text-[11.5px] text-[var(--fg-4)]">{sub}</p>}
+    </div>
+  );
+}
+
+export default function TranscriptListPage() {
   const router = useRouter();
-  const t = useTranslations("transcriptor");
+  const t = useTranslations('transcriptor');
   const { getAccessTokenSilently } = useAuth0();
 
-  const [file, setFile] = useState(null);
-  const [fileDurationSeconds, setFileDurationSeconds] = useState(null);
-  const [dragging, setDragging] = useState(false);
-  const [label, setLabel] = useState('');
-  const [model, setModel] = useState('openai/whisper-large-v3-turbo');
-  const [outputFormat, setOutputFormat] = useState('text');
-
-  const [procStatus, setProcStatus] = useState('idle');
-  const [resultId, setResultId] = useState(null);
-  const [error, setError] = useState(null);
-  const [stage, setStage] = useState('idle');
-  const [stageLabel, setStageLabel] = useState('');
-  const [progress, setProgress] = useState(0);
-
-  const intervalRef = useRef(null);
-  const fileInputRef = useRef(null);
-
-  // ── File handling ───────────────────────────────────────────────────────────
-  const attachFile = useCallback((f) => {
-    if (!f) return;
-    setFile({ name: f.name, size: f.size, raw: f });
-    setFileDurationSeconds(null);
-    setError(null);
-    setLabel(f.name.replace(/\.[^/.]+$/, ''));
-  }, []);
-
-  const removeFile = () => {
-    setFile(null);
-    setFileDurationSeconds(null);
-    setLabel('');
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  const [individual, setIndividual]   = useState([]);
+  const [group, setGroup]             = useState([]);
+  const [lockedGroup, setLockedGroup] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [unlockingId, setUnlockingId] = useState(null);
+  const [unlockError, setUnlockError] = useState(null);
+  const [search, setSearch]           = useState('');
+  const [activeTab, setActiveTab]     = useState('all');
+  const [sortKey, setSortKey]         = useState('created_at');
+  const [sortDir, setSortDir]         = useState('desc');
 
   useEffect(() => {
-    if (!file?.raw) return;
-
-    let cancelled = false;
-    const audio = document.createElement('audio');
-    const objectUrl = URL.createObjectURL(file.raw);
-
-    const cleanup = () => {
-      audio.removeAttribute('src');
-      audio.load();
-      URL.revokeObjectURL(objectUrl);
-    };
-
-    audio.preload = 'metadata';
-    audio.src = objectUrl;
-
-    audio.onloadedmetadata = () => {
-      if (!cancelled && Number.isFinite(audio.duration)) {
-        setFileDurationSeconds(audio.duration);
-      }
-      cleanup();
-    };
-
-    audio.onerror = () => {
-      if (!cancelled) {
-        setFileDurationSeconds(null);
-      }
-      cleanup();
-    };
-
-    return () => {
-      cancelled = true;
-      cleanup();
-    };
-  }, [file]);
-
-  // ── Poll ────────────────────────────────────────────────────────────────────
-  const pollStatus = (jobId, token) => {
-    intervalRef.current = setInterval(async () => {
+    const fetchList = async () => {
       try {
-        const res = await fetch(`/api/transcript/status/${jobId}`, {
+        const token = await getAccessTokenSilently();
+        const res = await fetch('/api/transcript/getHistory', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-
-        if (data.state === 'waiting') {
-          setStage('waiting');
-          setStageLabel(data.queuePosition ? t('queuePosition') + ' ' + data.queuePosition : t('waitingInQueue'));
-          setProgress(stageProgress.waiting);
-        } else if (data.state === 'active') {
-          setStage('active');
-          const pct = data.progress || 0;
-          setProgress(pct);
-          if (data.progressLabel) {
-            setStageLabel(data.progressLabel);
-          } else if (pct < 20) setStageLabel(t('validatingBalance'));
-          else if (pct < 40) setStageLabel(t('readingAudio'));
-          else if (pct < 90) setStageLabel(t('transcribing'));
-          else setStageLabel(t('savingTranscript'));
-        } else if (data.state === 'completed') {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-          setResultId(data.publicId);
-          setProcStatus('done');
-        } else if (data.state === 'failed') {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-          setProcStatus('idle');
-          setError(t('errorTranscriptionFailed'));
-        }
+        setIndividual(data.individual ?? []);
+        setGroup(data.group?.filter(tr => tr.is_unlocked) ?? []);
+        setLockedGroup(data.group?.filter(tr => !tr.is_unlocked) ?? []);
       } catch (err) {
-        console.error('Polling error:', err);
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-    }, 1500);
-  };
+    };
+    fetchList();
+  }, [getAccessTokenSilently]);
 
-  // ── Transcribe ──────────────────────────────────────────────────────────────
-  const handleTranscribe = async () => {
-    if (!file) return;
-    setError(null);
-    setProcStatus('processing');
-    setStage('uploading');
-    setStageLabel(t('uploadingFile'));
-    setProgress(stageProgress.uploading);
-
+  const handleUnlock = async (tr) => {
+    setUnlockingId(tr.public_id);
+    setUnlockError(null);
     try {
       const token = await getAccessTokenSilently();
-      const form = new FormData();
-      form.append('file', file.raw);
-      form.append('label', label);
-      form.append('model', model);
-      form.append('outputFormat', outputFormat);
-
-      const res = await fetch('/api/transcript/transcribe', {
+      const res = await fetch('/api/transcript/unlock', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicId: tr.public_id }),
       });
       const data = await res.json();
+      if (!res.ok) { setUnlockError(data.error ?? 'Unlock failed'); return; }
 
-      if (!res.ok) {
-        setProcStatus('idle');
-        setError(data.error || t('errorStartTranscription'));
-        return;
+      setLockedGroup(prev => prev.filter(e => e.public_id !== tr.public_id));
+      setGroup(prev => [{ ...tr }, ...prev]);
+      router.push(`/transcriptor/${tr.public_id}`);
+    } catch {
+      setUnlockError('An error occurred');
+    } finally {
+      setUnlockingId(null);
+    }
+  };
+
+  const allItems = useMemo(() => [
+    ...individual.map(tr => ({ ...tr, _type: 'individual', _locked: false })),
+    ...group.map(tr => ({ ...tr, _type: 'group', _locked: false })),
+    ...lockedGroup.map(tr => ({ ...tr, _type: 'group', _locked: true })),
+  ], [individual, group, lockedGroup]);
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((dir) => dir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const tabCounts = useMemo(() => ({
+    all:        allItems.length,
+    individual: allItems.filter(tr => tr._type === 'individual').length,
+    group:      allItems.filter(tr => tr._type === 'group').length,
+  }), [allItems]);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    const base = allItems
+      .filter(tr => activeTab === 'all' || tr._type === activeTab)
+      .filter((item) => !q || item.label?.toLowerCase().includes(q));
+
+    return [...base].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      switch (sortKey) {
+        case 'label':
+          return dir * (a.label ?? '').toLowerCase().localeCompare((b.label ?? '').toLowerCase());
+        case 'duration':
+          return dir * ((Number(a.duration) || 0) - (Number(b.duration) || 0));
+        case 'created_at':
+        default:
+          return dir * (new Date(a.created_at) - new Date(b.created_at));
       }
+    });
+  }, [allItems, search, activeTab, sortKey, sortDir]);
 
-      pollStatus(data.jobId, token);
-    } catch (err) {
-      console.error(err);
-      setProcStatus('idle');
-      setError(t('errorConnection'));
-    }
+  const tabLabel = (key) => {
+    if (key === 'all') return 'All';
+    if (key === 'individual') return 'Individual';
+    return 'Group';
   };
-
-  const resetAll = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    setProcStatus('idle');
-    setStage('idle');
-    setProgress(0);
-    setResultId(null);
-    removeFile();
-    setError(null);
-  };
-
-  const selectedModelInfo = MODELS.find(m => m.value === model);
-  const selectedRate = Number(selectedModelInfo?.price || '0.04');
-  const selectedHourlyRate = (selectedRate * 60).toFixed(1);
-  const estimatedPrice = fileDurationSeconds != null
-    ? ceilToTwoDecimals((fileDurationSeconds / 60) * selectedRate).toFixed(2)
-    : null;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
-
       <AnimatePresence>
-        {error && <ErrorModal message={error} onClose={() => setError(null)} />}
+        {unlockError && <ErrorModal message={unlockError} onClose={() => setUnlockError(null)} />}
       </AnimatePresence>
 
       <Navbar />
@@ -244,218 +322,109 @@ export default function Transcriptor() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
 
-        <main className="relative flex flex-1 flex-col min-w-0">
-
-          {(procStatus === 'processing' || procStatus === 'done') && (
-            <GeneratingOverlay
-              title={t('transcribing')}
-              subtitle={stageLabel}
-              targetProgress={procStatus === 'done' ? 100 : (stage === 'active' ? progress : (stageProgress[stage] ?? 0))}
-              smoothed={false}
-              done={procStatus === 'done'}
-              doneLabel={label || file?.name}
-              onView={() => resultId && router.push(`/transcriptor/${resultId}`)}
-              onViewLabel={t('viewTranscript')}
-              onReset={resetAll}
-              onResetLabel={t('newTranscript')}
-            />
-          )}
-
-          {/* Page header */}
-          <div className="flex-shrink-0 px-8 pt-6">
-            <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[var(--fg)]">
-              {t('title')}
-            </h1>
-            <p className="mt-0.5 text-[12.5px] text-[var(--fg-3)]">
-              {t("subtitle")}
-            </p>
+        <main className="flex flex-1 min-w-0 flex-col overflow-hidden">
+          <div className="flex flex-shrink-0 items-center justify-between px-8 pt-6 pb-0">
+            <div>
+              <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[var(--fg)]">
+                {t('title')}
+              </h1>
+              <p className="mt-0.5 text-[12.5px] text-[var(--fg-3)]">{t('subtitle')}</p>
+            </div>
+            <button
+              onClick={() => router.push('/transcriptor/new')}
+              className="btn-accent flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-semibold transition-all"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[2.5]">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              {t('newTranscript')}
+            </button>
           </div>
 
-          {/* SCROLLABLE CONTENT - WITHOUT the action bar */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-8" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}>
+          {loading ? (
+            <TranscriptListSkeleton />
+          ) : (
             <motion.div
-              className="flex flex-col gap-3.5 pt-5 pb-6"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
+              className="flex flex-1 flex-col gap-3 overflow-hidden px-8 py-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25 }}
             >
-              {/* Upload zone */}
-              <motion.div variants={itemVariants}>
-                {!file ? (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                    onDragLeave={() => setDragging(false)}
-                    onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) attachFile(f); }}
-                    className={`relative flex flex-shrink-0 cursor-pointer items-center gap-5 overflow-hidden rounded-xl border-[1.5px] border-dashed px-7 py-5 transition-all duration-200
-                      ${dragging
-                        ? 'border-[rgba(0,212,200,0.28)] bg-[rgba(0,212,200,0.02)]'
-                        : 'border-[var(--border)] hover:border-[rgba(0,212,200,0.28)] hover:bg-[rgba(0,212,200,0.02)]'}`}
-                  >
-                    <div className="pointer-events-none absolute inset-0"
-                      style={{ background: 'radial-gradient(ellipse at 30% 50%, rgba(0,212,200,0.04) 0%, transparent 60%)' }} />
-                    <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[10px] border transition-all duration-200
-                      ${dragging ? 'border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]' : 'border-[var(--border)] bg-[var(--surface-raised)]'}`}>
-                      <svg viewBox="0 0 24 24" className={`h-5 w-5 fill-none stroke-[1.6] transition-colors ${dragging ? 'stroke-[var(--accent)]' : 'stroke-[var(--fg-3)]'}`}>
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-[14px] font-medium text-[var(--fg)]">{ t("dropAudioHere") }</div>
-                      <div className="mt-0.5 text-[12px] text-[var(--fg-3)]">{t('clickToBrowse')}</div>
-                    </div>
-                    <div className="flex flex-shrink-0 gap-1.5">
-                      {['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.webm'].map(t => (
-                        <span key={t} className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-0.5 font-mono text-[10.5px] text-[var(--fg-3)]">{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-shrink-0 items-center gap-3.5 rounded-xl border border-[rgba(0,212,200,0.15)] bg-[var(--surface)] px-5 py-3.5 surface">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] border border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.07)]">
-                      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] stroke-[var(--accent)] fill-none stroke-[1.6]">
-                        <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
-                      </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate text-[14px] font-medium text-[var(--fg)]">{file.name}</div>
-                      <div className="mt-0.5 text-[12px] text-[var(--fg-3)]">{formatBytes(file.size)} · {file.name.split('.').pop().toUpperCase()}</div>
-                    </div>
-                    <div className="flex flex-shrink-0 gap-1.5">
-                      <button onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-3)] transition-all hover:border-[var(--border-hover)] hover:text-[var(--fg)]">
-                        <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                        {t('replace')}
-                      </button>
-                      <button onClick={removeFile}
-                        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[12px] text-[var(--fg-3)] transition-all hover:border-[rgba(239,68,68,0.3)] hover:text-[#ef4444]">
-                        <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                        {t('remove')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-
-              <input ref={fileInputRef} type="file" accept=".mp3,.wav,.m4a,.ogg,.flac,.aac,.webm" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) attachFile(f); }} />
-
-              {/* Config cards */}
-              <motion.div variants={itemVariants} className="grid flex-shrink-0 grid-cols-1 gap-3.5 lg:grid-cols-2">
-                <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
-                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
-                    {t('label')}
-                  </div>
-                  <input type="text" value={label} onChange={(e) => setLabel(e.target.value)}
-                    placeholder="e.g., AI Game Week 11"
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-[13px] text-[var(--fg)] outline-none placeholder:text-[var(--fg-3)] focus:border-[rgba(0,212,200,0.35)] transition-colors" />
-                  <div className="text-[11px] text-[var(--fg-3)]">{t('usedAsTitle')}</div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="relative flex-1">
+                  <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 stroke-[var(--fg-3)] fill-none stroke-[2]">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search transcripts…"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-8 pr-3 py-1.5 text-[12px] text-[var(--fg)] placeholder-[var(--fg-4)] outline-none focus:border-[var(--border-hover)] transition-colors"
+                  />
                 </div>
 
-                {/* Model Toggle Card with Pricing */}
-                <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
-                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('model')}</div>
-                  <div className="flex gap-2">
-                    {MODELS.map(m => (
-                      <button
-                        key={m.value}
-                        onClick={() => setModel(m.value)}
-                        className={`relative flex-1 rounded-lg border px-3 py-2 text-center text-[13px] font-medium transition-all ${model === m.value
-                          ? 'border-[rgba(0,212,200,0.35)] bg-[rgba(0,212,200,0.08)] text-[var(--accent)]'
-                          : 'border-[var(--border)] bg-[var(--surface-raised)] text-[var(--fg-3)] hover:border-[var(--border-hover)] hover:text-[var(--fg-2)]'
-                          }`}
-                      >
-                        {m.badge && (
-                          <span className="absolute -top-2 -right-1 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-[var(--on-accent)]">
-                            {m.badge}
-                          </span>
-                        )}
-                        <div>{m.label.split(' ').slice(0, 3).join(' ')}</div>
-                        <div className={`text-[10px] flex justify-center items-center mt-0.5 ${model === m.value ? 'text-[var(--accent)]/90' : 'text-[var(--fg-3)]'}`}>
-                          {(Number(m.price) * 60).toFixed(1)} <CreditIcon size={8} className='mx-0.5' color={model === m.value ? '#00d4c8' : 'var(--fg-2)'}/> /hr
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="text-[11px] text-[var(--fg-3)]">
-                    {t(selectedModelInfo?.descKey ?? 'turboDesc')}
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('outputFormat')}</div>
-                    <div className="mt-1 text-[12px] text-[var(--fg-3)]">
-                      Choose whether you want a clean reading transcript or segment timestamps for navigation and subtitles.
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-                  {OUTPUT_FORMATS.map((format) => (
+                <div className="flex items-center gap-0.5 flex-shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1">
+                  {TABS.map(key => (
                     <button
-                      key={format.value}
-                      onClick={() => setOutputFormat(format.value)}
-                      className={`rounded-xl border px-4 py-3 text-left transition-all ${outputFormat === format.value
-                        ? 'border-[rgba(0,212,200,0.35)] bg-[rgba(0,212,200,0.08)]'
-                        : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-[var(--border-hover)]'
+                      key={key}
+                      onClick={() => setActiveTab(key)}
+                      className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] transition-all duration-150
+                        ${activeTab === key
+                          ? 'bg-[var(--surface-raised)] text-[var(--fg)]'
+                          : 'text-[var(--fg-3)] hover:text-[var(--fg-2)]'
                         }`}
                     >
-                      <div className={`text-[13px] font-medium ${outputFormat === format.value ? 'text-[var(--accent)]' : 'text-[var(--fg)]'}`}>
-                        {format.label}
-                      </div>
-                      <div className="mt-1 text-[11px] text-[var(--fg-3)]">
-                        {t(format.descKey)}
-                      </div>
+                      {tabLabel(key)}
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium leading-none
+                        ${activeTab === key ? 'bg-[var(--fg)] text-[var(--bg)]' : 'bg-[var(--border-strong)] text-[var(--fg-4)]'}`}
+                      >
+                        {tabCounts[key]}
+                      </span>
                     </button>
                   ))}
                 </div>
-              </motion.div>
-            </motion.div>
-          </div>
+              </div>
 
-          {/* STICKY ACTION BAR AT THE BOTTOM */}
-          <div className="flex-shrink-0 px-8 pb-6 pt-2">
-            <motion.div variants={itemVariants}
-              className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3.5 surface shadow-xl shadow-black/40"
-            >
-              <div className="flex flex-col gap-0.5">
-                <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('summary')}</div>
-                <div className="text-[13px] text-[var(--fg)]">
-                  {file
-                    ? <><span className="text-[var(--accent)]">{label || file.name}</span> · {selectedModelInfo?.label}</>
-                    : t('noFileSelected')}
+              {filtered.length > 0 && (
+                <div className="flex flex-shrink-0 items-center gap-4 px-5">
+                  <div className="w-9 flex-shrink-0" />
+                  <SortHeader label="Label" col="label" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-1 min-w-0" />
+                  <SortHeader label="Duration" col="duration" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="w-20 flex-shrink-0 justify-end" />
+                  <SortHeader label="Date" col="created_at" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="w-28 flex-shrink-0 justify-end pr-3" />
+                  <div className="w-3.5 flex-shrink-0" />
                 </div>
-              </div>
-              <div className="flex flex-shrink-0 items-center gap-4">
-                <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
-                    {estimatedPrice ? 'Estimated cost' : 'Price per hour'}
-                  </div>
-                  <div className="font-mono text-[15px] font-medium flex justify-end items-center ">
-                    {estimatedPrice ? (
-                      <span className="text-[var(--accent)]">{estimatedPrice}<CreditIcon size={15.5} className='ml-1'/></span>
-                    ) : (
-                      <span className="text-[var(--accent)]">{selectedHourlyRate}<CreditIcon size={15.5} className='ml-1'/> /hr</span>
-                    )}
-                  </div>
+              )}
+
+              {filtered.length === 0 ? (
+                <EmptyState
+                  message={search ? 'No transcripts match your search' : t('noTranscriptsYet')}
+                  sub={search ? 'Try a different keyword' : undefined}
+                />
+              ) : (
+                <div className="flex flex-1 flex-col gap-2 overflow-y-auto pb-2" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}>
+                  {filtered.map((transcript, i) => (
+                    <motion.div
+                      key={transcript.public_id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.22, delay: Math.min(i, 10) * 0.03, ease: 'easeOut' }}
+                    >
+                      <TranscriptRow
+                        transcript={transcript}
+                        onOpen={() => router.push(`/transcriptor/${transcript.public_id}`)}
+                        onUnlock={handleUnlock}
+                        unlocking={unlockingId === transcript.public_id}
+                      />
+                    </motion.div>
+                  ))}
                 </div>
-                <button onClick={handleTranscribe} disabled={!file || procStatus === 'processing'}
-                  className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-2.5 text-[13px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25 whitespace-nowrap">
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[2.2]">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                  </svg>
-                  {t('transcribe')}
-                </button>
-              </div>
+              )}
             </motion.div>
-          </div>
+          )}
         </main>
       </div>
-      <TranscriptorOnboard />
     </div>
   );
 }

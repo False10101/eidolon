@@ -8,6 +8,8 @@ import { audioClient } from "../openai.js";
 import getAudioDuration from '../audio-converter-queues/duration.js';
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { getTranscriptAccessSnapshot, refundGroupTranscriptHold } from '../groupGeneration.js';
+import { releaseConcurrencyLock } from '../rateLimit.js';
 
 const TRANSCRIPTION_CHUNK_SECONDS = 10 * 60;
 const LANGUAGE_PROBE_SECONDS = 45;
@@ -246,25 +248,75 @@ async function detectTranscriptionLanguage(inputPath, tempDir, durationSeconds, 
 }
 
 const worker = new Worker('transcription', async (job) => {
-    const { inputPath, label, model, userId, outputFormat, fileName, transcriptionPrice } = job.data;
+    const {
+        inputPath,
+        label,
+        model,
+        userId,
+        outputFormat,
+        fileName,
+        transcriptionPrice,
+        groupId,
+        generationType = 'individual',
+        isTrial = false,
+        transcriptId: queuedTranscriptId = null,
+        publicId: queuedPublicId = null,
+        categorizationId = null,
+        concurrencyScope = null,
+    } = job.data;
     const tempDir = `./tmp-transcript/${job.id}/`;
-    const transcript_uuid = uuidv4();
-    
-    let transcriptId = null;
+    const isGroup = generationType === 'group';
+
+    let transcriptId = isGroup ? Number(queuedTranscriptId) : null;
+    let transcriptUuid = queuedPublicId || uuidv4();
 
     try {
         await mkdir(tempDir, { recursive: true });
         const duration = await getAudioDuration(inputPath);
+        let participantCount = 0;
+        let totalCharge = Number(transcriptionPrice);
+        let nextUnlockPrice = null;
 
         await updateChunkProgress(job, 15, 'Preparing transcript');
         const vadEnabled = false;
 
-        const rows = await sql`
-            INSERT INTO transcript (user_id, label, status, charge_amount, created_at, filename, public_id, duration, model, output_format, vad_enabled)
-            VALUES (${userId}, ${label}, ${'Initializing'}, ${transcriptionPrice}, NOW(), ${fileName}, ${transcript_uuid}, ${duration}, ${model}, ${outputFormat || 'text'}, ${vadEnabled})
-            RETURNING id
-        `;
-        transcriptId = rows[0].id;
+        if (isGroup) {
+            const [existingTranscript] = await sql`
+                SELECT id, public_id, user_id, group_id, status, charge_amount, unlock_price
+                FROM transcript
+                WHERE id = ${transcriptId}
+                  AND user_id = ${userId}
+                  AND group_id = ${groupId}
+                  AND generation_type = 'group'
+                LIMIT 1
+            `;
+            if (!existingTranscript || existingTranscript.status !== 'Initializing') {
+                throw new Error('Pending group transcript is missing.');
+            }
+
+            const participants = await getTranscriptAccessSnapshot(sql, transcriptId);
+            if (participants.length === 0) throw new Error('Group transcript participants are missing.');
+
+            participantCount = participants.length;
+            totalCharge = Number(existingTranscript.charge_amount);
+            nextUnlockPrice = Number(existingTranscript.unlock_price);
+            transcriptUuid = existingTranscript.public_id;
+        } else {
+            const rows = await sql`
+                INSERT INTO transcript (
+                    user_id, label, status, charge_amount, created_at, filename, public_id,
+                    duration, model, output_format, vad_enabled, group_id, generation_type,
+                    is_trial, unlock_price, categorization_id
+                )
+                VALUES (
+                    ${userId}, ${label}, ${'Initializing'}, ${totalCharge}, NOW(), ${fileName}, ${transcriptUuid},
+                    ${duration}, ${model}, ${outputFormat || 'text'}, ${vadEnabled}, NULL,
+                    ${generationType}, ${Boolean(isTrial)}, NULL, ${categorizationId}
+                )
+                RETURNING id
+            `;
+            transcriptId = rows[0].id;
+        }
 
         await sql`UPDATE transcript SET status = 'Transcribing' WHERE user_id = ${userId} AND id = ${transcriptId}`;
 
@@ -348,29 +400,90 @@ const worker = new Worker('transcription', async (job) => {
         await updateChunkProgress(job, 92, 'Saving transcript', chunkPlan.length, chunkPlan.length);
 
         await sql.begin(async (tx) => {
-            await tx`UPDATE transcript SET status = 'Completed', content = ${transcriptContent}, segments = ${segments ? JSON.stringify(segments) : null} WHERE id = ${transcriptId}`;
+            if (isGroup) {
+                const [lockedTranscript] = await tx`
+                    SELECT id, status
+                    FROM transcript
+                    WHERE id = ${transcriptId}
+                    FOR UPDATE
+                `;
+                if (!lockedTranscript || !['Initializing', 'Transcribing'].includes(lockedTranscript.status)) {
+                    throw new Error('Pending group transcript changed during generation.');
+                }
 
-            const [user] = await tx`SELECT balance FROM "user" WHERE id = ${userId}`;
+                const participants = await getTranscriptAccessSnapshot(tx, transcriptId, true);
+                if (participants.length !== participantCount) {
+                    throw new Error('Group transcript participants changed during generation.');
+                }
 
-            await tx`
-                INSERT INTO "activity" (type, title, charge_amount, balance_after, date, user_id, respective_table_id, status)
-                VALUES ('transcript', ${label}, ${transcriptionPrice}, ${user.balance}, NOW(), ${userId}, ${transcriptId}, 'Completed')
-            `;
+                await tx`
+                    UPDATE transcript
+                    SET status = 'Completed', content = ${transcriptContent},
+                        segments = ${segments ? JSON.stringify(segments) : null},
+                        charge_amount = ${totalCharge}, unlock_price = ${nextUnlockPrice}
+                    WHERE id = ${transcriptId}
+                `;
+
+                for (const participant of participants) {
+                    const [participantUser] = await tx`SELECT balance FROM "user" WHERE id = ${participant.user_id}`;
+
+                    await tx`
+                        INSERT INTO "activity" (
+                            type, title, charge_amount, balance_after, date,
+                            user_id, respective_table_id, status
+                        )
+                        VALUES (
+                            'transcript', ${label}, ${participant.paid_amount}, ${participantUser.balance}, NOW(),
+                            ${participant.user_id}, ${transcriptId}, 'Completed'
+                        )
+                    `;
+                }
+            } else {
+                await tx`
+                    UPDATE transcript
+                    SET status = 'Completed', content = ${transcriptContent},
+                        segments = ${segments ? JSON.stringify(segments) : null},
+                        charge_amount = ${totalCharge}, unlock_price = NULL
+                    WHERE id = ${transcriptId}
+                `;
+
+                const [user] = await tx`SELECT balance FROM "user" WHERE id = ${userId}`;
+                await tx`
+                    INSERT INTO "activity" (type, title, charge_amount, balance_after, date, user_id, respective_table_id, status)
+                    VALUES ('transcript', ${label}, ${isTrial ? 0 : transcriptionPrice}, ${user.balance}, NOW(), ${userId}, ${transcriptId}, 'Completed')
+                `;
+            }
         });
 
-        await updateChunkProgress(job, 100, 'Completed', chunkPlan.length, chunkPlan.length);
+        await updateChunkProgress(job, 100, 'Completed', chunkPlan.length, chunkPlan.length)
+            .catch((progressError) => console.error(`Failed to publish final progress for job ${job.id}:`, progressError));
 
-        return { publicId: transcript_uuid };
+        return { publicId: transcriptUuid };
 
     } catch (err) {
-        if (transcriptId) {
-            await sql`UPDATE transcript SET status = 'Failed' WHERE id = ${transcriptId}`;
+        if (transcriptId && !isGroup) {
+            await sql`UPDATE transcript SET status = 'Failed' WHERE id = ${transcriptId}`
+                .catch((statusError) => console.error(`Failed to mark transcript ${transcriptId} as failed:`, statusError));
         }
-        
-        await sql`UPDATE "user" SET balance = balance + ${transcriptionPrice} WHERE id = ${userId}`;
+
+        try {
+            if (isGroup && transcriptId) {
+                await refundGroupTranscriptHold(sql, transcriptId);
+            } else if (isTrial) {
+                await sql`UPDATE "user" SET free_generations_remaining = free_generations_remaining + 1 WHERE id = ${userId}`;
+            } else {
+                await sql`UPDATE "user" SET balance = balance + ${transcriptionPrice} WHERE id = ${userId}`;
+            }
+        } catch (refundError) {
+            console.error(`CRITICAL: Failed to refund transcription job ${job.id}:`, refundError);
+        }
         throw err;
         
     } finally {
+        if (concurrencyScope) {
+            await releaseConcurrencyLock(userId, concurrencyScope)
+                .catch((lockError) => console.error(`Failed to release transcription lock for user ${userId}:`, lockError));
+        }
         if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
         if (fs.existsSync(tempDir)) {
             fs.readdirSync(tempDir).forEach(f => fs.unlinkSync(path.join(tempDir, f)));

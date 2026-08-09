@@ -220,7 +220,7 @@ export default function Login() {
             <p className="text-[12px] leading-relaxed text-[var(--fg-3)]">
               Eidolon is currently available to{' '}
               <strong className="font-medium text-[var(--fg)]">students</strong> with an approved
-              account. Sign in with your Google account — if you have access, you'll be <span className="text-[var(--fg)] font-medium">redirected automatically</span>.
+              account. Sign in with your Google account — if you have access, you&apos;ll be <span className="text-[var(--fg)] font-medium">redirected automatically</span>.
             </p>
           </motion.div>
 

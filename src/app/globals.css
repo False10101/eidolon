@@ -28,9 +28,11 @@
 
   /* Accent */
   --accent:              #00d4c8;
+  --accent-rgb:          0, 212, 200;
   --accent-hover:        #00bfb3;
   --accent-muted:        #00a89f;
   --on-accent:           #0c0c0e;  /* text ON a teal button */
+  --danger-rgb:          239, 68, 68;
 
   /* Borders (rgba so they blend with any surface) */
   --border-faint:        rgba(255, 255, 255, 0.05);
@@ -50,40 +52,151 @@
 
 [data-theme="light"] {
   /* Backgrounds */
-  --bg:                  #f4f4f9;
+  --bg:                  #eef0f5;
   --surface:             #ffffff;
-  --surface-raised:      #ededf4;
-  --surface-deep:        #e2e2ec;
-  --scrollbar:           #c4c4d4;
-  --scrollbar-hover:     #a8a8bc;
+  --surface-raised:      #e4e8f0;
+  --surface-deep:        #d7dce7;
+  --scrollbar:           #b7bfce;
+  --scrollbar-hover:     #98a3b6;
 
   /* Text */
-  --fg:                  #1a1a1e;
-  --fg-2:                #4a4a5a;
-  --fg-3:                #6b6b7a;
-  --fg-4:                #8a8a9a;
-  --fg-body:             #3c3c4c;
+  --fg:                  #181c24;
+  --fg-2:                #394150;
+  --fg-3:                #586274;
+  --fg-4:                #7b8596;
+  --fg-body:             #2d3442;
 
   /* Accent — slightly deeper for readability on white */
-  --accent:              #009890;
-  --accent-hover:        #007a72;
-  --accent-muted:        #006660;
+  --accent:              #007f79;
+  --accent-rgb:          0, 127, 121;
+  --accent-hover:        #006760;
+  --accent-muted:        #00544f;
   --on-accent:           #ffffff;
+  --danger-rgb:          220, 38, 38;
 
   /* Borders */
-  --border-faint:        rgba(0, 0, 0, 0.06);
-  --border:              rgba(0, 0, 0, 0.10);
-  --border-strong:       rgba(0, 0, 0, 0.16);
-  --border-hover:        rgba(0, 0, 0, 0.24);
+  --border-faint:        rgba(23, 31, 48, 0.07);
+  --border:              rgba(23, 31, 48, 0.12);
+  --border-strong:       rgba(23, 31, 48, 0.18);
+  --border-hover:        rgba(23, 31, 48, 0.28);
 
   /* Hover / tint surfaces */
-  --surface-tint-faint:  rgba(0, 0, 0, 0.01);
-  --surface-tint:        rgba(0, 0, 0, 0.03);
-  --surface-hover:       rgba(0, 0, 0, 0.025);
+  --surface-tint-faint:  rgba(23, 31, 48, 0.015);
+  --surface-tint:        rgba(23, 31, 48, 0.04);
+  --surface-hover:       rgba(23, 31, 48, 0.03);
 
   /* Card-level hover states */
-  --card-hover:          #ebebf3;
-  --input-hover:         #e6e6ef;
+  --card-hover:          #dde3ec;
+  --input-hover:         #d9e0ea;
+}
+
+/* ── Shared button themes ─────────────────────────────────────────────────────
+   Reuses the home-page gradient language across the app.                   */
+.btn-accent,
+.btn-surface,
+.btn-danger,
+.btn-icon,
+.btn-icon-danger {
+  position: relative;
+}
+
+.btn-option,
+.btn-option-active {
+  position: relative;
+  overflow: visible;
+}
+
+.btn-accent {
+  border: 1px solid rgba(var(--accent-rgb), 0.32);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.16), rgba(var(--accent-rgb), 0.03));
+  color: var(--accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(var(--accent-rgb), 0.03);
+}
+
+.btn-accent:hover:not(:disabled) {
+  border-color: rgba(var(--accent-rgb), 0.58);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.24), rgba(var(--accent-rgb), 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 18px rgba(var(--accent-rgb), 0.18);
+}
+
+.btn-accent:disabled {
+  box-shadow: none;
+}
+
+.btn-surface {
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0.025));
+  color: var(--fg-2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.btn-surface:hover:not(:disabled) {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.06));
+  color: var(--accent);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.12);
+}
+
+.btn-danger {
+  border: 1px solid rgba(var(--danger-rgb), 0.28);
+  background-image: linear-gradient(135deg, rgba(var(--danger-rgb), 0.16), rgba(var(--danger-rgb), 0.04));
+  color: #ef4444;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: rgba(var(--danger-rgb), 0.46);
+  background-image: linear-gradient(135deg, rgba(var(--danger-rgb), 0.22), rgba(var(--danger-rgb), 0.08));
+  box-shadow: 0 0 14px rgba(var(--danger-rgb), 0.13);
+}
+
+.btn-option {
+  border: 1px solid var(--border);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.05), rgba(var(--accent-rgb), 0.015));
+  color: var(--fg-3);
+}
+
+.btn-option:hover:not(:disabled) {
+  border-color: rgba(var(--accent-rgb), 0.32);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.04));
+  color: var(--fg-2);
+}
+
+.btn-option-active {
+  border: 1px solid rgba(var(--accent-rgb), 0.38);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.05));
+  color: var(--accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(var(--accent-rgb), 0.04);
+}
+
+.btn-icon {
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.btn-icon:hover:not(:disabled) {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background-image: linear-gradient(135deg, rgba(var(--accent-rgb), 0.16), rgba(var(--accent-rgb), 0.06));
+  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.12);
+}
+
+.btn-icon-danger {
+  border: 1px solid rgba(var(--danger-rgb), 0.22);
+  background-image: linear-gradient(135deg, rgba(var(--danger-rgb), 0.11), rgba(var(--danger-rgb), 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.btn-icon-danger:hover:not(:disabled) {
+  border-color: rgba(var(--danger-rgb), 0.44);
+  background-image: linear-gradient(135deg, rgba(var(--danger-rgb), 0.18), rgba(var(--danger-rgb), 0.06));
+  box-shadow: 0 0 12px rgba(var(--danger-rgb), 0.12);
 }
 
 
@@ -247,16 +360,16 @@ img {
 /* Light mode: replace heavy dark shadows with gentle, natural ones          */
 [data-theme="light"] .surface {
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    0 1px 8px rgba(0, 0, 0, 0.04);
+    0 1px 2px rgba(18, 26, 39, 0.05),
+    0 10px 28px rgba(18, 26, 39, 0.06);
 }
 
 [data-theme="light"] .surface-teal {
   box-shadow:
-    inset 0 1px 0 rgba(0, 152, 144, 0.12),
-    0 0 0 1px rgba(0, 152, 144, 0.06),
-    0 4px 16px rgba(0, 152, 144, 0.08),
-    0 1px 4px rgba(0, 0, 0, 0.05);
+    inset 0 1px 0 rgba(0, 127, 121, 0.14),
+    0 0 0 1px rgba(0, 127, 121, 0.08),
+    0 8px 24px rgba(0, 127, 121, 0.10),
+    0 2px 8px rgba(18, 26, 39, 0.05);
 }
 
 /* Subtle grain on card surfaces — adds tactility without pattern            */
@@ -286,7 +399,8 @@ img {
 
 [data-theme="light"] .nav-surface {
   box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.08);
+    0 1px 0 rgba(23, 31, 48, 0.08),
+    0 8px 24px rgba(23, 31, 48, 0.04);
 }
 
 /* ─── Device blocking ──────────────────────────────────────────────────────────

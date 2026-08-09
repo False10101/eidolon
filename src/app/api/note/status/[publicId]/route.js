@@ -11,7 +11,16 @@ export async function GET(req, { params }) {
 
     const { publicId } = await params;
 
-    const rows = await sql`SELECT status FROM "note" WHERE public_id = ${publicId} AND user_id = ${userId}`;
+    const rows = await sql`
+        SELECT n.status
+        FROM note n
+        LEFT JOIN student_group sg ON sg.id = n.group_id
+        WHERE n.public_id = ${publicId}
+        AND (
+            n.user_id = ${userId}
+            OR (n.generation_type = 'group' AND sg.owner_id = ${userId})
+        )
+    `;
 
     if (rows.length < 1) {
         return NextResponse.json({ error: "Note not found" }, { status: 404 });

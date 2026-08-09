@@ -2,27 +2,43 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
 
+function sameUser(left, right) {
+    return String(left) === String(right);
+}
+
 export async function PATCH(req) {
     try {
         const userId = await verifyUserData(req);
         if (userId === null) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const { content, publicId, name } = await req.json();
+        const [note] = await sql`
+            SELECT n.id, n.user_id, n.generation_type, n.status,
+                sg.owner_id AS group_owner_id
+            FROM note n
+            LEFT JOIN student_group sg ON sg.id = n.group_id
+            WHERE n.public_id = ${publicId}
+        `;
+        if (!note) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
 
-        const [note] = await sql`SELECT id FROM "note" WHERE public_id = ${publicId} AND user_id = ${userId}`;
-        let id = note?.id;
-
-        if (!id) {
-            const [access] = await sql`
-                SELECT n.id FROM "note" n
-                JOIN "note_access" na ON na.note_id = n.id
-                WHERE n.public_id = ${publicId} AND na.user_id = ${userId}
-            `;
-            if (!access) return NextResponse.json({ error: 'Not found or not authorized.' }, { status: 404 });
-            id = access.id;
+        const isGenerator = sameUser(note.user_id, userId);
+        const isGroupOwner = note.generation_type === 'group' && sameUser(note.group_owner_id, userId);
+        if (!isGenerator && !isGroupOwner) {
+            return NextResponse.json({ error: 'Not authorized to edit this note.' }, { status: 403 });
+        }
+        if (note.status !== 'completed') {
+            return NextResponse.json({ error: 'Cannot edit a note while it is being generated.' }, { status: 400 });
         }
 
-        await sql`UPDATE "note" SET content = ${content}, name = ${name} WHERE id = ${id}`;
+        const [updated] = await sql`
+            UPDATE note
+            SET content = ${content}, name = ${name}
+            WHERE id = ${note.id} AND status = 'completed'
+            RETURNING id
+        `;
+        if (!updated) {
+            return NextResponse.json({ error: 'Cannot edit a note while it is being generated.' }, { status: 400 });
+        }
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error(error);

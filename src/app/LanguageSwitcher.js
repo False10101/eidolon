@@ -46,7 +46,7 @@ export default function LanguageSwitcher() {
         onClick={() => setOpen(v => !v)}
         title="Switch language"
         data-onboard="nav-language"
-        className="group flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 transition-all hover:border-[rgba(0,212,200,0.25)] hover:bg-[rgba(0,212,200,0.04)]"
+        className="btn-icon group flex h-8 items-center gap-1.5 rounded-lg px-2.5 transition-all"
       >
         <img src={`https://flagcdn.com/${currentLang.countryCode}.svg`} alt="" className="w-[14px] h-auto rounded-[2px] object-cover shadow-sm pointer-events-none" />
         <span className="text-[11px] font-medium text-[var(--fg-3)] group-hover:text-[var(--accent)] transition-colors hidden sm:block">
@@ -65,7 +65,7 @@ export default function LanguageSwitcher() {
               onClick={() => switchLocale(lang.locale)}
               className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[12.5px] transition-colors
                 ${lang.locale === current
-                  ? 'bg-[rgba(0,212,200,0.06)] text-[var(--accent)]'
+                  ? 'bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)]'
                   : 'text-[var(--fg-3)] hover:bg-[var(--surface-hover)] hover:text-[var(--fg)]'
                 }`}
             >

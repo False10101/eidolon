@@ -9,6 +9,7 @@ import Navbar from '../navbar';
 import Sidebar from '../sidebar';
 import ErrorModal from '../ErrorModal';
 import CreditIcon from '../CreditIcon';
+import LocalCreditPrice from '../LocalCreditPrice';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const styleBadgeColors = {
@@ -86,6 +87,7 @@ function NoteRow({ note, onOpen, onUnlock, unlocking }) {
                 <path d="M7 11V7a5 5 0 0 1 9.9-1" />
               </svg>
               {t('unlock')} · {note.unlock_price} <CreditIcon size={11} />
+              <LocalCreditPrice credits={note.unlock_price} />
             </>
           )}
         </button>
@@ -142,8 +144,8 @@ function NoteRow({ note, onOpen, onUnlock, unlocking }) {
       )}
 
       {/* Cost */}
-      <span className="flex-shrink-0 w-16 text-right font-mono text-[12px] text-[var(--accent)]">
-        {note.charge_amount != null ? <>{note.charge_amount}<CreditIcon size={11} className="ml-0.5" /></> : '—'}
+      <span className="flex w-28 flex-shrink-0 flex-col items-end text-right font-mono text-[12px] text-[var(--accent)]">
+        {note.charge_amount != null ? <><span>{note.charge_amount}<CreditIcon size={11} className="ml-0.5" /></span><LocalCreditPrice credits={note.charge_amount} /></> : '—'}
       </span>
 
       {/* Date */}
@@ -363,7 +365,7 @@ export default function NoteListPage() {
             </div>
             <button
               onClick={() => router.push('/note/new')}
-              className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[13px] font-semibold text-[var(--on-accent)] transition-opacity hover:opacity-90"
+              className="btn-accent flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-semibold transition-all"
             >
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 stroke-current fill-none stroke-[2.5]">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -423,7 +425,7 @@ export default function NoteListPage() {
                   <div className="w-9 flex-shrink-0" />
                   <SortHeader label={t('nameHeader')} col="name" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-1 min-w-0" />
                   <SortHeader label={t('styleHeader')} col="style" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-shrink-0 w-[88px] justify-center" />
-                  <SortHeader label={t('costHeader')} col="charge_amount" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-shrink-0 w-16 justify-end" />
+                  <SortHeader label={t('costHeader')} col="charge_amount" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-shrink-0 w-28 justify-end" />
                   <SortHeader label={t('dateHeader')} col="created_at" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-shrink-0 w-28 justify-end" />
                   <div className="w-3.5 flex-shrink-0" />
                 </div>

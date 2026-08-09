@@ -43,6 +43,35 @@
     "newTranscript": "Nouvelle transcription",
     "newExamPrep": "Nouvelle préparation aux examens"
   },
+  "categoryPairs": {
+    "label": "Paire de catégories",
+    "helper": "Réutilisez une paire `course_name` + `period_label` enregistrée, ou créez-en une nouvelle.",
+    "manage": "Gérer les paires",
+    "noneSelected": "Aucune paire de catégories sélectionnée",
+    "optionalHint": "C'est facultatif pour l'instant, mais c'est ici que vivra la nouvelle catégorisation principale et secondaire.",
+    "title": "Gérer les paires de catégories",
+    "description": "Créez des paires réutilisables cours + période pouvant être partagées entre notes, transcriptions et préparation aux examens.",
+    "savedPairs": "Paires enregistrées",
+    "newPair": "Nouvelle paire",
+    "empty": "Aucune paire de catégories pour le moment.",
+    "updatedShort": "Mis à jour {date}",
+    "courseName": "Nom du cours",
+    "courseNamePlaceholder": "ex. CSC531 Exploration de Données",
+    "periodLabel": "Libellé de période",
+    "periodLabelPlaceholder": "ex. Année 3 Semestre 2",
+    "color": "Couleur",
+    "preview": "Aperçu",
+    "courseNameFallback": "Nom du cours",
+    "periodLabelFallback": "Libellé de période",
+    "created": "Créé",
+    "updated": "Mis à jour",
+    "user": "Utilisateur",
+    "hex": "Hex",
+    "footer": "Sélectionnez une paire enregistrée dans la liste, ou créez-en une nouvelle réutilisable ici.",
+    "useThisPair": "Utiliser cette paire",
+    "saveChanges": "Enregistrer les modifications",
+    "createPair": "Créer la paire"
+  },
   "auth": {
     "signIn": "Connectez-vous à",
     "subtitle": "Utilisez votre compte Google universitaire pour commencer. Aucun mot de passe requis.",
@@ -207,7 +236,9 @@
     "searchTranscriptsPlaceholder": "Rechercher des transcriptions…",
     "noTranscriptsYetPicker": "Aucune transcription encore",
     "noResultsFound": "Aucun résultat trouvé",
-    "courseNamePlaceholder": "ex., CSC531 Exploration de Données"
+    "courseNamePlaceholder": "ex., CSC531 Exploration de Données",
+    "noteTitleLabel": "Titre de la note",
+    "noteTitlePlaceholder": "ex. Semaine 7 - Cours de Data Mining"
   },
   "transcriptor": {
     "title": "Transcripteur audio",
@@ -287,7 +318,9 @@
     "whisperLargeV3Turbo": "Whisper Large V3 Turbo",
     "words": "mots",
     "errorDelete": "Quelque chose s’est mal passé. Veuillez réessayer.",
-    "vad": "Détection d’activité vocale (VAD)"
+    "vad": "Détection d’activité vocale (VAD)",
+    "group": "Groupe",
+    "individual": "Individuel"
   },
   "audioConverter": {
     "title": "Convertisseur audio",

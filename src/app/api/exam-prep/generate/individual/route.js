@@ -4,7 +4,13 @@ import { verifyUserData } from "@/lib/auth/verify";
 import { generateExamPrep } from "@/lib/exam-prep/individual/generate";
 import { rateLimit } from "@/lib/rateLimit";
 
+const EXAM_PREP_AVAILABLE = false;
+
 export async function POST(req) {
+    if (!EXAM_PREP_AVAILABLE) {
+        return NextResponse.json({ error: 'Exam Prep is coming soon.' }, { status: 503 });
+    }
+
     const userId = await verifyUserData(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

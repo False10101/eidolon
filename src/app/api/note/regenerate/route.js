@@ -1,161 +1,208 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
-import { generate } from "@/lib/note/individual/generate";
-import { generateGroup } from "@/lib/note/group/generate";
-import { getGroupTierPrice } from "../generate/group/route";
+import { regenerateIndividual } from "@/lib/note/individual/generate";
+import { regenerateGroup } from "@/lib/note/group/generate";
+import { getGroupPerParticipantPrice } from "@/lib/groupPricing";
+import { WORST_CASE_NOTE_PRICE } from "@/lib/notePricing";
 import { rateLimit } from "@/lib/rateLimit";
 
-export async function POST(req) {
-    const userId = await verifyUserData(req);
-    if (userId === null) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const limited = await rateLimit(`rl:note-gen:${userId}`, 10, 60);
-    if (limited) return limited;
-
-    const inProgress = await sql`
-        SELECT 1 FROM note
-        WHERE user_id = ${userId}
-        AND status IN ('pending', 'reading', 'generating', 'saving')
-        UNION ALL
-        SELECT 1 FROM note
-        WHERE status IN ('pending', 'reading', 'generating', 'saving')
-        AND id IN (SELECT note_id FROM note_access WHERE user_id = ${userId})
-        UNION ALL
-        SELECT 1 FROM exam_prep
-        WHERE user_id = ${userId}
-        AND status IN ('Pending', 'Reading', 'Generating', 'Saving')
-        UNION ALL
-        SELECT 1 FROM exam_prep
-        WHERE status IN ('Pending', 'Reading', 'Generating', 'Saving')
-        AND id IN (SELECT exam_prep_id FROM exam_prep_access WHERE user_id = ${userId})
-        UNION ALL
-        SELECT 1 FROM transcript
-        WHERE user_id = ${userId}
-        AND status IN ('Initializing', 'Transcribing')
-        LIMIT 1
-    `;
-    if (inProgress.length > 0) {
-        return NextResponse.json({ error: 'You already have a generation in progress. Please wait for it to complete.' }, { status: 400 });
+class RequestError extends Error {
+    constructor(message, status = 400) {
+        super(message);
+        this.status = status;
     }
+}
 
-    const { publicId } = await req.json();
+function sameUser(left, right) {
+    return String(left) === String(right);
+}
 
-    const userRows = await sql`SELECT balance FROM "user" WHERE id = ${userId}`;
-    const balance = userRows[0].balance;
+export async function POST(req) {
+    try {
+        const userId = await verifyUserData(req);
+        if (userId === null) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const noteRows = await sql`SELECT * FROM "note" WHERE public_id = ${publicId} AND user_id = ${userId}`;
-    const note = noteRows[0];
+        const limited = await rateLimit(`rl:note-gen:${userId}`, 10, 60);
+        if (limited) return limited;
 
-    if (!note) return NextResponse.json({ error: "Note not found" }, { status: 404 });
-    if (note.is_trial) return NextResponse.json({ error: "You must unlock this free preview before regenerating it." }, { status: 400 });
+        const inProgress = await sql`
+            SELECT 1 FROM note
+            WHERE user_id = ${userId}
+            AND status IN ('pending', 'reading', 'generating', 'saving')
+            UNION ALL
+            SELECT 1 FROM note
+            WHERE status IN ('pending', 'reading', 'generating', 'saving')
+            AND id IN (SELECT note_id FROM note_access WHERE user_id = ${userId})
+            UNION ALL
+            SELECT 1 FROM exam_prep
+            WHERE user_id = ${userId}
+            AND status IN ('Pending', 'Reading', 'Generating', 'Saving')
+            UNION ALL
+            SELECT 1 FROM exam_prep
+            WHERE status IN ('Pending', 'Reading', 'Generating', 'Saving')
+            AND id IN (SELECT exam_prep_id FROM exam_prep_access WHERE user_id = ${userId})
+            UNION ALL
+            SELECT 1 FROM transcript
+            WHERE user_id = ${userId}
+            AND status IN ('Initializing', 'Transcribing')
+            LIMIT 1
+        `;
+        if (inProgress.length > 0) {
+            throw new RequestError('You already have a generation in progress. Please wait for it to complete.');
+        }
 
-    if (note.generation_type === "group") {
-        try {
-            const [membership] = await sql`
-                SELECT gm.group_id, sg.tier, sg.max_members
-                FROM "group_member" gm
-                JOIN "student_group" sg ON sg.id = gm.group_id
-                WHERE gm.user_id = ${userId}
-                LIMIT 1
+        const { publicId } = await req.json();
+        if (!publicId) throw new RequestError('Missing publicId.');
+
+        const [note] = await sql`
+            SELECT n.*, sg.owner_id AS group_owner_id
+            FROM note n
+            LEFT JOIN student_group sg ON sg.id = n.group_id
+            WHERE n.public_id = ${publicId}
+        `;
+        if (!note) throw new RequestError('Note not found.', 404);
+        if (note.is_trial) {
+            throw new RequestError('You must unlock this free preview before regenerating it.');
+        }
+
+        const isGenerator = sameUser(note.user_id, userId);
+
+        let sourceContent = note.source_content;
+        if (!sourceContent && note.transcript_id) {
+            const [transcript] = await sql`
+                SELECT content
+                FROM transcript
+                WHERE id = ${note.transcript_id}
             `;
-            if (!membership) return NextResponse.json({ error: "You are not in a group." }, { status: 400 });
+            sourceContent = transcript?.content;
+        }
+        if (!sourceContent) throw new RequestError('No source content to regenerate from.');
 
-            let sourceContent = note.source_content;
-            if (!sourceContent && note.transcript_id) {
-                const transcriptRows = await sql`SELECT content FROM "transcript" WHERE id = ${note.transcript_id}`;
-                sourceContent = transcriptRows[0]?.content;
+        const estimatedInputTokens = Math.ceil(sourceContent.length / 4);
+        if (estimatedInputTokens > 65000) {
+            throw new RequestError('Transcript is too long. Maximum input is ~65,000 tokens.');
+        }
+
+        if (note.generation_type === 'group') {
+            const isGroupOwner = sameUser(note.group_owner_id, userId);
+            if (!isGenerator && !isGroupOwner) {
+                throw new RequestError('Only the group owner or note generator can regenerate this note.', 403);
             }
-            if (!sourceContent) return NextResponse.json({ error: "No source content to regenerate from." }, { status: 400 });
 
-            const estimatedInputTokens = Math.ceil(sourceContent.length / 4);
-            if (estimatedInputTokens > 65000) {
-                return NextResponse.json({ error: "Transcript is too long. Maximum input is ~65,000 tokens." }, { status: 400 });
-            }
+            let participantIds = [];
 
-            // 1. Calculate the MAXIMUM possible tier price for the hold
-            const maxPriceHold = getGroupTierPrice(Infinity, membership.tier);
-
-            const members = await sql`
-                SELECT gm.user_id, u.balance
-                FROM "group_member" gm
-                JOIN "user" u ON u.id = gm.user_id
-                WHERE gm.group_id = ${membership.group_id}
-            `;
-
-            const maxSplit = parseFloat((maxPriceHold / members.length).toFixed(2));
-            const maxGeneratorCharge = parseFloat((maxSplit * 0.5).toFixed(2));
-
-            // 2. Ensure all members can afford the MAX hold
-            const broke = members.find(m => {
-                const charge = m.user_id === userId ? maxGeneratorCharge : maxSplit;
-                return (parseFloat(m.balance) || 0) < charge;
-            });
-            if (broke) return NextResponse.json({ error: "A group member has insufficient balance to authorize the generation." }, { status: 400 });
-
-            // 3. Deduct the max hold UPFRONT in a transaction and reset the note
             await sql.begin(async (tx) => {
-                for (const member of members) {
-                    const charge = member.user_id === userId ? maxGeneratorCharge : maxSplit;
-                    const [held] = await tx`UPDATE "user" SET balance = balance - ${charge} WHERE id = ${member.user_id} AND balance >= ${charge} RETURNING id`;
-                    if (!held) throw new Error(`Member ${member.user_id} has insufficient balance.`);
+                const [lockedNote] = await tx`
+                    SELECT id, status, generation_type
+                    FROM note
+                    WHERE id = ${note.id}
+                    FOR UPDATE
+                `;
+                if (!lockedNote || lockedNote.generation_type !== 'group') {
+                    throw new RequestError('Group note not found.', 404);
+                }
+                if (lockedNote.status !== 'completed') {
+                    throw new RequestError('This note is not ready to regenerate.');
+                }
+
+                const participants = await tx`
+                    SELECT na.user_id, u.balance
+                    FROM note_access na
+                    JOIN "user" u ON u.id = na.user_id
+                    WHERE na.note_id = ${note.id}
+                    ORDER BY na.user_id
+                    FOR UPDATE OF na
+                `;
+                const participantCount = participants.length;
+                if (participantCount === 0) {
+                    throw new RequestError('This group note has no participants.', 409);
+                }
+                participantIds = participants.map((participant) => participant.user_id);
+
+                const holdPerParticipant = getGroupPerParticipantPrice(
+                    WORST_CASE_NOTE_PRICE,
+                    participantCount
+                );
+                const broke = participants.find(
+                    (participant) => Number(participant.balance) < holdPerParticipant
+                );
+                if (broke) {
+                    throw new RequestError('A note participant has insufficient balance to authorize regeneration.');
+                }
+
+                for (const participant of participants) {
+                    const [held] = await tx`
+                        UPDATE "user"
+                        SET balance = balance - ${holdPerParticipant}
+                        WHERE id = ${participant.user_id} AND balance >= ${holdPerParticipant}
+                        RETURNING id
+                    `;
+                    if (!held) {
+                        throw new RequestError(`Participant ${participant.user_id} has insufficient balance.`);
+                    }
                 }
 
                 await tx`
-                    UPDATE "note"
-                    SET status = 'pending', content = null, created_at = NOW()
+                    UPDATE note
+                    SET status = 'pending'
                     WHERE id = ${note.id}
                 `;
             });
 
-            // 4. Pass the tier and maxHold to the updated worker
-            generateGroup(note.id, userId, membership.group_id, membership.tier, maxPriceHold, note.language).catch(err => console.error('Group regen error:', err));
+            regenerateGroup(note.id, note.language, participantIds)
+                .catch((error) => console.error('Group regen error:', error));
 
             return NextResponse.json({ publicId });
-        } catch (error) {
-            console.error(error);
-            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
-    } else {
-        // Individual logic - unchanged, already correct!
-        try {
-            let sourceContent = note.source_content;
-            if (!sourceContent && note.transcript_id) {
-                const transcriptRows = await sql`SELECT content FROM "transcript" WHERE id = ${note.transcript_id}`;
-                sourceContent = transcriptRows[0]?.content;
+
+        if (!isGenerator) throw new RequestError('Note not found.', 404);
+        if (note.status !== 'completed') throw new RequestError('This note is not ready to regenerate.');
+
+        const [user] = await sql`SELECT balance FROM "user" WHERE id = ${userId}`;
+        if (!user || Number(user.balance) < WORST_CASE_NOTE_PRICE) {
+            throw new RequestError(
+                `Insufficient balance. This generation may cost up to ${WORST_CASE_NOTE_PRICE} credits. Your balance is ${user?.balance ?? 0} credits.`
+            );
+        }
+
+        await sql.begin(async (tx) => {
+            const [lockedNote] = await tx`
+                SELECT id, status, generation_type
+                FROM note
+                WHERE id = ${note.id} AND user_id = ${userId}
+                FOR UPDATE
+            `;
+            if (!lockedNote || lockedNote.generation_type === 'group') {
+                throw new RequestError('Note not found.', 404);
             }
-            if (!sourceContent) return NextResponse.json({ error: "No source content to regenerate from." }, { status: 400 });
-
-            const estimatedInputTokens = Math.ceil(sourceContent.length / 4);
-            if (estimatedInputTokens > 65000) {
-                return NextResponse.json({ error: "Transcript is too long. Maximum input is ~65,000 tokens." }, { status: 400 });
+            if (lockedNote.status !== 'completed') {
+                throw new RequestError('This note is not ready to regenerate.');
             }
 
-            const worstCaseCost = 13;
+            const [held] = await tx`
+                UPDATE "user"
+                SET balance = balance - ${WORST_CASE_NOTE_PRICE}
+                WHERE id = ${userId} AND balance >= ${WORST_CASE_NOTE_PRICE}
+                RETURNING id
+            `;
+            if (!held) throw new RequestError('Insufficient balance.');
 
-            if (balance < worstCaseCost) {
-                return NextResponse.json({
-                    error: `Insufficient balance. This generation may cost up to ${worstCaseCost} credits. Your balance is ${balance} credits.`
-                }, { status: 400 });
-            }
-
-            // Deduct hold upfront
-            const [held] = await sql`UPDATE "user" SET balance = balance - ${worstCaseCost} WHERE id = ${userId} AND balance >= ${worstCaseCost} RETURNING id`;
-            if (!held) return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
-
-            await sql`
-                UPDATE "note"
-                SET status = 'pending', content = null, created_at = NOW()
+            await tx`
+                UPDATE note
+                SET status = 'pending'
                 WHERE id = ${note.id}
             `;
+        });
 
-            // Call worker with worstCaseCost
-            generate(note.id, userId, worstCaseCost, note.language).catch(err => console.error('Regen error:', err));
+        regenerateIndividual(note.id, userId, note.language)
+            .catch((error) => console.error('Regen error:', error));
 
-            return NextResponse.json({ publicId });
-        } catch (error) {
-            console.error(error);
-            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-        }
+        return NextResponse.json({ publicId });
+    } catch (error) {
+        console.error('POST /api/note/regenerate failed:', error);
+        const status = error instanceof RequestError ? error.status : 500;
+        const message = error instanceof RequestError ? error.message : 'Internal server error';
+        return NextResponse.json({ error: message }, { status });
     }
 }

@@ -43,6 +43,35 @@
     "newTranscript": "Transcript baru",
     "newExamPrep": "Persiapan ujian baru"
   },
+  "categoryPairs": {
+    "label": "Pasangan kategori",
+    "helper": "Gunakan kembali pasangan `course_name` + `period_label` yang tersimpan, atau buat yang baru.",
+    "manage": "Kelola pasangan",
+    "noneSelected": "Belum ada pasangan kategori yang dipilih",
+    "optionalHint": "Untuk saat ini opsional, tetapi di sinilah kategorisasi utama dan sekunder yang baru akan berada.",
+    "title": "Kelola pasangan kategori",
+    "description": "Buat pasangan course + period yang dapat dipakai ulang dan dibagikan di notes, transcript, dan exam prep.",
+    "savedPairs": "Pasangan tersimpan",
+    "newPair": "Pasangan baru",
+    "empty": "Belum ada pasangan kategori.",
+    "updatedShort": "Diperbarui {date}",
+    "courseName": "Nama mata kuliah",
+    "courseNamePlaceholder": "mis., CSC531 Penambangan Data",
+    "periodLabel": "Label periode",
+    "periodLabelPlaceholder": "mis., Tahun 3 Semester 2",
+    "color": "Warna",
+    "preview": "Pratinjau",
+    "courseNameFallback": "Nama mata kuliah",
+    "periodLabelFallback": "Label periode",
+    "created": "Dibuat",
+    "updated": "Diperbarui",
+    "user": "Pengguna",
+    "hex": "Hex",
+    "footer": "Pilih pasangan tersimpan dari daftar, atau buat pasangan baru yang bisa dipakai ulang di sini.",
+    "useThisPair": "Gunakan pasangan ini",
+    "saveChanges": "Simpan perubahan",
+    "createPair": "Buat pasangan"
+  },
   "auth": {
     "signIn": "Masuk ke",
     "subtitle": "Gunakan akun Google universitasmu untuk memulai. Tidak perlu password.",
@@ -207,7 +236,9 @@
     "searchTranscriptsPlaceholder": "Cari transkrip…",
     "noTranscriptsYetPicker": "Belum ada transkrip",
     "noResultsFound": "Tidak ada hasil ditemukan",
-    "courseNamePlaceholder": "mis., CSC531 Penambangan Data"
+    "courseNamePlaceholder": "mis., CSC531 Penambangan Data",
+    "noteTitleLabel": "Judul catatan",
+    "noteTitlePlaceholder": "mis., Minggu 7 - Kuliah Data Mining"
   },
   "transcriptor": {
     "title": "Audio Transcriptor",
@@ -287,7 +318,9 @@
     "whisperLargeV3Turbo": "Whisper Large V3 Turbo",
     "words": "kata",
     "errorDelete": "Terjadi kesalahan. Silakan coba lagi.",
-    "vad": "Deteksi Aktivitas Suara (VAD)"
+    "vad": "Deteksi Aktivitas Suara (VAD)",
+    "group": "Grup",
+    "individual": "Individu"
   },
   "audioConverter": {
     "title": "Konverter Audio",
@@ -397,7 +430,7 @@
     "dropTxtFiles": "Letakkan file .txt di sini",
     "orClickToBrowse": "atau klik untuk jelajahi · beberapa file diizinkan",
     "groupSection": "Grup",
-    "individualSection": "Individual",
+    "individualSection": "Individu",
     "searchGroupExamPreps": "Cari persiapan ujian grup…",
     "searchIndividualExamPreps": "Cari persiapan ujian individual…",
     "examPrepUnit": "persiapan ujian",

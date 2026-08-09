@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth0 } from '@auth0/auth0-react';
 import CreditIcon from '@/app/CreditIcon';
+import LocalCreditPrice from '@/app/LocalCreditPrice';
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 const NOTE_TIERS = [
@@ -210,8 +211,9 @@ export default function LandingPricing() {
                                 </div>
 
                                 {/* Price */}
-                                <div style={{ fontSize: 20, fontWeight: 500, color: t.default ? t.color : '#e8e8ed', fontFamily: 'monospace', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    {t.price} <CreditIcon size={18} />
+                                <div style={{ fontSize: 20, fontWeight: 500, color: t.default ? t.color : '#e8e8ed', fontFamily: 'monospace', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{t.price} <CreditIcon size={18} /></span>
+                                    <LocalCreditPrice credits={t.price} />
                                 </div>
 
                                 {/* Default badge */}
@@ -229,7 +231,7 @@ export default function LandingPricing() {
                         ))}
                     </div>
                     <p style={{ marginTop: 10, fontSize: 12, color: '#5a5a6a' }}>
-                        Tier is calculated automatically — you'll see it before confirming any generation.
+                        Tier is calculated automatically — you&apos;ll see it before confirming any generation.
                     </p>
                 </motion.div>
 
@@ -238,16 +240,16 @@ export default function LandingPricing() {
                     <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#7a7a8a', marginBottom: 14 }}>
                         Transcription (optional — skip if you already have a transcript)
                     </div>
-                    <div style={{ background: '#111116', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, overflow: 'hidden' }}>
+                        <div style={{ background: '#111116', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, overflow: 'hidden' }}>
                         {/* Header */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 0, padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 130px', gap: 0, padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                             <span style={{ fontSize: 11, color: '#5a5a6a', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Duration</span>
                             <span style={{ fontSize: 11, color: '#5a5a6a', textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Turbo</span>
                             <span style={{ fontSize: 11, color: '#5a5a6a', textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Premium</span>
                         </div>
                         {TRANSCRIPT_TIERS.map((t, i) => (
                             <div key={t.tier} style={{
-                                display: 'grid', gridTemplateColumns: '1fr 80px 80px',
+                                display: 'grid', gridTemplateColumns: '1fr 130px 130px',
                                 padding: '12px 20px',
                                 borderBottom: i < TRANSCRIPT_TIERS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                             }}>
@@ -255,11 +257,13 @@ export default function LandingPricing() {
                                     <span style={{ fontSize: 13, color: '#b4b4c2' }}>{t.range}</span>
                                     {t.perHr && <span style={{ fontSize: 11, color: '#5a5a6a', marginLeft: 6 }}>per hour after</span>}
                                 </div>
-                                <div style={{ textAlign: 'right', fontSize: 13, color: '#e8e8ed', fontFamily: 'monospace', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                                    {t.turbo}{t.perHr ? '/hr' : ''} <CreditIcon size={12} />
+                                <div style={{ textAlign: 'right', fontSize: 13, color: '#e8e8ed', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 2 }}>
+                                    <span>{t.turbo}{t.perHr ? '/hr' : ''} <CreditIcon size={12} /></span>
+                                    <LocalCreditPrice credits={t.turbo} suffix={t.perHr ? '/hr' : ''} />
                                 </div>
-                                <div style={{ textAlign: 'right', fontSize: 13, color: '#e8e8ed', fontFamily: 'monospace', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                                    {t.premium}{t.perHr ? '/hr' : ''} <CreditIcon size={12} />
+                                <div style={{ textAlign: 'right', fontSize: 13, color: '#e8e8ed', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 2 }}>
+                                    <span>{t.premium}{t.perHr ? '/hr' : ''} <CreditIcon size={12} /></span>
+                                    <LocalCreditPrice credits={t.premium} suffix={t.perHr ? '/hr' : ''} />
                                 </div>
                             </div>
                         ))}

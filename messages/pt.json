@@ -43,6 +43,35 @@
     "newTranscript": "Nova transcrição",
     "newExamPrep": "Novo exame prático"
   },
+  "categoryPairs": {
+    "label": "Par de categorias",
+    "helper": "Reutilize um par `course_name` + `period_label` guardado, ou crie um novo.",
+    "manage": "Gerir pares",
+    "noneSelected": "Nenhum par de categorias selecionado",
+    "optionalHint": "Por agora é opcional, mas é aqui que ficará a nova categorização primária e secundária.",
+    "title": "Gerir pares de categorias",
+    "description": "Crie pares reutilizáveis de curso + período que possam ser partilhados entre notas, transcrições e preparação para exames.",
+    "savedPairs": "Pares guardados",
+    "newPair": "Novo par",
+    "empty": "Ainda não há pares de categorias.",
+    "updatedShort": "Atualizado {date}",
+    "courseName": "Nome do curso",
+    "courseNamePlaceholder": "ex. CSC531 Mineração de Dados",
+    "periodLabel": "Etiqueta do período",
+    "periodLabelPlaceholder": "ex. Ano 3 Semestre 2",
+    "color": "Cor",
+    "preview": "Pré-visualização",
+    "courseNameFallback": "Nome do curso",
+    "periodLabelFallback": "Etiqueta do período",
+    "created": "Criado",
+    "updated": "Atualizado",
+    "user": "Utilizador",
+    "hex": "Hex",
+    "footer": "Selecione um par guardado da lista, ou crie aqui um novo par reutilizável.",
+    "useThisPair": "Usar este par",
+    "saveChanges": "Guardar alterações",
+    "createPair": "Criar par"
+  },
   "auth": {
     "signIn": "Entra em",
     "subtitle": "Usa a tua conta Google da universidade para começar. Sem password necessária.",
@@ -207,7 +236,9 @@
     "searchTranscriptsPlaceholder": "Pesquisar transcrições…",
     "noTranscriptsYetPicker": "Sem transcrições ainda",
     "noResultsFound": "Nenhum resultado encontrado",
-    "courseNamePlaceholder": "ex., CSC531 Mineração de Dados"
+    "courseNamePlaceholder": "ex., CSC531 Mineração de Dados",
+    "noteTitleLabel": "Título da nota",
+    "noteTitlePlaceholder": "ex. Semana 7 - Aula de Mineração de Dados"
   },
   "transcriptor": {
     "title": "Transcritor de Áudio",
@@ -287,7 +318,9 @@
     "whisperLargeV3Turbo": "Whisper Large V3 Turbo",
     "words": "palavras",
     "errorDelete": "Algo correu mal. Por favor, tente novamente.",
-    "vad": "Deteção de Atividade de Voz (VAD)"
+    "vad": "Deteção de Atividade de Voz (VAD)",
+    "group": "Grupo",
+    "individual": "Individual"
   },
   "audioConverter": {
     "title": "Conversor de Áudio",

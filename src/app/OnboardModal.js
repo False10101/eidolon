@@ -174,8 +174,9 @@ export default function OnboardModal({ storageKey, slides, accentColor = '#00d4c
                 <button
                   onClick={dismiss}
                   style={{
-                    background: 'transparent', border: '1px solid var(--border-strong)',
-                    color: 'var(--fg-3)', padding: '7px 16px', borderRadius: 8,
+                    background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.08), rgba(var(--accent-rgb), 0.02))',
+                    border: '1px solid rgba(var(--accent-rgb), 0.22)',
+                    color: 'var(--fg-2)', padding: '7px 16px', borderRadius: 8,
                     fontSize: 12, cursor: 'pointer',
                   }}
                 >
@@ -185,7 +186,8 @@ export default function OnboardModal({ storageKey, slides, accentColor = '#00d4c
                   <button
                     onClick={prev}
                     style={{
-                      background: 'var(--surface-raised)', border: '1px solid var(--border)',
+                      background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0.025))',
+                      border: '1px solid rgba(var(--accent-rgb), 0.22)',
                       color: 'var(--fg-2)', padding: '7px 16px', borderRadius: 8,
                       fontSize: 12, cursor: 'pointer',
                     }}
@@ -196,8 +198,9 @@ export default function OnboardModal({ storageKey, slides, accentColor = '#00d4c
                 <button
                   onClick={next}
                   style={{
-                    background: accentColor, border: 'none',
-                    color: '#0c0c0e', padding: '7px 20px', borderRadius: 8,
+                    background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.05))',
+                    border: '1px solid rgba(var(--accent-rgb), 0.35)',
+                    color: accentColor, padding: '7px 20px', borderRadius: 8,
                     fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}
                 >

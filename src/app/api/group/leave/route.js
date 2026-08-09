@@ -48,6 +48,13 @@ export async function POST(req) {
         }
 
         await sql.begin(async (tx) => {
+            await tx`
+                SELECT id
+                FROM "student_group"
+                WHERE id = ${membership.group_id}
+                FOR UPDATE
+            `;
+
             // 1. Remove them from the group (Keep their note_access receipts!)
             await tx`DELETE FROM "group_member" WHERE user_id = ${userId} AND group_id = ${membership.group_id}`;
 
@@ -69,7 +76,19 @@ export async function POST(req) {
                 // Group survives, pass the owner crown to the next oldest member
                 await tx`
                     UPDATE "group_member" SET role = 'owner'
-                    WHERE user_id = ${remaining[0].user_id}
+                    WHERE group_id = ${membership.group_id}
+                      AND user_id = ${remaining[0].user_id}
+                `;
+                await tx`
+                    UPDATE "student_group"
+                    SET owner_id = ${remaining[0].user_id}, member_count = ${remaining.length}
+                    WHERE id = ${membership.group_id}
+                `;
+            } else {
+                await tx`
+                    UPDATE "student_group"
+                    SET member_count = ${remaining.length}
+                    WHERE id = ${membership.group_id}
                 `;
             }
         });

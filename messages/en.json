@@ -43,6 +43,35 @@
     "newTranscript": "New transcript",
     "newExamPrep": "New exam prep"
   },
+  "categoryPairs": {
+    "label": "Category Pair",
+    "helper": "Reuse a saved `course_name` + `period_label` pair, or create a new one.",
+    "manage": "Manage pairs",
+    "noneSelected": "No category pair selected",
+    "optionalHint": "Optional for now, but this is where the new primary and secondary categorization will live.",
+    "title": "Manage Category Pairs",
+    "description": "Create reusable course + period pairs that can be shared across notes, transcripts, and exam prep.",
+    "savedPairs": "Saved Pairs",
+    "newPair": "New pair",
+    "empty": "No category pairs yet.",
+    "updatedShort": "Updated {date}",
+    "courseName": "Course Name",
+    "courseNamePlaceholder": "e.g., CSC531 Data Mining",
+    "periodLabel": "Period Label",
+    "periodLabelPlaceholder": "e.g., Year 3 Semester 2",
+    "color": "Color",
+    "preview": "Preview",
+    "courseNameFallback": "Course name",
+    "periodLabelFallback": "Period label",
+    "created": "Created",
+    "updated": "Updated",
+    "user": "User",
+    "hex": "Hex",
+    "footer": "Select a saved pair from the list, or create a new reusable one here.",
+    "useThisPair": "Use this pair",
+    "saveChanges": "Save changes",
+    "createPair": "Create pair"
+  },
   "auth": {
     "signIn": "Sign in to",
     "subtitle": "Use your university Google account to get started. No password needed.",
@@ -207,7 +236,9 @@
     "searchTranscriptsPlaceholder": "Search transcripts…",
     "noTranscriptsYetPicker": "No transcripts yet",
     "noResultsFound": "No results found",
-    "courseNamePlaceholder": "e.g., CSC531 Data Mining"
+    "courseNamePlaceholder": "e.g., CSC531 Data Mining",
+    "noteTitleLabel": "Note Title",
+    "noteTitlePlaceholder": "e.g., Week 7 - Data Mining Lecture"
   },
   "transcriptor": {
     "title": "Audio Transcriptor",
@@ -247,6 +278,7 @@
     "identifiesSpeakers": "Identifies different speakers (SPEAKER_00, SPEAKER_01, etc.)",
     "silenceRemoval": "Removes silence and non-speech audio for cleaner transcripts.",
     "switchToV3": "Switch to V3",
+    "group": "Group",
     "turboMayHallucinateBanner": "Turbo model may hallucinate speakers",
     "whisperV3LargeAccurate": "Whisper V3 Large provides much more accurate speaker diarization with fewer hallucinations.",
     "transcriptDetails": "Transcript details",
@@ -287,7 +319,8 @@
     "whisperLargeV3Turbo": "Whisper Large V3 Turbo",
     "words": "words",
     "errorDelete": "Something went wrong. Please try again.",
-    "vad": "Voice Activity Detection (VAD)"
+    "vad": "Voice Activity Detection (VAD)",
+    "individual": "Individual"
   },
   "audioConverter": {
     "title": "Audio Converter",

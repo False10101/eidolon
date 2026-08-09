@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
 import { motion } from 'framer-motion';
 import CreditIcon from '@/app/CreditIcon';
+import LocalCreditPrice from '@/app/LocalCreditPrice';
 
 const SLIDES = [
     {
@@ -268,7 +269,7 @@ export default function Landing() {
             </div>
 
             <div style={{ flexShrink: 0, display: 'flex', borderTop: '1px solid rgba(255,255,255,0.08)', background: '#0f0f12' }}>
-                {[{ label: 'No subscription', sub: 'ever' }, { label: 'Pay per note', sub: <span style={{display: 'flex', alignItems: 'center', gap: 3}}>from 9 <CreditIcon size={10} color="#5a5a6a" /></span> }, { label: 'Credits never expire', sub: 'top up once' }].map((item, idx) => (
+                {[{ label: 'No subscription', sub: 'ever' }, { label: 'Pay per note', sub: <span style={{display: 'flex', alignItems: 'center', gap: 3}}>from 9 <CreditIcon size={10} color="#5a5a6a" /> <LocalCreditPrice credits={9} /></span> }, { label: 'Credits never expire', sub: 'top up once' }].map((item, idx) => (
                     <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '14px 0', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
                         <div style={{ fontSize: 13, color: '#b4b4c2', fontWeight: 500, marginBottom: 2 }}>{item.label}</div>
                         <div style={{ fontSize: 11, color: '#5a5a6a' }}>{item.sub}</div>

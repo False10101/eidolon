@@ -66,10 +66,7 @@ function PackageCard({ pkg, selected, onSelect, fx, t }) {
         <button
             onClick={() => onSelect(pkg.amount)}
             className={`w-full text-left rounded-xl border px-4 py-2.5 transition-all duration-150 cursor-pointer
-                ${isSelected
-                    ? 'border-[rgba(0,212,200,0.35)] bg-[rgba(0,212,200,0.06)]'
-                    : 'border-[var(--border)] bg-[var(--surface)] hover:border-[rgba(0,212,200,0.2)] hover:bg-[rgba(0,212,200,0.03)]'
-                }`}
+                ${isSelected ? 'btn-option-active' : 'btn-option'}`}
         >
             <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
@@ -293,9 +290,9 @@ function TopupPage() {
                             {/* ── {t("customAmount")} ── */}
                             <div className={`rounded-xl border px-4 py-3.5 transition-all duration-150
                                 ${isCustomActive
-                                    ? 'border-[rgba(0,212,200,0.35)] bg-[rgba(0,212,200,0.06)]'
+                                    ? 'border-[rgba(var(--accent-rgb),0.35)] bg-[rgba(var(--accent-rgb),0.08)]'
                                     : customFocus
-                                        ? 'border-[rgba(0,212,200,0.2)] bg-[rgba(0,212,200,0.03)]'
+                                        ? 'border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.04)]'
                                         : 'border-[var(--border)] bg-[var(--surface)]'
                                 }`}>
                                 <div className="flex items-center justify-between mb-2.5">
@@ -479,7 +476,7 @@ function TopupPage() {
                                     <button
                                         onClick={handlePay}
                                         disabled={paying || !canPay}
-                                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-3 text-[13.5px] font-semibold text-[var(--on-accent)] transition-all hover:bg-[var(--accent-hover)] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                                        className="btn-accent flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-[13.5px] font-semibold transition-all active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         {paying ? (
                                             <>

@@ -43,6 +43,35 @@
     "newTranscript": "नया ट्रांसक्रिप्ट",
     "newExamPrep": "नई परीक्षा तैयारी"
   },
+  "categoryPairs": {
+    "label": "श्रेणी जोड़ी",
+    "helper": "सेव की गई `course_name` + `period_label` जोड़ी दोबारा इस्तेमाल करें, या नई बनाएं।",
+    "manage": "जोड़ियाँ प्रबंधित करें",
+    "noneSelected": "कोई श्रेणी जोड़ी चयनित नहीं है",
+    "optionalHint": "अभी के लिए यह वैकल्पिक है, लेकिन यहीं नई प्राथमिक और द्वितीयक श्रेणीकरण रहेगा।",
+    "title": "श्रेणी जोड़ियाँ प्रबंधित करें",
+    "description": "दोबारा उपयोग की जा सकने वाली course + period जोड़ियाँ बनाएं जिन्हें notes, transcripts और exam prep में साझा किया जा सके।",
+    "savedPairs": "सहेजी गई जोड़ियाँ",
+    "newPair": "नई जोड़ी",
+    "empty": "अभी कोई श्रेणी जोड़ियाँ नहीं हैं।",
+    "updatedShort": "अपडेट किया गया {date}",
+    "courseName": "कोर्स नाम",
+    "courseNamePlaceholder": "उदा., CSC531 डेटा माइनिंग",
+    "periodLabel": "पीरियड लेबल",
+    "periodLabelPlaceholder": "उदा., Year 3 Semester 2",
+    "color": "रंग",
+    "preview": "पूर्वावलोकन",
+    "courseNameFallback": "कोर्स नाम",
+    "periodLabelFallback": "पीरियड लेबल",
+    "created": "बनाया गया",
+    "updated": "अपडेट किया गया",
+    "user": "यूज़र",
+    "hex": "Hex",
+    "footer": "सूची से सहेजी गई जोड़ी चुनें, या यहीं नई दोबारा उपयोग की जा सकने वाली जोड़ी बनाएं।",
+    "useThisPair": "इस जोड़ी का उपयोग करें",
+    "saveChanges": "परिवर्तन सहेजें",
+    "createPair": "जोड़ी बनाएं"
+  },
   "auth": {
     "signIn": "में लॉगिन करें",
     "subtitle": "शुरुआत करने के लिए अपने यूनिवर्सिटी Google खाते का उपयोग करें। कोई पासवर्ड की जरूरत नहीं।",
@@ -207,7 +236,9 @@
     "searchTranscriptsPlaceholder": "ट्रांसक्रिप्ट खोजें…",
     "noTranscriptsYetPicker": "अभी तक कोई ट्रांसक्रिप्ट नहीं",
     "noResultsFound": "कोई परिणाम नहीं मिला",
-    "courseNamePlaceholder": "उदा., CSC531 डेटा माइनिंग"
+    "courseNamePlaceholder": "उदा., CSC531 डेटा माइनिंग",
+    "noteTitleLabel": "नोट शीर्षक",
+    "noteTitlePlaceholder": "उदा., सप्ताह 7 - डेटा माइनिंग लेक्चर"
   },
   "transcriptor": {
     "title": "ऑडियो ट्रांसक्रिप्टर",
@@ -287,7 +318,9 @@
     "whisperLargeV3Turbo": "Whisper Large V3 Turbo",
     "words": "शब्द",
     "errorDelete": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
-    "vad": "वॉयस एक्टिविटी डिटेक्शन (VAD)"
+    "vad": "वॉयस एक्टिविटी डिटेक्शन (VAD)",
+    "group": "ग्रुप",
+    "individual": "व्यक्तिगत"
   },
   "audioConverter": {
     "title": "ऑडियो कन्वर्टर",
@@ -396,7 +429,7 @@
     "searchNotes": "नोट्स खोजें…",
     "dropTxtFiles": ".txt फ़ाइलें यहां ड्रॉप करें",
     "orClickToBrowse": "या ब्राउज़ करने के लिए क्लिक करें · एकाधिक अनुमत",
-    "groupSection": "समूह",
+    "groupSection": "ग्रुप",
     "individualSection": "व्यक्तिगत",
     "searchGroupExamPreps": "समूह परीक्षा तैयारी खोजें…",
     "searchIndividualExamPreps": "व्यक्तिगत परीक्षा तैयारी खोजें…",

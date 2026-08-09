@@ -43,6 +43,35 @@
     "newTranscript": "Nuevo transcript",
     "newExamPrep": "Nueva preparación de examen"
   },
+  "categoryPairs": {
+    "label": "Par de categorías",
+    "helper": "Reutiliza un par guardado de `course_name` + `period_label`, o crea uno nuevo.",
+    "manage": "Gestionar pares",
+    "noneSelected": "No hay ningún par de categorías seleccionado",
+    "optionalHint": "Por ahora es opcional, pero aquí vivirán la categorización primaria y secundaria nuevas.",
+    "title": "Gestionar pares de categorías",
+    "description": "Crea pares reutilizables de curso + período que puedan compartirse entre apuntes, transcripts y preparación de examen.",
+    "savedPairs": "Pares guardados",
+    "newPair": "Nuevo par",
+    "empty": "Aún no hay pares de categorías.",
+    "updatedShort": "Actualizado {date}",
+    "courseName": "Nombre del curso",
+    "courseNamePlaceholder": "p. ej., CSC531 Minería de Datos",
+    "periodLabel": "Etiqueta del período",
+    "periodLabelPlaceholder": "p. ej., Año 3 Semestre 2",
+    "color": "Color",
+    "preview": "Vista previa",
+    "courseNameFallback": "Nombre del curso",
+    "periodLabelFallback": "Etiqueta del período",
+    "created": "Creado",
+    "updated": "Actualizado",
+    "user": "Usuario",
+    "hex": "Hex",
+    "footer": "Selecciona un par guardado de la lista, o crea aquí uno nuevo reutilizable.",
+    "useThisPair": "Usar este par",
+    "saveChanges": "Guardar cambios",
+    "createPair": "Crear par"
+  },
   "auth": {
     "signIn": "Inicia sesión en",
     "subtitle": "Usa tu cuenta Google de la universidad para comenzar. No necesitas contraseña.",
@@ -207,7 +236,9 @@
     "searchTranscriptsPlaceholder": "Buscar transcripciones…",
     "noTranscriptsYetPicker": "Sin transcripciones aún",
     "noResultsFound": "No se encontraron resultados",
-    "courseNamePlaceholder": "p.ej., CSC531 Minería de Datos"
+    "courseNamePlaceholder": "p.ej., CSC531 Minería de Datos",
+    "noteTitleLabel": "Título del apunte",
+    "noteTitlePlaceholder": "p. ej., Semana 7 - Clase de Minería de Datos"
   },
   "transcriptor": {
     "title": "Transcriptor de Audio",
@@ -287,7 +318,9 @@
     "whisperLargeV3Turbo": "Whisper Large V3 Turbo",
     "words": "palabras",
     "errorDelete": "Algo salió mal. Por favor, inténtalo de nuevo.",
-    "vad": "Detección de actividad de voz (VAD)"
+    "vad": "Detección de actividad de voz (VAD)",
+    "group": "Grupo",
+    "individual": "Individual"
   },
   "audioConverter": {
     "title": "Conversor de Audio",

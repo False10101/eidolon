@@ -11,11 +11,12 @@ export async function DELETE(req) {
         if (!publicId) return NextResponse.json({ error: "Missing publicId." }, { status: 400 });
 
         const [transcript] = await sql`
-            SELECT id FROM "transcript"
+            SELECT id, generation_type FROM "transcript"
             WHERE public_id = ${publicId} AND user_id = ${userId}
         `;
 
         if (!transcript) return NextResponse.json({ error: "Transcript not found." }, { status: 404 });
+        if (transcript.generation_type === 'group') return NextResponse.json({ error: "Group transcripts cannot be deleted." }, { status: 403 });
 
         await sql.begin(async (tx) => {
             await tx`UPDATE "note" SET transcript_id = NULL WHERE transcript_id = ${transcript.id}`;

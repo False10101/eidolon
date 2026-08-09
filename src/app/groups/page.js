@@ -9,14 +9,6 @@ import ErrorModal from '../ErrorModal';
 import ConfirmModal from '@/app/ConfirmModal';
 import { useTranslations } from 'next-intl';
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
-const GROUP_TIERS = [
-  { id: 'small',   label: 'Small',   seats: 5,  discount: '15%' },
-  { id: 'study',   label: 'Study',   seats: 10, discount: '25%' },
-  { id: 'class',   label: 'Class',   seats: 25, discount: '40%' },
-  { id: 'faculty', label: 'Faculty', seats: 50, discount: '60%' },
-];
-
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(ts) {
   if (!ts) return '—';
@@ -29,8 +21,7 @@ function normalizeGroup(g) {
   return {
     name:        g.name,
     invite_code: g.invite_code,
-    tier:        g.tier,
-    capacity:    g.max_members,
+    member_count: g.member_count,
     members:     g.members.map(m => ({
       id:        m.user_id,
       name:      m.username,
@@ -54,7 +45,7 @@ const itemVariants = {
 
 
 // ─── Edit name modal ───────────────────────────────────────────────────────────
-function EditNameModal({ value, onChange, onSave, onClose, loading }) {
+function EditNameModal({ value, onChange, onSave, onClose, loading, t }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={loading ? undefined : onClose}>
@@ -148,7 +139,6 @@ export default function Groups() {
   // Create flow
   const [isCreating, setIsCreating]     = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-  const [selectedTier, setSelectedTier] = useState('study');
   const [creating, setCreating]         = useState(false);
 
   // Join flow
@@ -208,7 +198,7 @@ export default function Groups() {
       const res   = await fetch('/api/group/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: newGroupName.trim(), tier: selectedTier }),
+        body: JSON.stringify({ name: newGroupName.trim() }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
@@ -380,22 +370,8 @@ export default function Groups() {
                     />
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('groupSize')}</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {GROUP_TIERS.map((tier) => (
-                        <button key={tier.id} onClick={() => { if (!creating) setSelectedTier(tier.id); }}
-                          disabled={creating}
-                          className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all disabled:cursor-not-allowed
-                            ${selectedTier === tier.id
-                              ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.06)]'
-                              : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-[var(--border-hover)]'}`}>
-                          <div className={`text-[14px] font-medium transition-colors ${selectedTier === tier.id ? 'text-[var(--accent)]' : 'text-[var(--fg)]'}`}>{tier.label}</div>
-                          <div className="text-[11.5px] text-[var(--fg-3)]">Up to {tier.seats} members</div>
-                          <div className="mt-0.5 text-[10.5px] text-[#22c55e]">{tier.discount} off per member</div>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-[12px] leading-relaxed text-[var(--fg-3)]">
+                    Groups have no fixed member limit. Generation pricing and discounts are based only on the participants selected for each generation.
                   </div>
 
                   <button onClick={handleCreate} disabled={!newGroupName.trim() || creating}
@@ -504,7 +480,7 @@ export default function Groups() {
                 <div>
                   <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fg-3)]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                    {activeGroup.tier} tier
+                    Unlimited group
                   </div>
                   <div className="flex items-center gap-2">
                     <h1 className="font-serif text-[24px] font-normal tracking-[-0.02em] text-[var(--fg)]">
@@ -555,7 +531,7 @@ export default function Groups() {
               <motion.div variants={itemVariants} className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <div className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--fg-3)] select-none">{t('members')}</div>
-                  <div className="text-[11px] text-[var(--fg-3)]">{activeGroup.members.length} / {activeGroup.capacity} {t('slots')}</div>
+                  <div className="text-[11px] text-[var(--fg-3)]">{activeGroup.members.length} members</div>
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] surface">

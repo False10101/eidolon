@@ -43,6 +43,35 @@
     "newTranscript": "新转录",
     "newExamPrep": "新考试准备"
   },
+  "categoryPairs": {
+    "label": "分类组合",
+    "helper": "复用已保存的 `course_name` + `period_label` 组合，或新建一个。",
+    "manage": "管理组合",
+    "noneSelected": "未选择分类组合",
+    "optionalHint": "目前这是可选项，但新的主分类和次分类以后会放在这里。",
+    "title": "管理分类组合",
+    "description": "创建可复用的课程 + 时段组合，可在笔记、转录和考试准备之间共享。",
+    "savedPairs": "已保存的组合",
+    "newPair": "新建组合",
+    "empty": "还没有分类组合。",
+    "updatedShort": "更新于 {date}",
+    "courseName": "课程名称",
+    "courseNamePlaceholder": "例如：CSC531 数据挖掘",
+    "periodLabel": "时段标签",
+    "periodLabelPlaceholder": "例如：大三第 2 学期",
+    "color": "颜色",
+    "preview": "预览",
+    "courseNameFallback": "课程名称",
+    "periodLabelFallback": "时段标签",
+    "created": "创建于",
+    "updated": "更新于",
+    "user": "用户",
+    "hex": "Hex",
+    "footer": "从列表中选择一个已保存的组合，或在这里创建一个新的可复用组合。",
+    "useThisPair": "使用此组合",
+    "saveChanges": "保存更改",
+    "createPair": "创建组合"
+  },
   "auth": {
     "signIn": "登录",
     "subtitle": "使用你的大学 Google 账户开始。无需密码。",
@@ -207,7 +236,9 @@
     "searchTranscriptsPlaceholder": "搜索转录…",
     "noTranscriptsYetPicker": "尚无转录",
     "noResultsFound": "未找到结果",
-    "courseNamePlaceholder": "例如，CSC531 数据挖掘"
+    "courseNamePlaceholder": "例如，CSC531 数据挖掘",
+    "noteTitleLabel": "笔记标题",
+    "noteTitlePlaceholder": "例如：第 7 周 - 数据挖掘讲座"
   },
   "transcriptor": {
     "title": "音频转录",
@@ -287,7 +318,9 @@
     "whisperLargeV3Turbo": "Whisper Large V3 Turbo",
     "words": "字",
     "errorDelete": "发生错误，请重试。",
-    "vad": "语音活动检测 (VAD)"
+    "vad": "语音活动检测 (VAD)",
+    "group": "小组",
+    "individual": "个人"
   },
   "audioConverter": {
     "title": "音频转换",
@@ -396,7 +429,7 @@
     "searchNotes": "搜索笔记…",
     "dropTxtFiles": "拖拽 .txt 文件到此处",
     "orClickToBrowse": "或点击浏览 · 支持多个文件",
-    "groupSection": "组",
+    "groupSection": "小组",
     "individualSection": "个人",
     "searchGroupExamPreps": "搜索小组练习题…",
     "searchIndividualExamPreps": "搜索个人练习题…",

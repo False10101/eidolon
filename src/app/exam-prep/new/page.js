@@ -9,8 +9,11 @@ import Sidebar from '../../sidebar';
 import GeneratingOverlay from '../../GeneratingOverlays';
 import ErrorModal from '@/app/ErrorModal';
 import CreditIcon from '@/app/CreditIcon';
+import LocalCreditPrice from '@/app/LocalCreditPrice';
 import { useTranslations, useLocale } from 'next-intl';
 import ExamPrepOnboard from '../ExamPrepOnboard';
+import GroupMemberModal from '@/app/GroupMemberModal';
+import ExamPrepComingSoonPage from '@/app/exam-prep/ComingSoonPage';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const stepMap = { pending: 0, reading: 1, generating: 2, writing: 3, saving: 4 };
@@ -58,7 +61,7 @@ const itemVariants = {
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────────
-export default function NewExamPrepPage() {
+export function NewExamPrepPageLegacy() {
   const router = useRouter();
   const t = useTranslations("examPrep");
   const locale = useLocale();
@@ -83,17 +86,40 @@ export default function NewExamPrepPage() {
   const [currentStatus, setCurrentStatus] = useState('pending');
   const [error, setError] = useState(null);
   const [genMode, setGenMode] = useState('individual');
+  const [freeGenerations, setFreeGenerations] = useState(0);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
 
   const isReady = selectedNotes.length > 0 || uploadedFiles.length > 0;
   const totalSources = selectedNotes.length + uploadedFiles.length;
 
   useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        const res = await fetch('/api/user/getBalance', { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          setFreeGenerations(data.free_generations_remaining || 0);
+        }
+      } catch (err) {}
+    };
+    fetchUserData();
+    const fetchMembers = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        const res = await fetch('/api/group/group-members', { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) setGroupMembers((await res.json()).group_members ?? []);
+      } catch {}
+    };
+    fetchMembers();
+
     const fetchNotes = async () => {
       try {
         const token = await getAccessTokenSilently();
-        const res = await fetch('/api/note/getHistory', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch('/api/note/getPickerHistory', { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
-        setNotes([...(data.individual ?? []), ...(data.group ?? [])]);
+        setNotes(data);
       } catch (err) {
         console.error('Failed to fetch notes:', err);
       } finally {
@@ -149,7 +175,7 @@ export default function NewExamPrepPage() {
   };
 
   // Unified — endpoint is the only difference
-  const handleGenerate = async (mode = 'individual') => {
+  const handleGenerate = async (mode = 'individual', selectedMemberIds = []) => {
     if (!isReady) return;
     setError(null);
     setProcStatus('processing');
@@ -161,6 +187,7 @@ export default function NewExamPrepPage() {
       form.append('difficulty', difficulty);
       selectedNotes.forEach(n => form.append('note_ids[]', n.public_id));
       uploadedFiles.forEach(f => form.append('files[]', f));
+      if (mode === 'group') form.append('member_ids', JSON.stringify(selectedMemberIds));
 
       const endpoint = mode === 'group'
         ? '/api/exam-prep/generate/group'
@@ -251,7 +278,7 @@ export default function NewExamPrepPage() {
                           {selectedNotes.length}
                         </span>
                         <button onClick={() => setSelectedNotes([])}
-                          className="text-[11px] text-[var(--fg-3)] hover:text-[#ef4444] transition-colors">
+                          className="btn-danger rounded-md px-2 py-1 text-[11px] transition-all">
                           {t('clearSelection')}
                         </button>
                       </div>
@@ -286,7 +313,7 @@ export default function NewExamPrepPage() {
                       return (
                         <button key={note.public_id} onClick={() => toggleNote(note)}
                           className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all
-                            ${selected ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.06)]' : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-[var(--border-strong)]'}`}
+                            ${selected ? 'btn-option-active' : 'btn-option'}`}
                         >
                           <div className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border transition-all
                             ${selected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-white/[0.2]'}`}>
@@ -298,10 +325,16 @@ export default function NewExamPrepPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className={`truncate text-[12px] font-medium transition-colors ${selected ? 'text-[var(--fg)]' : 'text-[var(--fg-2)]'}`}>
-                              {note.name}
+                              {note.name || 'Untitled Note'}
                             </div>
-                            <div className="text-[10.5px] text-[var(--fg-3)] capitalize">
-                              {note.style ?? 'Standard'} · {formatDate(note.created_at, locale)}
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px] text-[var(--fg-3)] capitalize">
+                              <span>{note.style ?? 'Standard'} · {formatDate(note.created_at, locale)}</span>
+                              {note.generation_type === 'group' && (
+                                <>
+                                  <span className="text-[var(--fg-3)]">·</span>
+                                  <span className="text-[9px] font-semibold text-[#a855f7] uppercase tracking-wide bg-[rgba(168,85,247,0.1)] px-1 py-0.5 rounded-sm border border-[rgba(168,85,247,0.2)]">Group</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </button>
@@ -348,7 +381,7 @@ export default function NewExamPrepPage() {
                           <span className="flex-1 min-w-0 truncate text-[11.5px] text-[var(--fg-2)]">{f.name}</span>
                           <span className="flex-shrink-0 text-[10.5px] text-[var(--fg-3)]">{(f.size / 1024).toFixed(0)} KB</span>
                           <button onClick={() => removeFile(f.name)}
-                            className="flex-shrink-0 text-[var(--fg-3)] hover:text-[#ef4444] transition-colors">
+                            className="btn-icon-danger flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md transition-all">
                             <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[2]">
                               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
@@ -379,7 +412,7 @@ export default function NewExamPrepPage() {
                             setQuestionTypes(prev => ({ ...prev, [key]: !prev[key] }));
                           }}
                           className={`flex flex-col gap-2 rounded-lg border px-3.5 py-3 text-left transition-all duration-150
-                            ${on ? 'border-[rgba(0,212,200,0.3)] bg-[rgba(0,212,200,0.06)]' : 'border-[var(--border)] bg-[var(--surface-raised)] hover:border-[var(--border-hover)]'}`}
+                            ${on ? 'btn-option-active' : 'btn-option'}`}
                         >
                           <div className="flex items-center gap-2">
                             <div className={`flex h-[16px] w-[16px] flex-shrink-0 items-center justify-center rounded border transition-all
@@ -411,7 +444,7 @@ export default function NewExamPrepPage() {
                       {DIFFICULTY_OPTS.map(opt => (
                         <button key={opt.key} onClick={() => setDifficulty(opt.key)}
                           className={`flex-1 rounded-md py-1.5 text-[11.5px] transition-all
-                            ${difficulty === opt.key ? 'bg-[var(--surface-deep)] text-[var(--fg)]' : 'text-[var(--fg-3)] hover:text-[var(--fg-2)]'}`}>
+                            ${difficulty === opt.key ? 'bg-[rgba(var(--accent-rgb),0.16)] text-[var(--accent)]' : 'text-[var(--fg-3)] hover:text-[var(--fg-2)]'}`}>
                           {t(opt.labelKey)}
                         </button>
                       ))}
@@ -450,15 +483,32 @@ export default function NewExamPrepPage() {
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-3">
                   <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">{t('estCost')}</div>
-                    <div className="font-mono text-[13px] text-[var(--accent)] flex items-center">17 - 37 <CreditIcon size={14} className='ml-1' /></div>
+                    <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
+                      {freeGenerations > 0 && genMode === 'individual' ? 'Cost (Trial)' : t('estCost')}
+                    </div>
+                    {freeGenerations > 0 && genMode === 'individual' ? (
+                      <div className="flex flex-col items-end">
+                        <span className="font-mono text-[11px] font-semibold text-[var(--fg-4)] line-through decoration-1 leading-none mb-0.5 mt-1">
+                          17 - 37 <CreditIcon size={11} className="opacity-50 inline-block mb-0.5" />
+                        </span>
+                        <LocalCreditPrice credits="17–37" className="mt-0.5" />
+                        <span className="font-mono text-[14px] font-bold text-[#22c55e] leading-none uppercase mt-0.5 tracking-wide">
+                          FREE
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-end font-mono text-[13px] text-[var(--accent)]">
+                        <span>17 - 37 <CreditIcon size={14} className='ml-1' /></span>
+                        <LocalCreditPrice credits="17–37" className="mt-0.5" />
+                      </div>
+                    )}
                   </div>
                   {/* Mode toggle */}
                   <div className="flex rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] p-1">
                     <button onClick={() => setGenMode('individual')}
                       className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap
                         ${genMode === 'individual'
-                          ? 'bg-[rgba(0,212,200,0.12)] text-[var(--accent)]'
+                          ? 'bg-[rgba(var(--accent-rgb),0.18)] text-[var(--accent)]'
                           : 'text-[var(--fg-4)] hover:text-[var(--fg-2)]'}`}>
                       <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[1.8]">
                         <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
@@ -468,7 +518,7 @@ export default function NewExamPrepPage() {
                     <button onClick={() => setGenMode('group')}
                       className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all whitespace-nowrap
                         ${genMode === 'group'
-                          ? 'bg-[rgba(0,212,200,0.12)] text-[var(--accent)]'
+                          ? 'bg-[rgba(var(--accent-rgb),0.18)] text-[var(--accent)]'
                           : 'text-[var(--fg-4)] hover:text-[var(--fg-2)]'}`}>
                       <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-current fill-none stroke-[1.8]">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
@@ -479,13 +529,14 @@ export default function NewExamPrepPage() {
                   </div>
 
                   {/* Single generate button */}
-                  <button onClick={() => handleGenerate(genMode)} disabled={!isReady || procStatus === 'processing'}
-                    className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-2.5 text-[13px] font-medium text-[var(--on-accent)] transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25 whitespace-nowrap">
+                  <button onClick={() => genMode === 'group' ? setIsGroupModalOpen(true) : handleGenerate('individual')} disabled={!isReady || procStatus === 'processing'}
+                    className="btn-accent flex items-center gap-2 rounded-lg px-6 py-2.5 text-[13px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-25 whitespace-nowrap">
                     <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-current fill-none stroke-[2.2]">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                     </svg>
                     {t('generate')}
                   </button>
+                  <GroupMemberModal isOpen={isGroupModalOpen} onClose={() => setIsGroupModalOpen(false)} members={groupMembers} estimatedCost={37} onConfirm={(ids) => { setIsGroupModalOpen(false); handleGenerate('group', ids); }} />
                 </div>
               </div>
             </div>
@@ -495,4 +546,8 @@ export default function NewExamPrepPage() {
       <ExamPrepOnboard />
     </div>
   );
+}
+
+export default function NewExamPrepPage() {
+  return <ExamPrepComingSoonPage />;
 }

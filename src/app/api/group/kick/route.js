@@ -49,16 +49,34 @@ export async function POST(req) {
         }
 
         const [target] = await sql`
-            SELECT user_id FROM "group_member"
+            SELECT user_id, role FROM "group_member"
             WHERE user_id = ${target_user_id} AND group_id = ${requester.group_id}
             LIMIT 1
         `;
         if (!target) {
             return NextResponse.json({ error: "User not in your group." }, { status: 404 });
         }
+        if (target.role === 'owner') {
+            return NextResponse.json({ error: "The group owner must leave the group instead." }, { status: 400 });
+        }
 
         await sql.begin(async (tx) => {
+            await tx`
+                SELECT id
+                FROM "student_group"
+                WHERE id = ${requester.group_id}
+                FOR UPDATE
+            `;
             await tx`DELETE FROM "group_member" WHERE user_id = ${target_user_id} AND group_id = ${requester.group_id}`;
+            await tx`
+                UPDATE "student_group" sg
+                SET member_count = (
+                    SELECT COUNT(*)::int
+                    FROM "group_member" gm
+                    WHERE gm.group_id = sg.id
+                )
+                WHERE sg.id = ${requester.group_id}
+            `;
         });
 
         return NextResponse.json({ success: true });

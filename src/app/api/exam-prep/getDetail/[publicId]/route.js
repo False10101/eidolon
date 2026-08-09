@@ -26,14 +26,36 @@ export async function GET(req, { params }) {
         examPrep = accessRows[0];
     }
 
+    let is_unlocked = true;
+
+    // check locked group item
+    if (!examPrep) {
+        const lockedRows = await sql`
+            SELECT ep.id, ep.label, ep.status, ep.created_at, ep.charge_amount, ep.question_type, ep.difficulty, ep.content
+            FROM exam_prep ep
+            JOIN group_member gm ON gm.group_id = ep.group_id
+            WHERE ep.public_id = ${publicId}
+            AND ep.generation_type = 'group'
+            AND gm.user_id = ${userId}
+        `;
+
+        if (lockedRows[0]) {
+            examPrep = lockedRows[0];
+            examPrep.content = null; // scrub content
+            is_unlocked = false;
+        }
+    }
+
     if (!examPrep) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     let questions = [];
-    try {
-        const parsed = JSON.parse(examPrep.content);
-        questions = parsed.questions ?? [];
-    } catch (err) {
-        console.error('Failed to parse exam prep content:', err);
+    if (examPrep.content) {
+        try {
+            const parsed = JSON.parse(examPrep.content);
+            questions = parsed.questions ?? [];
+        } catch (err) {
+            console.error('Failed to parse exam prep content:', err);
+        }
     }
 
     const sources = await sql`
@@ -62,5 +84,6 @@ export async function GET(req, { params }) {
         difficulty: examPrep.difficulty,
         questions,
         sources: formattedSources,
+        is_unlocked
     });
 }
