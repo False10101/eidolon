@@ -37,6 +37,7 @@ export async function GET(req, { params }) {
         state,
         progress,
         queuePosition,
-        transcriptJobId: job.returnvalue?.transcriptJobId || null,
+        transcriptJobId: result?.transcriptJobId || null,
+        transcriptError: result?.transcriptError || null,
     });
 }

@@ -396,6 +396,9 @@ const worker = new Worker('transcription', async (job) => {
         }
 
         const transcriptContent = transcriptParts.join('\n\n').trim();
+        if (!transcriptContent) {
+            throw new Error('Transcription returned empty content.');
+        }
 
         await updateChunkProgress(job, 92, 'Saving transcript', chunkPlan.length, chunkPlan.length);
 

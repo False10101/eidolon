@@ -108,7 +108,7 @@ export default function AudioConverter() {
   };
 
   // ── Download ────────────────────────────────────────────────────────────────
-  const handleDownload = async () => {
+  const handleDownload = async (downloadName = convertedName) => {
     const jobId = completedJobIdRef.current;
     if (!jobId) {
       setError(t('errorDownloadRef'));
@@ -129,7 +129,7 @@ export default function AudioConverter() {
 
       const a = document.createElement('a');
       a.href = data.url;
-      a.download = convertedName;
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -194,13 +194,20 @@ export default function AudioConverter() {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
           completedJobIdRef.current = jobId;
-          setConvertedName(`${fileName.split('.')[0]}.${formatRef.current.toLowerCase()}`);
+          const completedFileName = `${fileName.split('.')[0]}.${formatRef.current.toLowerCase()}`;
+          setConvertedName(completedFileName);
 
           const action = postActionRef.current;
 
-          if (action === 'both') await handleDownload();
+          if (action === 'both') await handleDownload(completedFileName);
 
           if (action === 'transcribe' || action === 'both') {
+            if (data.transcriptError || !data.transcriptJobId) {
+              setStatus('idle');
+              setError(data.transcriptError || t('errorTranscriptionFailed'));
+              return;
+            }
+
             setPhase('transcribing');
             setProgress(0);
             setTranscriptStep(t('waitingInQueue'));
@@ -334,7 +341,7 @@ export default function AudioConverter() {
                 onCancel={null}
                 done={status === 'done'}
                 doneLabel={convertedName}
-                onView={handleDownload}
+                onView={() => handleDownload()}
                 onViewLabel={t("downloadFile")}
                 onReset={resetAll}
                 onResetLabel={t("convertAnother")}
