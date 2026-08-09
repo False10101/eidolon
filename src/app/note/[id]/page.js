@@ -15,7 +15,8 @@ import ConfirmModal from '@/app/ConfirmModal';
 import ErrorModal from '@/app/ErrorModal';
 import CreditIcon from '@/app/CreditIcon';
 import LocalCreditPrice from '@/app/LocalCreditPrice';
-
+import CategorizationModal from '@/app/CategorizationModal';
+import CategoryDropdown from '@/app/CategoryDropdown';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatCreatedAt(ts, locale) {
@@ -39,15 +40,12 @@ const styleLabels = { exam: 'Exam Note', standard: 'Standard', textbook: 'Textbo
 
 async function copyToClipboard(text) {
   if (!text) return false;
-
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch {
-  }
-
+  } catch {}
   try {
     const textarea = document.createElement('textarea');
     textarea.value = text;
@@ -73,9 +71,7 @@ function ActionBtn({ children, onClick, icon, danger, active }) {
     <button
       onClick={onClick}
       className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] transition-all
-        ${active
-          ? 'btn-option-active'
-          : danger ? 'btn-danger' : 'btn-surface'}
+        ${active ? 'btn-option-active' : danger ? 'btn-danger' : 'btn-surface'}
         ${danger ? 'text-[#ef4444]' : ''}`}
     >
       {icon}{children}
@@ -96,7 +92,7 @@ function DetailField({ label, value, editing, editValue, onChange, placeholder }
           className="bg-[var(--surface-raised)] border border-[rgba(0,212,200,0.25)] rounded-lg px-2.5 py-1.5 text-[12px] text-[var(--fg)] outline-none focus:border-[rgba(0,212,200,0.5)] transition-colors w-full placeholder:text-[var(--fg-3)] min-h-[32px]"
         />
       ) : (
-        <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-[12px] text-[var(--fg)] min-h-[32px] capitalize truncate">
+        <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-[12px] text-[var(--fg)] min-h-[32px] capitalize truncate flex items-center">
           {value || '—'}
         </div>
       )}
@@ -118,7 +114,7 @@ export default function NoteViewer({ params }) {
     if (style === 'standard') return t('standard');
     if (style === 'textbook') return t('textbook');
     return style;
-};
+  };
 
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -127,14 +123,19 @@ export default function NoteViewer({ params }) {
   const [isEditing, setIsEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
+  
   const [editContent, setEditContent] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editCategorization, setEditCategorization] = useState(null);
+  const [categoryChanged, setCategoryChanged] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
   const [regenError, setRegenError] = useState(null);
-
-  const [editName, setEditName] = useState('');
 
   const [procStatus, setProcStatus] = useState('idle');
   const [currentStatus, setCurrentStatus] = useState('pending');
@@ -143,7 +144,6 @@ export default function NoteViewer({ params }) {
 
   const [unlockingTrial, setUnlockingTrial] = useState(false);
   const [unlockTrialError, setUnlockTrialError] = useState(null);
-
   const [unlocking, setUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState(null);
 
@@ -157,31 +157,74 @@ export default function NoteViewer({ params }) {
     return () => observer.disconnect();
   }, []);
 
-  const handleUnlockTrial = async () => {
-    setUnlockingTrial(true);
-    setUnlockTrialError(null);
+  // Fetch initial note
+  useEffect(() => {
+    if (!id) return;
+    const fetchNote = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        const res = await fetch(`/api/note/getDetail/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          setError(data.error ?? t('errorNoteNotFound'));
+          setLoading(false);
+          return;
+        }
+        setNote(data.detail);
+        setEditName(data.detail.name ?? '');
+        setEditContent(data.detail.content ?? '');
+        setEditCategorization(data.detail.categorization ?? null);
+        setCategoryChanged(false);
+        
+        // Seed categories array with current category so it's not empty instantly
+        if (data.detail.categorization) {
+          setCategories([data.detail.categorization]);
+        }
+      } catch (err) {
+        setError(t('failedToLoad'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNote();
+  }, [id, getAccessTokenSilently]);
+
+  // Fetch all user categories when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      const fetchCats = async () => {
+        try {
+          const token = await getAccessTokenSilently();
+          const res = await fetch('/api/categories', { headers: { Authorization: `Bearer ${token}` } });
+          const data = await res.json();
+          if (data.categories) setCategories(data.categories);
+        } catch (e) {
+          console.error("Failed to load categories", e);
+        }
+      };
+      fetchCats();
+    }
+  }, [isEditing, getAccessTokenSilently]);
+
+  const handleCreateCategory = async (newCatData) => {
     try {
       const token = await getAccessTokenSilently();
-      const res = await fetch('/api/note/unlock-trial', {
+      const res = await fetch('/api/categories', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ noteId: id }),
+        body: JSON.stringify(newCatData)
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      window.dispatchEvent(new Event('balance:refresh'));
-
-      const nextRes = await fetch(`/api/note/getDetail/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const nextData = await nextRes.json();
-      setNote(nextData.detail);
-      setEditContent(nextData.detail.content);
+      setCategories(prev => [...prev, data.category]);
+      setEditCategorization(data.category);
+      setCategoryChanged(true);
+      setIsCategoryModalOpen(false);
     } catch (err) {
-      setUnlockTrialError(err.message);
-    } finally {
-      setUnlockingTrial(false);
+      console.error("Failed to create category", err);
     }
   };
 
@@ -200,7 +243,6 @@ export default function NoteViewer({ params }) {
         setUnlockError(data.error ?? t('errorUnlockFailed'));
         return;
       }
-      // Reload the page to fetch the newly unlocked content
       window.location.reload();
     } catch {
       setUnlockError(t('errorGeneric'));
@@ -225,32 +267,6 @@ export default function NoteViewer({ params }) {
   }, []);
 
   useEffect(() => {
-    if (!id) return;
-    const fetchNote = async () => {
-      try {
-        const token = await getAccessTokenSilently();
-        const res = await fetch(`/api/note/getDetail/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          setError(data.error ?? t('errorNoteNotFound'));
-          setLoading(false);
-          return;
-        }
-        setNote(data.detail);
-        setEditName(data.detail.name ?? '');
-        setEditContent(data.detail.content ?? '');
-      } catch (err) {
-        setError(t('failedToLoad'));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNote();
-  }, [id, getAccessTokenSilently]);
-
-  useEffect(() => {
     const handleKey = (e) => { if (e.key === 'Escape') setIsFullscreen(false); };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
@@ -272,12 +288,19 @@ export default function NoteViewer({ params }) {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: editContent, publicId: id,
-          name: editName
+          name: editName,
+          ...(categoryChanged ? { categorizationId: editCategorization?.id ?? null } : {}),
         }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setNote(prev => ({ ...prev, content: editContent, name: editName }));
+      setNote(prev => ({
+        ...prev,
+        content: editContent,
+        name: editName,
+        categorization: categoryChanged ? editCategorization : prev.categorization,
+      }));
+      setCategoryChanged(false);
       setIsEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -332,7 +355,10 @@ export default function NoteViewer({ params }) {
           const data2 = await res2.json();
           if (!data2.error) {
             setNote(data2.detail);
+            setEditName(data2.detail.name ?? '');
             setEditContent(data2.detail.content ?? '');
+            setEditCategorization(data2.detail.categorization ?? null);
+            setCategoryChanged(false);
           }
         } else if (status === 'failed') {
           clearInterval(intervalRef.current);
@@ -374,49 +400,17 @@ export default function NoteViewer({ params }) {
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
       <Navbar />
 
+      <CategorizationModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onCreate={handleCreateCategory}
+      />
+
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
 
         <main className="flex flex-1 flex-col overflow-hidden min-w-0">
-
-          {/* ── Loading skeleton ── */}
-          {loading && (
-            <>
-              <div className="flex-shrink-0 flex items-end justify-between px-7 pt-5 pb-0 gap-4">
-                <div className="skeleton h-7 w-48 rounded-lg" />
-                <div className="skeleton h-6 w-64 rounded-full" />
-              </div>
-              <div className="flex flex-1 overflow-hidden gap-3.5 p-5 px-7 min-h-0">
-                <div className="flex w-[280px] flex-shrink-0 flex-col gap-3">
-                  <div className="skeleton h-20 w-full rounded-xl" />
-                  <div className="skeleton h-48 w-full rounded-xl" />
-                  <div className="skeleton h-28 w-full rounded-xl" />
-                  <div className="skeleton h-10 w-full rounded-lg" />
-                </div>
-                <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                  <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
-                    <div className="skeleton h-5 w-32 rounded" />
-                    <div className="flex gap-1.5">
-                      {[60, 52, 52, 72, 52].map((w, i) => (
-                        <div key={i} className="skeleton h-7 rounded-lg" style={{ width: w }} />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex-1 px-10 py-8 flex flex-col gap-4">
-                    <div className="flex gap-3 mb-2">
-                      {[120, 80, 100].map((w, i) => <div key={i} className="skeleton h-3 rounded" style={{ width: w }} />)}
-                    </div>
-                    <div className="skeleton h-8 w-3/4 rounded" />
-                    {[1, 0.9, 1, 0.85, 1, 0.5, 1, 0.75, 1].map((w, i) => (
-                      <div key={i} className="skeleton h-4 rounded" style={{ width: `${w * 100}%` }} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* ── Error state ── */}
+          {/* Error state */}
           {!loading && error && (
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
@@ -430,7 +424,7 @@ export default function NoteViewer({ params }) {
             </div>
           )}
 
-          {/* ── Content ── */}
+          {/* Content */}
           {!loading && note && (
             <motion.div
               className="relative flex flex-1 flex-col overflow-hidden min-w-0"
@@ -450,9 +444,11 @@ export default function NoteViewer({ params }) {
 
               {/* Page header */}
               <div className="flex-shrink-0 flex items-center justify-between px-7 pt-5 pb-0 gap-4">
-                <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[var(--fg)] select-none truncate">
-                  {note.name}
-                </h1>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <h1 className="font-serif text-[22px] font-normal tracking-[-0.02em] text-[var(--fg)] select-none truncate">
+                    {isEditing ? editName : note.name}
+                  </h1>
+                </div>
                 <div className="flex-shrink-0 flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-[11px] text-[var(--fg-3)] select-none">
                   {t('lastGenerated')} <span className="text-[var(--fg-2)]">{formatCreatedAt(note.created_at, locale)}</span>
                 </div>
@@ -470,28 +466,21 @@ export default function NoteViewer({ params }) {
                       </div>
                       <h2 className="text-[18px] font-semibold text-[var(--fg)] mb-2">Locked Group Note</h2>
                       <p className="text-[13px] text-[var(--fg-3)] mb-6">
-                        This note was generated by your group. You can unlock it for {note.unlock_price ?? note.charge_amount} credits{' '}
-                        <LocalCreditPrice credits={note.unlock_price ?? note.charge_amount} /> to view its contents.
+                        This note was generated by your group. You can unlock it for (<LocalCreditPrice credits={note.unlock_price ?? note.charge_amount} />) {note.unlock_price ?? note.charge_amount} credits to view its contents.
                       </p>
-                      {unlockError && (
-                        <div className="mb-4 text-[12.5px] text-[#ef4444] bg-[#ef4444]/10 px-3 py-2 rounded-lg">
-                          {unlockError}
-                        </div>
-                      )}
                       <button
                         onClick={handleUnlock}
                         disabled={unlocking}
                         className="btn-accent w-full flex items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-medium"
                       >
-                        {unlocking ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                        ) : (
-                          <>Unlock for {note.unlock_price ?? note.charge_amount} <CreditIcon size={13} /> <LocalCreditPrice credits={note.unlock_price ?? note.charge_amount} /></>
+                        {unlocking ? 'Unlocking...' : (
+                          <>Unlock for (<LocalCreditPrice credits={note.unlock_price ?? note.charge_amount} />) {note.unlock_price ?? note.charge_amount} <CreditIcon size={13} /></>
                         )}
                       </button>
                     </div>
                   </div>
                 )}
+                
                 {/* ── Left panel ── */}
                 <div
                   className="flex w-[280px] flex-shrink-0 flex-col gap-3 overflow-y-auto"
@@ -531,8 +520,32 @@ export default function NoteViewer({ params }) {
                     <div className="p-3 flex flex-col gap-2">
                       <DetailField label={t("noteName")} value={note.name} editing={isEditing} editValue={editName} onChange={setEditName} />
                       <DetailField label={t("language")} value={note.language} editing={false} />
-                      <DetailField label={t("generationType")} value={note.generation_type} editing={false} />
                       <DetailField label={t("noteStyle")} value={getStyleLabel(note.style)} editing={false} />
+                      
+                      {/* Category Field */}
+                      <div className="flex flex-col gap-1">
+                        <div className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-3)]">Category</div>
+                        {isEditing ? (
+                          <CategoryDropdown
+                            compact
+                            value={editCategorization}
+                            categories={categories}
+                            onChange={(category) => {
+                              setEditCategorization(category);
+                              setCategoryChanged(true);
+                            }}
+                            onCreate={() => setIsCategoryModalOpen(true)}
+                          />
+                        ) : (
+                          <div className="flex min-h-[32px] items-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-1">
+                            {note.categorization
+                              ? <span className="truncate text-[12px] text-[var(--fg)]">
+                                  {note.categorization.course_name}{note.categorization.period_label ? ` / ${note.categorization.period_label}` : ''}
+                                </span>
+                              : <span className="text-[12px] text-[var(--fg-3)]">Uncategorized</span>}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -542,32 +555,35 @@ export default function NoteViewer({ params }) {
                       {t('usageLabel')}
                     </div>
                     <div className="p-3.5 flex flex-col gap-1.5">
-                      <div className="flex justify-between text-[12.5px]">
+                      <div className="flex justify-between items-center text-[12.5px]">
                         <span className="text-[var(--fg-3)]">{t('totalTokens')}</span>
                         <span className="font-mono text-[12px] text-[var(--fg)]">{note.total_tokens?.toLocaleString() ?? '—'}</span>
                       </div>
-                      <div className="flex justify-between text-[12.5px]">
+                      <div className="flex justify-between items-center text-[12.5px]">
                         <span className="text-[var(--fg-3)]">{t('tierLabel')}</span>
-                        <span className="font-mono text-[12px] text-[var(--fg)]">{tier.label}</span>
+                        <span className="font-mono text-[12px] text-[var(--fg)]">{tier?.label}</span>
                       </div>
                       <div className="h-px bg-[var(--surface-tint)] my-1" />
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mt-0.5">
                         <span className="text-[12.5px] font-medium text-[var(--fg-2)]">{t('charged')}</span>
                         {note.is_trial ? (
-                          <div className="flex flex-col items-end">
-                            <span className="font-mono text-[11px] font-medium text-[var(--fg-4)] line-through decoration-1 leading-none mb-0.5 mt-0.5">
-                              {note.charge_amount} <CreditIcon size={10} className='opacity-50 inline-block mb-0.5' />
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] font-medium text-[var(--fg-4)] line-through decoration-1 leading-none">
+                              (<LocalCreditPrice credits={note.charge_amount} />) {note.charge_amount} <CreditIcon size={10} className='opacity-50 inline-block mb-[1px]' />
                             </span>
-                            <LocalCreditPrice credits={note.charge_amount} className="mt-0.5" />
                             <span className="font-mono text-[14px] font-bold text-[#22c55e] leading-none uppercase tracking-wide">
                               TRIAL
                             </span>
                           </div>
                         ) : (
-                          <span className="flex flex-col items-end font-mono text-[16px] font-medium text-[var(--accent)]">
-                            <span>{note.charge_amount} <CreditIcon size={16} className='ml-1.5' /></span>
-                            <LocalCreditPrice credits={note.charge_amount} className="mt-0.5" />
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-[var(--fg-4)] font-sans">
+                              (<LocalCreditPrice credits={note.charge_amount} />)
+                            </span>
+                            <span className="font-mono text-[16px] font-medium text-[var(--accent)] flex items-center">
+                              {note.charge_amount} <CreditIcon size={16} className='ml-1' />
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -575,7 +591,7 @@ export default function NoteViewer({ params }) {
 
                   {/* Regenerate */}
                   {note.can_manage && (
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 flex-shrink-0 mt-1 pb-2">
                       <button
                         onClick={handleRegenerate}
                         disabled={procStatus === 'processing'}
@@ -588,6 +604,7 @@ export default function NoteViewer({ params }) {
                       </button>
                     </div>
                   )}
+
                 </div>
 
                 {/* ── Right panel ── */}
@@ -602,6 +619,8 @@ export default function NoteViewer({ params }) {
                         {t('completed')}
                       </div>
                     </div>
+                    
+                    {/* Toolbar area */}
                     <div className="flex flex-shrink-0 items-center gap-1.5">
                       {note.can_manage && (
                         <ActionBtn
@@ -625,32 +644,42 @@ export default function NoteViewer({ params }) {
                       )}
 
                       {isEditing && (
-                        <ActionBtn onClick={() => { setIsEditing(false); setEditContent(note.content); }} icon={
+                        <ActionBtn onClick={() => {
+                          setIsEditing(false);
+                          setEditName(note.name ?? '');
+                          setEditContent(note.content ?? '');
+                          setEditCategorization(note.categorization ?? null);
+                          setCategoryChanged(false);
+                        }} icon={
                           <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
                         }>{t('cancel')}</ActionBtn>
                       )}
 
-                      <ActionBtn onClick={copyNote} icon={
-                        <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
-                          <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                        </svg>
-                      }>{t('copy')}</ActionBtn>
+                      {!isEditing && (
+                        <>
+                          <ActionBtn onClick={copyNote} icon={
+                            <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
+                              <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                          }>{t('copy')}</ActionBtn>
 
-                      <ActionBtn onClick={() => setIsFullscreen(true)} icon={
-                        <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
-                          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                        </svg>
-                      }>{t('fullscreen')}</ActionBtn>
+                          <ActionBtn onClick={() => setIsFullscreen(true)} icon={
+                            <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
+                              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                            </svg>
+                          }>{t('fullscreen')}</ActionBtn>
 
-                      <ActionBtn danger onClick={() => setDeleteModal(true)} icon={
-                        <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M9 6V4h6v2" />
-                        </svg>
-                      }>
-                        {deleting ? t('deleting') : t('delete')}
-                      </ActionBtn>
+                          <ActionBtn danger onClick={() => setDeleteModal(true)} icon={
+                            <svg viewBox="0 0 24 24" className="h-[13px] w-[13px] stroke-current fill-none stroke-[1.8]">
+                              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M9 6V4h6v2" />
+                            </svg>
+                          }>
+                            {deleting ? t('deleting') : t('delete')}
+                          </ActionBtn>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -758,7 +787,6 @@ export default function NoteViewer({ params }) {
               </div>
             </nav>
 
-            {/* Reading progress bar */}
             <div className="h-[2px] w-full bg-[var(--surface-deep)] flex-shrink-0 overflow-hidden">
               <div
                 ref={progressBarRef}
@@ -783,7 +811,7 @@ export default function NoteViewer({ params }) {
                   {note.is_trial ? (
                     <span className="font-mono text-[#22c55e] font-bold">TRIAL</span>
                   ) : (
-                    <>{note.charge_amount}<CreditIcon size={12} color='#9a9aaa' /> <LocalCreditPrice credits={note.charge_amount} /></>
+                    <>(<LocalCreditPrice credits={note.charge_amount} />) {note.charge_amount}<CreditIcon size={12} color='#9a9aaa' /></>
                   )}
                 </div>
                 <div data-color-mode={colorMode} className="relative pb-20">
@@ -800,7 +828,6 @@ export default function NoteViewer({ params }) {
         )}
       </AnimatePresence>
 
-      {/* Copy toast */}
       <div className={`fixed bottom-6 right-6 z-[300] flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-2 text-[12.5px] text-[var(--fg-2)] transition-all duration-200
         ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5 pointer-events-none'}`}>
         <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-[#22c55e] fill-none stroke-[2.2]">
@@ -808,7 +835,6 @@ export default function NoteViewer({ params }) {
         </svg>
         {t('copiedToClipboard')}
       </div>
-
     </div>
   );
 }

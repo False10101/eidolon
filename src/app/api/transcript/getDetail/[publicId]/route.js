@@ -18,6 +18,13 @@ export async function GET(req, { params }) {
         const [detail] = await sql`
             SELECT t.*,
                 sg.owner_id AS group_owner_id,
+                CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object(
+                    'id', c.id,
+                    'course_name', c.course_name,
+                    'period_label', c.period_label,
+                    'color', c.color,
+                    'owned_by_viewer', c.user_id = ${userId}
+                ) END AS categorization,
                 EXISTS (
                     SELECT 1 FROM transcript_access ta
                     WHERE ta.transcript_id = t.id AND ta.user_id = ${userId}
@@ -28,6 +35,7 @@ export async function GET(req, { params }) {
                 ) AS is_group_member
             FROM transcript t
             LEFT JOIN student_group sg ON sg.id = t.group_id
+            LEFT JOIN categorization c ON c.id = t.categorization_id
             WHERE t.public_id = ${publicId}
         `;
 

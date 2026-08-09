@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import CategorizationModal from '@/app/CategorizationModal';
 
-export default function CategorizationPicker({ value, onChange }) {
+export default function CategorizationPicker({ value, onChange, compact = false }) {
   const { getAccessTokenSilently } = useAuth0();
   const [categories, setCategories] = useState([]);
   const [open, setOpen] = useState(false);
@@ -24,6 +24,8 @@ export default function CategorizationPicker({ value, onChange }) {
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
+
+  const currentBelongsToViewer = !value || categories.some((category) => String(category.id) === String(value.id));
 
   const createCategory = async (payload) => {
     try {
@@ -46,7 +48,7 @@ export default function CategorizationPicker({ value, onChange }) {
   };
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 surface noise">
+    <div className={`rounded-xl border border-[var(--border)] bg-[var(--surface)] surface noise ${compact ? 'px-3 py-3' : 'px-4 py-4'}`}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">Category</div>
         <button
@@ -59,6 +61,15 @@ export default function CategorizationPicker({ value, onChange }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {value && !currentBelongsToViewer && (
+          <div className="flex w-full items-center gap-2 rounded-lg border border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.06)] px-3 py-2 text-[12px] text-[var(--fg)]">
+            <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: value.color || '#00d4c8' }} />
+            <span className="min-w-0 flex-1 truncate">
+              {value.course_name}{value.period_label ? ` / ${value.period_label}` : ''}
+            </span>
+            <span className="flex-shrink-0 text-[10px] uppercase tracking-[0.05em] text-[var(--fg-3)]">Current</span>
+          </div>
+        )}
         <button
           type="button"
           onClick={() => onChange?.(null)}
@@ -71,7 +82,7 @@ export default function CategorizationPicker({ value, onChange }) {
             key={category.id}
             type="button"
             onClick={() => onChange?.(category)}
-            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-[12px] transition-all ${value?.id === category.id ? 'btn-option-active' : 'btn-option'}`}
+            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-[12px] transition-all ${String(value?.id) === String(category.id) ? 'btn-option-active' : 'btn-option'}`}
           >
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: category.color || '#00d4c8' }} />
             <span>{category.course_name}</span>

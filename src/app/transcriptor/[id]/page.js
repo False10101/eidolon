@@ -10,6 +10,8 @@ import ConfirmModal from '@/app/ConfirmModal';
 import ErrorModal from '@/app/ErrorModal';
 import CreditIcon from '@/app/CreditIcon';
 import LocalCreditPrice from '@/app/LocalCreditPrice';
+import CategorizationModal from '@/app/CategorizationModal';
+import CategoryDropdown from '@/app/CategoryDropdown';
 import { useTranslations, useLocale } from 'next-intl';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -195,6 +197,12 @@ export default function TranscriptViewer({ params }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState('');
   const [editContent, setEditContent] = useState('');
+  
+  const [editCategorization, setEditCategorization] = useState(null);
+  const [categoryChanged, setCategoryChanged] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -211,6 +219,12 @@ export default function TranscriptViewer({ params }) {
         setTx(data.detail);
         setEditLabel(data.detail.label ?? '');
         setEditContent(formatTranscriptContent(data.detail));
+        setEditCategorization(data.detail.categorization ?? null);
+        setCategoryChanged(false);
+
+        if (data.detail.categorization) {
+          setCategories([data.detail.categorization]);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -220,6 +234,42 @@ export default function TranscriptViewer({ params }) {
     fetch_();
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [id, getAccessTokenSilently, router]);
+
+  useEffect(() => {
+    if (isEditing) {
+      const fetchCats = async () => {
+        try {
+          const token = await getAccessTokenSilently();
+          const res = await fetch('/api/categories', { headers: { Authorization: `Bearer ${token}` } });
+          const data = await res.json();
+          if (data.categories) setCategories(data.categories);
+        } catch (e) {
+          console.error("Failed to load categories", e);
+        }
+      };
+      fetchCats();
+    }
+  }, [isEditing, getAccessTokenSilently]);
+
+  const handleCreateCategory = async (newCatData) => {
+    try {
+      const token = await getAccessTokenSilently();
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCatData)
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setCategories(prev => [...prev, data.category]);
+      setEditCategorization(data.category);
+      setCategoryChanged(true);
+      setIsCategoryModalOpen(false);
+    } catch (err) {
+      console.error("Failed to create category", err);
+    }
+  };
 
   const handleUnlock = async () => {
     setUnlocking(true);
@@ -294,7 +344,13 @@ export default function TranscriptViewer({ params }) {
       const res = await fetch('/api/transcript/edit', {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publicId: id, label: editLabel, content: editContent, clearSegments: wasSegmented }),
+        body: JSON.stringify({
+          publicId: id,
+          label: editLabel,
+          content: editContent,
+          clearSegments: wasSegmented,
+          ...(categoryChanged ? { categorizationId: editCategorization?.id ?? null } : {}),
+        }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -302,8 +358,10 @@ export default function TranscriptViewer({ params }) {
         ...prev,
         label: editLabel,
         content: editContent,
+        categorization: categoryChanged ? editCategorization : prev.categorization,
         ...(wasSegmented ? { output_format: 'text', segments: null } : {}),
       }));
+      setCategoryChanged(false);
       setIsEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -317,12 +375,20 @@ export default function TranscriptViewer({ params }) {
   const cancelEdit = () => {
     setEditLabel(tx.label ?? '');
     setEditContent(formatTranscriptContent(tx));
+    setEditCategorization(tx.categorization ?? null);
+    setCategoryChanged(false);
     setIsEditing(false);
   };
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
       <Navbar />
+
+      <CategorizationModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onCreate={handleCreateCategory}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
@@ -364,8 +430,7 @@ export default function TranscriptViewer({ params }) {
                       </div>
                       <h2 className="text-[18px] font-semibold text-[var(--fg)] mb-2">Locked Group Transcript</h2>
                       <p className="text-[13px] text-[var(--fg-3)] mb-6">
-                        This transcript was generated by your group. You can unlock it for {tx.unlock_price ?? tx.charge_amount} credits{' '}
-                        <LocalCreditPrice credits={tx.unlock_price ?? tx.charge_amount} /> to view its contents.
+                        This transcript was generated by your group. You can unlock it for (<LocalCreditPrice credits={tx.unlock_price ?? tx.charge_amount} />) {tx.unlock_price ?? tx.charge_amount} credits to view its contents.
                       </p>
                       {unlockError && (
                         <div className="mb-4 text-[12.5px] text-[#ef4444] bg-[#ef4444]/10 px-3 py-2 rounded-lg">
@@ -380,7 +445,12 @@ export default function TranscriptViewer({ params }) {
                         {unlocking ? (
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
                         ) : (
-                          <>Unlock for {tx.unlock_price ?? tx.charge_amount} <CreditIcon size={13} /> <LocalCreditPrice credits={tx.unlock_price ?? tx.charge_amount} /></>
+                          <span className="flex items-center gap-1.5">
+                            Unlock for <span className="text-[13px] ml-0.5"><LocalCreditPrice credits={tx.unlock_price ?? tx.charge_amount} /></span>
+                            <span className="flex items-center gap-1 opacity-90 font-mono">
+                              ({tx.unlock_price ?? tx.charge_amount} <CreditIcon size={13} />)
+                            </span>
+                          </span>
                         )}
                       </button>
                     </div>
@@ -421,6 +491,30 @@ export default function TranscriptViewer({ params }) {
                 <DetailRow label={t('transcriptionModel')} value={normalizeTranscriptModel(tx.model) === 'premium' ? t('whisperLargeV3') : normalizeTranscriptModel(tx.model) === 'turbo' ? t('whisperLargeV3Turbo') : tx.model ?? '-'} />
                 <DetailRow label={t('createdAt')} value={formatCreatedAt(tx.created_at, locale)} />
                 <DetailRow label={t('wordCount')} value={formatWordCount(tx.content, t)} />
+                
+                {/* Category block */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">Category</div>
+                  {isEditing ? (
+                    <CategoryDropdown
+                      value={editCategorization}
+                      categories={categories}
+                      onChange={(category) => {
+                        setEditCategorization(category);
+                        setCategoryChanged(true);
+                      }}
+                      onCreate={() => setIsCategoryModalOpen(true)}
+                    />
+                  ) : (
+                    <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 min-h-[38px]">
+                      {tx.categorization
+                        ? <span className="truncate text-[13px] text-[var(--fg)]">
+                            {tx.categorization.course_name}{tx.categorization.period_label ? ` / ${tx.categorization.period_label}` : ''}
+                          </span>
+                        : <span className="text-[13px] text-[var(--fg)]">Uncategorized</span>}
+                    </div>
+                  )}
+                </div>
 
                 {/* Cost breakdown */}
                 <div className="flex flex-col gap-1.5 rounded-xl border border-[rgba(0,212,200,0.1)] bg-[var(--surface)] px-4 py-3.5 mt-2 surface-teal">
@@ -429,32 +523,47 @@ export default function TranscriptViewer({ params }) {
                     <span className="text-[var(--fg-3)]">{t('duration')}</span>
                     <span className="font-mono text-[12px] text-[var(--fg)]">{formatDuration(tx.duration)}</span>
                   </div>
-                  <div className="flex justify-between text-[12.5px]">
+                  <div className="flex justify-between items-center text-[12.5px]">
                     <span className="text-[var(--fg-3)]">{t('rate')}</span>
-                    <span className="font-mono text-[12px] text-[var(--fg)]">
-                      <CreditIcon size={12} className='mr-1' color='#b4b4c2' />{normalizeTranscriptModel(tx.model) === 'turbo' ? '2.4/hr' : normalizeTranscriptModel(tx.model) === 'premium' ? '5.4/hr' : '—'}
-                      {normalizeTranscriptModel(tx.model) === 'turbo' && <LocalCreditPrice credits={2.4} suffix="/hr" className="ml-1" />}
-                      {normalizeTranscriptModel(tx.model) === 'premium' && <LocalCreditPrice credits={5.4} suffix="/hr" className="ml-1" />}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {normalizeTranscriptModel(tx.model) === 'unknown' ? (
+                        <span className="font-mono text-[12px] text-[var(--fg)]">—</span>
+                      ) : (
+                        <>
+                          <span className="text-[11px] text-[var(--fg-4)] font-sans">
+                            (<LocalCreditPrice credits={normalizeTranscriptModel(tx.model) === 'turbo' ? 2.4 : 5.4} suffix="/hr" />)
+                          </span>
+                          <span className="flex items-center font-mono text-[12px] text-[var(--fg)]">
+                            {normalizeTranscriptModel(tx.model) === 'turbo' ? '2.4/hr' : '5.4/hr'} <CreditIcon size={12} color="#b4b4c2" className='ml-1' />
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="h-px bg-[var(--surface-tint)]" />
-                  <div className="flex items-center justify-between">
+                  <div className="h-px bg-[var(--surface-tint)] my-1" />
+                  <div className="flex items-center justify-between mt-0.5">
                     <span className="text-[12.5px] font-medium text-[var(--fg-2)]">{t('totalCharged')}</span>
                     {tx.is_trial ? (
-                      <div className="flex flex-col items-end">
-                        <span className="font-mono text-[11px] font-medium text-[var(--fg-4)] line-through decoration-1 leading-none mb-0.5">
-                          {tx.charge_amount} <CreditIcon size={10} className='opacity-50 inline-block mb-0.5' />
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1.5 text-[11px] text-[var(--fg-4)] line-through decoration-1">
+                          <LocalCreditPrice credits={tx.charge_amount} />
+                          <span className="font-mono font-medium flex items-center gap-0.5">
+                            ({tx.charge_amount} <CreditIcon size={10} className='opacity-50' />)
+                          </span>
                         </span>
-                        <LocalCreditPrice credits={tx.charge_amount} className="mt-0.5" />
                         <span className="font-mono text-[14px] font-bold text-[#22c55e] leading-none uppercase tracking-wide">
                           TRIAL
                         </span>
                       </div>
                     ) : (
-                      <span className="flex flex-col items-end font-mono text-[16px] font-medium text-[var(--accent)]">
-                        <span>{tx.charge_amount} <CreditIcon size={16} className='mr-1' /></span>
-                        <LocalCreditPrice credits={tx.charge_amount} className="mt-0.5" />
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-[var(--fg-4)] font-sans">
+                          (<LocalCreditPrice credits={tx.charge_amount} />)
+                        </span>
+                        <span className="flex items-center font-mono text-[16px] font-medium text-[var(--accent)]">
+                          {tx.charge_amount} <CreditIcon size={16} className='ml-1' />
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -477,7 +586,8 @@ export default function TranscriptViewer({ params }) {
                     />
                   ) : (
                     <>
-                      <span className="truncate text-[13px] font-medium text-[var(--fg)]">{tx.label}</span>
+                      {/* Adjusted label to 14px for better hierarchy next to the badge */}
+                      <span className="truncate text-[14px] font-medium text-[var(--fg)]">{tx.label}</span>
                       <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-[rgba(34,197,94,0.1)] px-2 py-0.5 text-[11px] font-medium text-[#22c55e]">
                         <div className="h-[5px] w-[5px] rounded-full bg-current flex-shrink-0" />
                         {t('completed')}

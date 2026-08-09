@@ -12,11 +12,18 @@ export async function GET(req) {
         `;
 
         const individual = await sql`
-            SELECT name, public_id, style, created_at, charge_amount, total_tokens
-            FROM "note"
-            WHERE user_id = ${userId}
-            AND generation_type = 'individual'
-            ORDER BY created_at DESC
+            SELECT n.name, n.public_id, n.style, n.created_at, n.charge_amount, n.total_tokens,
+                CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object(
+                    'id', c.id,
+                    'course_name', c.course_name,
+                    'period_label', c.period_label,
+                    'color', c.color
+                ) END AS categorization
+            FROM "note" n
+            LEFT JOIN categorization c ON c.id = n.categorization_id
+            WHERE n.user_id = ${userId}
+            AND n.generation_type = 'individual'
+            ORDER BY n.created_at DESC
         `;
 
         let group = [];
@@ -25,14 +32,25 @@ export async function GET(req) {
                 SELECT 
                     n.name, n.public_id, n.style,
                     n.created_at, n.unlock_price, n.charge_amount, n.total_tokens,
+                    CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object(
+                        'id', c.id,
+                        'course_name', c.course_name,
+                        'period_label', c.period_label,
+                        'color', c.color
+                    ) END AS categorization,
                     (
                         n.user_id = ${userId} OR
+                        EXISTS (
+                            SELECT 1 FROM student_group sg
+                            WHERE sg.id = n.group_id AND sg.owner_id = ${userId}
+                        ) OR
                         EXISTS (
                             SELECT 1 FROM "note_access" na
                             WHERE na.note_id = n.id AND na.user_id = ${userId}
                         )
                     ) AS is_unlocked
                 FROM "note" n
+                LEFT JOIN categorization c ON c.id = n.categorization_id
                 WHERE n.group_id = ${membership.group_id}
                 AND n.generation_type = 'group'
                 AND n.status = 'completed'

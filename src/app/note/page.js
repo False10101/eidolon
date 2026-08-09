@@ -10,6 +10,7 @@ import Sidebar from '../sidebar';
 import ErrorModal from '../ErrorModal';
 import CreditIcon from '../CreditIcon';
 import LocalCreditPrice from '../LocalCreditPrice';
+import CategoryBadge from '../CategoryBadge';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const styleBadgeColors = {
@@ -54,12 +55,19 @@ function NoteRow({ note, onOpen, onUnlock, unlocking }) {
           </svg>
         </div>
 
-        {/* Name + meta */}
-        <div className="relative flex-1 min-w-0 flex items-center gap-2">
-          <div className="truncate text-[13.5px] font-medium text-[var(--fg-3)]">{note.name}</div>
-          <span className="flex-shrink-0 rounded border border-[rgba(0,212,200,0.15)] bg-[rgba(0,212,200,0.04)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--fg-4)]">
-            {t('group')}
-          </span>
+        {/* Name + meta stacked */}
+        <div className="relative flex-1 min-w-0 flex flex-col gap-1.5 py-0.5">
+          <div className="flex items-center gap-2">
+            <div className="truncate text-[13.5px] font-medium text-[var(--fg-3)]">{note.name}</div>
+            <span className="flex-shrink-0 rounded border border-[rgba(0,212,200,0.15)] bg-[rgba(0,212,200,0.04)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--fg-4)]">
+              {t('group')}
+            </span>
+          </div>
+          {note.categorization && (
+            <div className="flex items-start">
+              <CategoryBadge category={note.categorization} muted />
+            </div>
+          )}
         </div>
 
         {/* Style — muted */}
@@ -124,15 +132,22 @@ function NoteRow({ note, onOpen, onUnlock, unlocking }) {
         )}
       </div>
 
-      {/* Name + group badge */}
-      <div className="flex-1 min-w-0 flex items-center gap-2">
-        <div className="truncate text-[13.5px] font-medium text-[var(--fg)] group-hover:text-[var(--accent)] transition-colors">
-          {note.name}
+      {/* Name + meta stacked */}
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5 py-0.5">
+        <div className="flex items-center gap-2">
+          <div className="truncate text-[13.5px] font-medium text-[var(--fg)] group-hover:text-[var(--accent)] transition-colors">
+            {note.name}
+          </div>
+          {isGroup && (
+            <span className="flex-shrink-0 rounded border border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.07)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--accent)]">
+              {t('group')}
+            </span>
+          )}
         </div>
-        {isGroup && (
-          <span className="flex-shrink-0 rounded border border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.07)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--accent)]">
-            {t('group')}
-          </span>
+        {note.categorization && (
+          <div className="flex items-start">
+            <CategoryBadge category={note.categorization} />
+          </div>
         )}
       </div>
 
@@ -202,14 +217,17 @@ function NoteListSkeleton() {
         {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3.5">
             <div className="skeleton h-9 w-9 rounded-lg flex-shrink-0" />
-            <div className="flex-1 flex flex-col gap-1.5">
-              <div className="skeleton h-3.5 rounded" style={{ width: `${120 + (i % 5) * 30}px` }} />
-              {i % 3 === 0 && <div className="skeleton h-2.5 w-16 rounded" />}
+            <div className="flex-1 min-w-0 flex flex-col gap-2 py-0.5">
+              <div className="flex items-center gap-2">
+                <div className="skeleton h-3.5 rounded" style={{ width: `${120 + (i % 5) * 30}px` }} />
+                {i % 3 === 0 && <div className="skeleton h-3 w-10 rounded flex-shrink-0" />}
+              </div>
+              <div className="skeleton h-2.5 rounded" style={{ width: `${60 + (i % 3) * 20}px` }} />
             </div>
-            <div className="skeleton h-5 w-20 rounded-full flex-shrink-0" />
-            <div className="skeleton h-3 w-12 rounded flex-shrink-0" />
-            <div className="skeleton h-3 w-24 rounded flex-shrink-0" />
-            <div className="skeleton h-3.5 w-3.5 rounded flex-shrink-0" />
+            <div className="skeleton h-5 w-16 rounded-full flex-shrink-0 ml-auto" />
+            <div className="skeleton h-3 w-16 rounded flex-shrink-0 ml-4" />
+            <div className="skeleton h-3 w-20 rounded flex-shrink-0 ml-4" />
+            <div className="skeleton h-3.5 w-3.5 rounded flex-shrink-0 ml-4" />
           </div>
         ))}
       </div>
@@ -251,6 +269,7 @@ export default function NoteListPage() {
   const [unlockError, setUnlockError] = useState(null);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [activeCategory, setActiveCategory] = useState('all');
   const [sortKey, setSortKey] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
 
@@ -315,11 +334,30 @@ export default function NoteListPage() {
     group:      allNotes.filter(n => n._type === 'group').length,
   }), [allNotes]);
 
+  const categoryOptions = useMemo(() => {
+    const byId = new Map();
+    allNotes.forEach((note) => {
+      if (note.categorization) byId.set(String(note.categorization.id), note.categorization);
+    });
+    return [...byId.values()].sort((a, b) => {
+      const left = `${a.course_name ?? ''} ${a.period_label ?? ''}`;
+      const right = `${b.course_name ?? ''} ${b.period_label ?? ''}`;
+      return left.localeCompare(right);
+    });
+  }, [allNotes]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const base = allNotes
       .filter(n => activeTab === 'all' || n._type === activeTab)
-      .filter(n => !q || n.name?.toLowerCase().includes(q) || n.lecture_topic?.toLowerCase().includes(q));
+      .filter(n => activeCategory === 'all'
+        || (activeCategory === 'uncategorized' && !n.categorization)
+        || String(n.categorization?.id) === activeCategory)
+      .filter(n => !q
+        || n.name?.toLowerCase().includes(q)
+        || n.lecture_topic?.toLowerCase().includes(q)
+        || n.categorization?.course_name?.toLowerCase().includes(q)
+        || n.categorization?.period_label?.toLowerCase().includes(q));
 
     return [...base].sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1;
@@ -337,7 +375,7 @@ export default function NoteListPage() {
           return dir * (new Date(a.created_at) - new Date(b.created_at));
       }
     });
-  }, [allNotes, search, activeTab, sortKey, sortDir]);
+  }, [allNotes, search, activeTab, activeCategory, sortKey, sortDir]);
 
   const tabLabel = (key) => key === 'all' ? 'All' : key === 'individual' ? t('individual') : t('group');
 
@@ -398,6 +436,27 @@ export default function NoteListPage() {
                   />
                 </div>
 
+                {/* Custom Styled Select Dropdown */}
+                <div className="relative flex-shrink-0">
+                  <select
+                    value={activeCategory}
+                    onChange={(event) => setActiveCategory(event.target.value)}
+                    aria-label="Filter notes by category"
+                    className="w-[200px] appearance-none rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-3 pr-8 py-1.5 text-[12px] text-[var(--fg)] outline-none focus:border-[var(--border-hover)] transition-colors cursor-pointer"
+                  >
+                    <option value="all">All categories</option>
+                    <option value="uncategorized">Uncategorized</option>
+                    {categoryOptions.map((category) => (
+                      <option key={category.id} value={String(category.id)}>
+                        {category.course_name}{category.period_label ? ` / ${category.period_label}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <svg viewBox="0 0 24 24" className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 stroke-[var(--fg-4)] fill-none stroke-[2]">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+
                 {/* Tabs */}
                 <div className="flex items-center gap-0.5 flex-shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1">
                   {TABS.map(key => (
@@ -434,8 +493,8 @@ export default function NoteListPage() {
               {/* List */}
               {filtered.length === 0 ? (
                 <EmptyState
-                  message={search ? 'No notes match your search' : t('noNotesYet')}
-                  sub={search ? 'Try a different keyword' : undefined}
+                  message={search || activeCategory !== 'all' ? 'No notes match these filters' : t('noNotesYet')}
+                  sub={search || activeCategory !== 'all' ? 'Try a different search or category' : undefined}
                 />
               ) : (
                 <div

@@ -17,12 +17,19 @@ export async function GET(req){
         const individual = await sql`
             SELECT
                 t.label, t.filename, t.public_id, t.duration, t.created_at, t.charge_amount, t.status, t.is_trial, t.generation_type,
+                CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object(
+                    'id', c.id,
+                    'course_name', c.course_name,
+                    'period_label', c.period_label,
+                    'color', c.color
+                ) END AS categorization,
                 (t.is_trial AND NOT EXISTS (
                     SELECT 1 FROM note n
                     WHERE n.transcript_id = t.id
                       AND n.status IN ('pending', 'reading', 'generating', 'saving', 'completed')
                 )) AS free_note_available
             FROM "transcript" t
+            LEFT JOIN categorization c ON c.id = t.categorization_id
             WHERE t.user_id = ${userId}
             AND (t.generation_type = 'individual' OR t.generation_type IS NULL)
             ORDER BY t.created_at DESC
@@ -34,6 +41,12 @@ export async function GET(req){
                 SELECT
                     t.label, t.filename, t.public_id, t.duration,
                     t.created_at, t.unlock_price, t.charge_amount, t.status, t.is_trial, t.generation_type,
+                    CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object(
+                        'id', c.id,
+                        'course_name', c.course_name,
+                        'period_label', c.period_label,
+                        'color', c.color
+                    ) END AS categorization,
                     (
                         t.user_id = ${userId} OR
                         EXISTS (
@@ -51,6 +64,7 @@ export async function GET(req){
                           AND n.status IN ('pending', 'reading', 'generating', 'saving', 'completed')
                     )) AS free_note_available
                 FROM transcript t
+                LEFT JOIN categorization c ON c.id = t.categorization_id
                 WHERE t.group_id = ${membership.group_id}
                 AND t.generation_type = 'group'
                 ORDER BY t.created_at DESC
