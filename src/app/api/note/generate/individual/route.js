@@ -192,7 +192,7 @@ export async function POST(req) {
             trialSlotConsumed
         ).catch((error) => console.error('Generation error:', error));
 
-        return NextResponse.json({ publicId, isTrial });
+        return NextResponse.json({ publicId, isTrial, estimatedInputTokens });
     } catch (error) {
         console.error('POST /api/note/generate/individual failed:', error);
         const status = error instanceof RequestError ? error.status : 500;

@@ -182,5 +182,5 @@ export async function POST(req) {
 
     generateGroup(noteId, userId, language).catch(err => console.error('Group gen error:', err));
 
-    return NextResponse.json({ publicId });
+    return NextResponse.json({ publicId, estimatedInputTokens });
 }

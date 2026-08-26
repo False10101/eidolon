@@ -153,7 +153,7 @@ export async function POST(req) {
             regenerateGroup(note.id, note.language, participantIds)
                 .catch((error) => console.error('Group regen error:', error));
 
-            return NextResponse.json({ publicId });
+            return NextResponse.json({ publicId, estimatedInputTokens });
         }
 
         if (!isGenerator) throw new RequestError('Note not found.', 404);
@@ -198,7 +198,7 @@ export async function POST(req) {
         regenerateIndividual(note.id, userId, note.language)
             .catch((error) => console.error('Regen error:', error));
 
-        return NextResponse.json({ publicId });
+        return NextResponse.json({ publicId, estimatedInputTokens });
     } catch (error) {
         console.error('POST /api/note/regenerate failed:', error);
         const status = error instanceof RequestError ? error.status : 500;

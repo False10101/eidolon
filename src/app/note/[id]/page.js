@@ -17,6 +17,7 @@ import CreditIcon from '@/app/CreditIcon';
 import LocalCreditPrice from '@/app/LocalCreditPrice';
 import CategorizationModal from '@/app/CategorizationModal';
 import CategoryDropdown from '@/app/CategoryDropdown';
+import useEstimatedNoteProgress from '@/lib/useEstimatedNoteProgress';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatCreatedAt(ts, locale) {
@@ -139,8 +140,16 @@ export default function NoteViewer({ params }) {
 
   const [procStatus, setProcStatus] = useState('idle');
   const [currentStatus, setCurrentStatus] = useState('pending');
+  const [estimatedInputTokens, setEstimatedInputTokens] = useState(null);
   const intervalRef = useRef(null);
   const progressBarRef = useRef(null);
+
+  const estimatedProgress = useEstimatedNoteProgress({
+    active: procStatus === 'processing',
+    status: currentStatus,
+    inputTokens: estimatedInputTokens,
+    style: note?.style,
+  });
 
   const [unlockingTrial, setUnlockingTrial] = useState(false);
   const [unlockTrialError, setUnlockTrialError] = useState(null);
@@ -252,8 +261,6 @@ export default function NoteViewer({ params }) {
   };
 
   const stepMap = { pending: 0, reading: 0, generating: 1, saving: 2 };
-  const progressMap = { pending: 5, reading: 20, generating: 60, saving: 90, completed: 100 };
-
   const handleReaderScroll = (e) => {
     const el = e.target;
     const pct = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100;
@@ -374,6 +381,7 @@ export default function NoteViewer({ params }) {
   const handleRegenerate = async () => {
     setProcStatus('processing');
     setCurrentStatus('pending');
+    setEstimatedInputTokens(null);
     try {
       const token = await getAccessTokenSilently();
       const res = await fetch('/api/note/regenerate/', {
@@ -387,6 +395,7 @@ export default function NoteViewer({ params }) {
         setProcStatus('idle'); 
         return; 
       }
+      setEstimatedInputTokens(data.estimatedInputTokens ?? null);
       pollStatus(token);
     } catch (err) {
       console.error('Regenerate failed:', err);
@@ -437,7 +446,8 @@ export default function NoteViewer({ params }) {
                   variant="document"
                   title={t('regeneratingNote')}
                   subtitle={t(NOTE_STEPS_KEYS[stepMap[currentStatus]]) ?? 'Processing…'}
-                  targetProgress={progressMap[currentStatus] ?? 5}
+                  targetProgress={estimatedProgress}
+                  smoothed={false}
                   onCancel={null}
                 />
               )}

@@ -15,6 +15,7 @@ import { useTranslations } from 'next-intl';
 import NotesOnboard from '../NotesOnboard';
 import GroupMemberModal from '@/app/GroupMemberModal';
 import CategorizationPicker from '@/app/CategorizationPicker';
+import useEstimatedNoteProgress from '@/lib/useEstimatedNoteProgress';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const COMPACTNESS_OPTIONS = [
@@ -71,14 +72,6 @@ const LANGUAGE_OPTIONS = [
 const NOTE_STEPS_KEYS = ['stepReadingTranscript', 'stepGeneratingNote', 'stepSavingNote'];
 const stepMap = { pending: 0, reading: 0, generating: 1, saving: 2 };
 
-const stageCeilings = {
-  pending: 15,
-  reading: 35,
-  generating: 88,
-  saving: 96,
-  completed: 100,
-};
-
 // ─── Motion ────────────────────────────────────────────────────────────────────
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -107,10 +100,18 @@ export default function NewNotePage() {
 
   const [procStatus, setProcStatus] = useState('idle');
   const [currentStatus, setCurrentStatus] = useState('pending');
+  const [estimatedInputTokens, setEstimatedInputTokens] = useState(null);
   const [error, setError] = useState(null);
   const [genMode, setGenMode] = useState('individual');
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const intervalRef = useRef(null);
+
+  const estimatedProgress = useEstimatedNoteProgress({
+    active: procStatus === 'processing',
+    status: currentStatus,
+    inputTokens: estimatedInputTokens,
+    style: compactness,
+  });
 
   const isReady = (file || transcriptId) && noteTitle.trim().length > 0;
 
@@ -186,6 +187,8 @@ export default function NewNotePage() {
     if (!isReady) return;
     setError(null);
     setProcStatus('processing');
+    setCurrentStatus('pending');
+    setEstimatedInputTokens(null);
 
     try {
       const token = await getAccessTokenSilently();
@@ -220,6 +223,7 @@ export default function NewNotePage() {
         return;
       }
 
+      setEstimatedInputTokens(data.estimatedInputTokens ?? null);
       pollStatus(data.publicId, token);
     } catch (err) {
       console.error(err);
@@ -248,8 +252,8 @@ export default function NewNotePage() {
               variant="document"
               title={t('generatingNote')}
               subtitle={t(NOTE_STEPS_KEYS[stepMap[currentStatus]]) ?? 'Processing…'}
-              targetProgress={stageCeilings[currentStatus] ?? 15}
-              smoothed={true}
+              targetProgress={estimatedProgress}
+              smoothed={false}
             />
           )}
 
