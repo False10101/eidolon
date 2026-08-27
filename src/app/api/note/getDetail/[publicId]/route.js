@@ -22,6 +22,12 @@ export async function GET(req, { params }) {
                     'color', c.color,
                     'owned_by_viewer', c.user_id = ${userId}
                 ) END AS categorization,
+                COALESCE((
+                    SELECT na.paid_amount
+                    FROM note_access na
+                    WHERE na.note_id = n.id AND na.user_id = ${userId}
+                    LIMIT 1
+                ), 0) AS viewer_paid_amount,
                 EXISTS (
                     SELECT 1 FROM note_access na
                     WHERE na.note_id = n.id AND na.user_id = ${userId}

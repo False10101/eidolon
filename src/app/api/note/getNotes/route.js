@@ -38,6 +38,12 @@ export async function GET(req) {
                         'period_label', c.period_label,
                         'color', c.color
                     ) END AS categorization,
+                    COALESCE((
+                        SELECT na.paid_amount
+                        FROM note_access na
+                        WHERE na.note_id = n.id AND na.user_id = ${userId}
+                        LIMIT 1
+                    ), 0) AS viewer_paid_amount,
                     (
                         n.user_id = ${userId} OR
                         EXISTS (

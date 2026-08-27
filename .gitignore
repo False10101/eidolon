@@ -67,3 +67,20 @@ src/.DS_Store
 /scripts/migrate.js
 /migrations/20260809_selected_participants.sql
 /src/app/home/page.before-recalibration.js
+
+# local project archive utility and generated archives
+/scripts/zip-project.sh
+/project-archives/
+
+# local database SSH tunnel (contains the VPS address)
+/scripts/db-tunnel.cjs
+
+# local Google Drive note collection (credentials and downloaded files)
+/.env.drive-import
+/secrets/
+/drive-import/
+/scripts/drive-notes.cjs
+/scripts/google-drive-service-account.json
+/scripts/reconstruct-drive-notes.mjs
+/scripts/import-reconstructed-drive-notes.mjs
+/scripts/restyle-imported-drive-notes.mjs

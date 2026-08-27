@@ -404,6 +404,9 @@ export default function NoteViewer({ params }) {
   };
 
   const tier = note ? getTier(note.total_tokens ?? 0) : null;
+  const displayedPaidAmount = note?.generation_type === 'group'
+    ? (note.viewer_paid_amount ?? 0)
+    : note?.charge_amount;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
@@ -575,11 +578,13 @@ export default function NoteViewer({ params }) {
                       </div>
                       <div className="h-px bg-[var(--surface-tint)] my-1" />
                       <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-[12.5px] font-medium text-[var(--fg-2)]">{t('charged')}</span>
+                        <span className="text-[12.5px] font-medium text-[var(--fg-2)]">
+                          {note.generation_type === 'group' ? 'Your paid amount' : t('charged')}
+                        </span>
                         {note.is_trial ? (
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-[11px] font-medium text-[var(--fg-4)] line-through decoration-1 leading-none">
-                              (<LocalCreditPrice credits={note.charge_amount} />) {note.charge_amount} <CreditIcon size={10} className='opacity-50 inline-block mb-[1px]' />
+                              (<LocalCreditPrice credits={displayedPaidAmount} />) {displayedPaidAmount} <CreditIcon size={10} className='opacity-50 inline-block mb-[1px]' />
                             </span>
                             <span className="font-mono text-[14px] font-bold text-[#22c55e] leading-none uppercase tracking-wide">
                               TRIAL
@@ -588,10 +593,10 @@ export default function NoteViewer({ params }) {
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] text-[var(--fg-4)] font-sans">
-                              (<LocalCreditPrice credits={note.charge_amount} />)
+                              (<LocalCreditPrice credits={displayedPaidAmount} />)
                             </span>
                             <span className="font-mono text-[16px] font-medium text-[var(--accent)] flex items-center">
-                              {note.charge_amount} <CreditIcon size={16} className='ml-1' />
+                              {displayedPaidAmount} <CreditIcon size={16} className='ml-1' />
                             </span>
                           </div>
                         )}
@@ -821,7 +826,7 @@ export default function NoteViewer({ params }) {
                   {note.is_trial ? (
                     <span className="font-mono text-[#22c55e] font-bold">TRIAL</span>
                   ) : (
-                    <>(<LocalCreditPrice credits={note.charge_amount} />) {note.charge_amount}<CreditIcon size={12} color='#9a9aaa' /></>
+                    <>(<LocalCreditPrice credits={displayedPaidAmount} />) {displayedPaidAmount}<CreditIcon size={12} color='#9a9aaa' /></>
                   )}
                 </div>
                 <div data-color-mode={colorMode} className="relative pb-20">

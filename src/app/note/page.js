@@ -28,6 +28,10 @@ function formatDate(ts, locale) {
   });
 }
 
+function getDisplayedPaidAmount(note) {
+  return note._type === 'group' ? (note.viewer_paid_amount ?? 0) : note.charge_amount;
+}
+
 // ─── Unified note row ──────────────────────────────────────────────────────────
 function NoteRow({ note, onOpen, onUnlock, unlocking }) {
   const t = useTranslations('notes');
@@ -41,6 +45,7 @@ function NoteRow({ note, onOpen, onUnlock, unlocking }) {
   };
 
   const isGroup = note._type === 'group';
+  const paidAmount = getDisplayedPaidAmount(note);
 
   if (note._locked) {
     return (
@@ -160,7 +165,7 @@ function NoteRow({ note, onOpen, onUnlock, unlocking }) {
 
       {/* Cost */}
       <span className="flex w-28 flex-shrink-0 flex-col items-end text-right font-mono text-[12px] text-[var(--accent)]">
-        {note.charge_amount != null ? <><span>{note.charge_amount}<CreditIcon size={11} className="ml-0.5" /></span><LocalCreditPrice credits={note.charge_amount} /></> : '—'}
+        {paidAmount != null ? <><span>{paidAmount}<CreditIcon size={11} className="ml-0.5" /></span><LocalCreditPrice credits={paidAmount} /></> : '—'}
       </span>
 
       {/* Date */}
@@ -369,7 +374,7 @@ export default function NoteListPage() {
           return dir * ((order[a.style] ?? 9) - (order[b.style] ?? 9));
         }
         case 'charge_amount':
-          return dir * (Number(a.charge_amount ?? 0) - Number(b.charge_amount ?? 0));
+          return dir * (Number(getDisplayedPaidAmount(a) ?? 0) - Number(getDisplayedPaidAmount(b) ?? 0));
         case 'created_at':
         default:
           return dir * (new Date(a.created_at) - new Date(b.created_at));

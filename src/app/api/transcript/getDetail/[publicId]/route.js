@@ -25,6 +25,12 @@ export async function GET(req, { params }) {
                     'color', c.color,
                     'owned_by_viewer', c.user_id = ${userId}
                 ) END AS categorization,
+                COALESCE((
+                    SELECT ta.paid_amount
+                    FROM transcript_access ta
+                    WHERE ta.transcript_id = t.id AND ta.user_id = ${userId}
+                    LIMIT 1
+                ), 0) AS viewer_paid_amount,
                 EXISTS (
                     SELECT 1 FROM transcript_access ta
                     WHERE ta.transcript_id = t.id AND ta.user_id = ${userId}

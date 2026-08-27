@@ -38,10 +38,17 @@ function formatDuration(seconds) {
   return `${secs}s`;
 }
 
+function getDisplayedPaidAmount(transcript) {
+  return transcript._type === 'group'
+    ? (transcript.viewer_paid_amount ?? 0)
+    : transcript.charge_amount;
+}
+
 function TranscriptRow({ transcript, onOpen, onUnlock, unlocking }) {
   const locale = useLocale();
   const t = useTranslations('transcriptor');
   const isGroup = transcript._type === 'group';
+  const paidAmount = getDisplayedPaidAmount(transcript);
 
   if (transcript._locked) {
     return (
@@ -139,6 +146,10 @@ function TranscriptRow({ transcript, onOpen, onUnlock, unlocking }) {
 
       <span className="w-20 flex-shrink-0 text-right font-mono text-[12px] text-[var(--accent)] pr-[18px]">
         {formatDuration(transcript.duration)}
+      </span>
+
+      <span className="flex w-28 flex-shrink-0 flex-col items-end text-right font-mono text-[12px] text-[var(--accent)]">
+        {paidAmount != null ? <><span>{paidAmount}<CreditIcon size={11} className="ml-0.5" /></span><LocalCreditPrice credits={paidAmount} /></> : '—'}
       </span>
 
       <span className="w-28 flex-shrink-0 text-right text-[11.5px] text-[var(--fg-3)] pr-3">
@@ -337,6 +348,8 @@ export default function TranscriptListPage() {
           return dir * (a.label ?? '').toLowerCase().localeCompare((b.label ?? '').toLowerCase());
         case 'duration':
           return dir * ((Number(a.duration) || 0) - (Number(b.duration) || 0));
+        case 'charge_amount':
+          return dir * (Number(getDisplayedPaidAmount(a) ?? 0) - Number(getDisplayedPaidAmount(b) ?? 0));
         case 'created_at':
         default:
           return dir * (new Date(a.created_at) - new Date(b.created_at));
@@ -452,6 +465,7 @@ export default function TranscriptListPage() {
                   <div className="w-9 flex-shrink-0" />
                   <SortHeader label="Label" col="label" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="flex-1 min-w-0" />
                   <SortHeader label="Duration" col="duration" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="w-20 flex-shrink-0 justify-end" />
+                  <SortHeader label="Cost" col="charge_amount" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="w-28 flex-shrink-0 justify-end" />
                   <SortHeader label="Date" col="created_at" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="w-28 flex-shrink-0 justify-end pr-3" />
                   <div className="w-3.5 flex-shrink-0" />
                 </div>

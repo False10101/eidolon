@@ -47,6 +47,12 @@ export async function GET(req){
                         'period_label', c.period_label,
                         'color', c.color
                     ) END AS categorization,
+                    COALESCE((
+                        SELECT ta.paid_amount
+                        FROM transcript_access ta
+                        WHERE ta.transcript_id = t.id AND ta.user_id = ${userId}
+                        LIMIT 1
+                    ), 0) AS viewer_paid_amount,
                     (
                         t.user_id = ${userId} OR
                         EXISTS (

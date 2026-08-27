@@ -380,6 +380,10 @@ export default function TranscriptViewer({ params }) {
     setIsEditing(false);
   };
 
+  const displayedPaidAmount = tx?.generation_type === 'group'
+    ? (tx.viewer_paid_amount ?? 0)
+    : tx?.charge_amount;
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] font-sans text-sm">
       <Navbar />
@@ -542,13 +546,15 @@ export default function TranscriptViewer({ params }) {
                   </div>
                   <div className="h-px bg-[var(--surface-tint)] my-1" />
                   <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-[12.5px] font-medium text-[var(--fg-2)]">{t('totalCharged')}</span>
+                    <span className="text-[12.5px] font-medium text-[var(--fg-2)]">
+                      {tx.generation_type === 'group' ? 'Your paid amount' : t('totalCharged')}
+                    </span>
                     {tx.is_trial ? (
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1.5 text-[11px] text-[var(--fg-4)] line-through decoration-1">
-                          <LocalCreditPrice credits={tx.charge_amount} />
+                          <LocalCreditPrice credits={displayedPaidAmount} />
                           <span className="font-mono font-medium flex items-center gap-0.5">
-                            ({tx.charge_amount} <CreditIcon size={10} className='opacity-50' />)
+                            ({displayedPaidAmount} <CreditIcon size={10} className='opacity-50' />)
                           </span>
                         </span>
                         <span className="font-mono text-[14px] font-bold text-[#22c55e] leading-none uppercase tracking-wide">
@@ -558,10 +564,10 @@ export default function TranscriptViewer({ params }) {
                     ) : (
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] text-[var(--fg-4)] font-sans">
-                          (<LocalCreditPrice credits={tx.charge_amount} />)
+                          (<LocalCreditPrice credits={displayedPaidAmount} />)
                         </span>
                         <span className="flex items-center font-mono text-[16px] font-medium text-[var(--accent)]">
-                          {tx.charge_amount} <CreditIcon size={16} className='ml-1' />
+                          {displayedPaidAmount} <CreditIcon size={16} className='ml-1' />
                         </span>
                       </div>
                     )}
