@@ -274,13 +274,17 @@ export default function NewNotePage() {
             </p>
           </div>
 
-          {/* Content */}
-          <motion.div
-            className="flex flex-1 flex-col gap-3.5 overflow-hidden px-8 pb-6 pt-5 min-h-0"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+          {/* Scrollable form content */}
+          <div
+            className="min-h-0 flex-1 overflow-y-auto px-8"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}
           >
+            <motion.div
+              className="flex flex-col gap-3.5 pb-6 pt-5"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
 
             {/* Source picker */}
             <motion.div variants={itemVariants}>
@@ -388,12 +392,14 @@ export default function NewNotePage() {
               </div>
             </motion.div>
 
-            <div className="flex-1" />
+            </motion.div>
+          </div>
 
-            {/* Action bar */}
+          {/* Fixed action bar */}
+          <div className="flex-shrink-0 px-8 pb-6 pt-2">
             <motion.div
               variants={itemVariants}
-              className="flex flex-shrink-0 items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3.5 surface shadow-xl shadow-black/40"
+              className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3.5 surface shadow-xl shadow-black/40"
             >
               <div className="flex flex-col gap-0.5">
                 <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
@@ -499,8 +505,7 @@ export default function NewNotePage() {
                 />
               </div>
             </motion.div>
-
-          </motion.div>
+          </div>
         </main>
       </div>
       <NotesOnboard />
