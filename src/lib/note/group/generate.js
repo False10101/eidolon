@@ -2,7 +2,10 @@ import { sql } from "@/lib/storage/db";
 import buildUserPrompt from "../buildUserPrompt";
 import { textClient } from "@/lib/openai";
 import collectStreamContent from "@/lib/streamCollector";
-import { getGroupPerParticipantPrice, getGroupTotalPrice } from "@/lib/groupPricing";
+import {
+    getDiscountedGroupPerParticipantPrice,
+    getDiscountedGroupTotalPrice,
+} from "@/lib/groupPricing";
 import { getNoteBasePrice, WORST_CASE_NOTE_PRICE } from "@/lib/notePricing";
 
 const ACTIVE_STATUSES = ['pending', 'reading', 'generating', 'saving'];
@@ -37,7 +40,7 @@ async function getParticipantSnapshot(db, noteId, lockRows = false) {
 async function refundGroupNoteHold(noteId) {
     await sql.begin(async (tx) => {
         const [note] = await tx`
-            SELECT id, status
+            SELECT id, status, price_discount_percent
             FROM note
             WHERE id = ${noteId}
             FOR UPDATE
@@ -69,7 +72,7 @@ async function refundGroupNoteHold(noteId) {
 async function refundGroupNoteRegenerationHold(noteId, expectedParticipantIds) {
     await sql.begin(async (tx) => {
         const [note] = await tx`
-            SELECT id, status
+            SELECT id, status, price_discount_percent
             FROM note
             WHERE id = ${noteId}
             FOR UPDATE
@@ -81,7 +84,11 @@ async function refundGroupNoteRegenerationHold(noteId, expectedParticipantIds) {
             throw new Error('Group note participants changed before the regeneration refund.');
         }
 
-        const heldAmount = getGroupPerParticipantPrice(WORST_CASE_NOTE_PRICE, participants.length);
+        const heldAmount = getDiscountedGroupPerParticipantPrice(
+            WORST_CASE_NOTE_PRICE,
+            participants.length,
+            note.price_discount_percent
+        );
         for (const participant of participants) {
             await tx`
                 UPDATE "user"
@@ -148,9 +155,10 @@ export async function generateGroup(noteId, userId, targetLanguage) {
         const outputTokens = usage.completion_tokens;
         const participantCount = participants.length;
         const basePrice = getNoteBasePrice(totalTokens);
-        const perParticipantPrice = getGroupPerParticipantPrice(basePrice, participantCount);
-        const totalCharge = getGroupTotalPrice(basePrice, participantCount);
-        const nextUnlockPrice = getGroupPerParticipantPrice(basePrice, participantCount + 1);
+        const priceDiscountPercent = Number(note.price_discount_percent ?? 0);
+        const perParticipantPrice = getDiscountedGroupPerParticipantPrice(basePrice, participantCount, priceDiscountPercent);
+        const totalCharge = getDiscountedGroupTotalPrice(basePrice, participantCount, priceDiscountPercent);
+        const nextUnlockPrice = getDiscountedGroupPerParticipantPrice(basePrice, participantCount + 1, priceDiscountPercent);
 
         await sql.begin(async (tx) => {
             const [lockedNote] = await tx`
@@ -277,10 +285,15 @@ export async function regenerateGroup(noteId, targetLanguage, expectedParticipan
         const inputTokens = usage.prompt_tokens;
         const outputTokens = usage.completion_tokens;
         const basePrice = getNoteBasePrice(totalTokens);
-        const perParticipantPrice = getGroupPerParticipantPrice(basePrice, participantCount);
-        const totalCharge = getGroupTotalPrice(basePrice, participantCount);
-        const nextUnlockPrice = getGroupPerParticipantPrice(basePrice, participantCount + 1);
-        const heldAmount = getGroupPerParticipantPrice(WORST_CASE_NOTE_PRICE, participantCount);
+        const priceDiscountPercent = Number(note.price_discount_percent ?? 0);
+        const perParticipantPrice = getDiscountedGroupPerParticipantPrice(basePrice, participantCount, priceDiscountPercent);
+        const totalCharge = getDiscountedGroupTotalPrice(basePrice, participantCount, priceDiscountPercent);
+        const nextUnlockPrice = getDiscountedGroupPerParticipantPrice(basePrice, participantCount + 1, priceDiscountPercent);
+        const heldAmount = getDiscountedGroupPerParticipantPrice(
+            WORST_CASE_NOTE_PRICE,
+            participantCount,
+            priceDiscountPercent
+        );
 
         await sql.begin(async (tx) => {
             const [lockedNote] = await tx`
@@ -308,11 +321,13 @@ export async function regenerateGroup(noteId, targetLanguage, expectedParticipan
                 `;
                 if (!updatedUser) throw new Error(`Participant ${participant.user_id} no longer exists.`);
 
-                await tx`
-                    UPDATE note_access
-                    SET paid_amount = ${perParticipantPrice}
-                    WHERE note_id = ${noteId} AND user_id = ${participant.user_id}
-                `;
+                if (priceDiscountPercent < 100) {
+                    await tx`
+                        UPDATE note_access
+                        SET paid_amount = ${perParticipantPrice}
+                        WHERE note_id = ${noteId} AND user_id = ${participant.user_id}
+                    `;
+                }
 
                 await tx`
                     INSERT INTO activity (
@@ -327,14 +342,24 @@ export async function regenerateGroup(noteId, targetLanguage, expectedParticipan
                 `;
             }
 
-            await tx`
-                UPDATE note
-                SET status = 'completed', content = ${output}, created_at = NOW(),
-                    total_tokens = ${totalTokens}, input_tokens = ${inputTokens},
-                    output_tokens = ${outputTokens}, charge_amount = ${totalCharge},
-                    unlock_price = ${nextUnlockPrice}
-                WHERE id = ${noteId}
-            `;
+            if (priceDiscountPercent === 100) {
+                await tx`
+                    UPDATE note
+                    SET status = 'completed', content = ${output}, created_at = NOW(),
+                        total_tokens = ${totalTokens}, input_tokens = ${inputTokens},
+                        output_tokens = ${outputTokens}, unlock_price = 0
+                    WHERE id = ${noteId}
+                `;
+            } else {
+                await tx`
+                    UPDATE note
+                    SET status = 'completed', content = ${output}, created_at = NOW(),
+                        total_tokens = ${totalTokens}, input_tokens = ${inputTokens},
+                        output_tokens = ${outputTokens}, charge_amount = ${totalCharge},
+                        unlock_price = ${nextUnlockPrice}
+                    WHERE id = ${noteId}
+                `;
+            }
         });
 
         return { success: true };

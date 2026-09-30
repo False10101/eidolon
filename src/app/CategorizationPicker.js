@@ -60,7 +60,7 @@ export default function CategorizationPicker({ value, onChange, compact = false 
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="custom-scrollbar flex max-h-[112px] flex-wrap content-start gap-2 overflow-y-auto pr-1">
         {value && !currentBelongsToViewer && (
           <div className="flex w-full items-center gap-2 rounded-lg border border-[rgba(0,212,200,0.25)] bg-[rgba(0,212,200,0.06)] px-3 py-2 text-[12px] text-[var(--fg)]">
             <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: value.color || '#00d4c8' }} />

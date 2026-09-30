@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { requireAdmin } from "../_lib/requireAdmin";
+import { getDiscountedGroupPerParticipantPrice, normalizePriceDiscountPercent } from "@/lib/groupPricing";
+import { getNoteBasePrice } from "@/lib/notePricing";
 
 const MAX_ROWS = 300;
 const VALID_TYPES = new Set(["all", "note", "transcript"]);
@@ -56,6 +58,8 @@ function formatGeneration(row, resourceType) {
       storedCharge: numberOrZero(row.charge_amount),
       nextUnlock: row.unlock_price == null ? null : numberOrZero(row.unlock_price),
     },
+    discountPercent: numberOrZero(row.price_discount_percent),
+    canManageDiscount: Boolean(row.can_manage_discount),
     metadata: resourceType === "note"
       ? {
           style: row.style,
@@ -100,6 +104,12 @@ export async function GET(req) {
             sg.name AS group_name,
             n.charge_amount,
             n.unlock_price,
+            n.price_discount_percent,
+            EXISTS (
+              SELECT 1 FROM group_member admin_membership
+              WHERE admin_membership.group_id = n.group_id
+                AND admin_membership.user_id = ${admin.id}
+            ) AS can_manage_discount,
             n.style,
             n.total_tokens,
             access.unlock_count,
@@ -166,6 +176,8 @@ export async function GET(req) {
             sg.name AS group_name,
             t.charge_amount,
             t.unlock_price,
+            0::numeric AS price_discount_percent,
+            false AS can_manage_discount,
             t.duration,
             t.model,
             access.unlock_count,
@@ -241,4 +253,83 @@ export async function GET(req) {
       ),
     },
   });
+}
+
+export async function PATCH(req) {
+  const admin = await requireAdmin(req);
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  try {
+    const body = await req.json();
+    const discountPercent = normalizePriceDiscountPercent(body?.discountPercent);
+
+    const [membership] = await sql`
+      SELECT group_id
+      FROM group_member
+      WHERE user_id = ${admin.id}
+      LIMIT 1
+    `;
+    if (!membership) {
+      return NextResponse.json({ error: "Your admin account is not in a group." }, { status: 400 });
+    }
+
+    const updated = await sql.begin(async (tx) => {
+      const notes = body?.applyToMyGroup
+        ? await tx`
+            SELECT n.id, n.public_id, n.total_tokens,
+                   (SELECT COUNT(*)::int FROM note_access na WHERE na.note_id = n.id) AS participant_count
+            FROM note n
+            WHERE n.group_id = ${membership.group_id}
+              AND n.generation_type = 'group'
+              AND n.status = 'completed'
+            FOR UPDATE
+          `
+        : await tx`
+            SELECT n.id, n.public_id, n.total_tokens,
+                   (SELECT COUNT(*)::int FROM note_access na WHERE na.note_id = n.id) AS participant_count
+            FROM note n
+            WHERE n.public_id = ${body?.publicId ?? ''}
+              AND n.group_id = ${membership.group_id}
+              AND n.generation_type = 'group'
+              AND n.status = 'completed'
+            FOR UPDATE
+          `;
+
+      if (notes.length === 0) {
+        throw new Error(body?.applyToMyGroup ? 'No completed group notes were found.' : 'Eligible group note not found.');
+      }
+
+      const results = [];
+      for (const note of notes) {
+        const participantCount = Number(note.participant_count);
+        const nextUnlockPrice = participantCount > 0
+          ? getDiscountedGroupPerParticipantPrice(
+              getNoteBasePrice(note.total_tokens),
+              participantCount + 1,
+              discountPercent
+            )
+          : 0;
+
+        await tx`
+          UPDATE note
+          SET price_discount_percent = ${discountPercent},
+              unlock_price = ${nextUnlockPrice}
+          WHERE id = ${note.id}
+        `;
+        results.push({ publicId: note.public_id, nextUnlockPrice });
+      }
+
+      return results;
+    });
+
+    return NextResponse.json({
+      success: true,
+      updatedCount: updated.length,
+      discountPercent,
+      notes: updated,
+    });
+  } catch (error) {
+    console.error('PATCH /api/admin/generations failed:', error);
+    return NextResponse.json({ error: error.message || 'Could not update note discount.' }, { status: 400 });
+  }
 }

@@ -84,3 +84,6 @@ src/.DS_Store
 /scripts/reconstruct-drive-notes.mjs
 /scripts/import-reconstructed-drive-notes.mjs
 /scripts/restyle-imported-drive-notes.mjs
+
+# local product and marketing document
+/Eidolon_Product_and_Marketing_Guide.docx

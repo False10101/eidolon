@@ -75,11 +75,62 @@ export default function GenerationsAdminPage() {
   const [mode, setMode] = useState('all');
   const [expanded, setExpanded] = useState(null);
   const [truncated, setTruncated] = useState(false);
+  const [savingDiscount, setSavingDiscount] = useState(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [notice, setNotice] = useState('');
 
-  const apiFetch = useCallback(async (url) => {
+  const apiFetch = useCallback(async (url, options = {}) => {
     const token = await getAccessTokenSilently();
-    return fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }, [getAccessTokenSilently]);
+
+  const updateDiscount = async ({ publicId = null, discountPercent, applyToMyGroup = false }) => {
+    const savingKey = applyToMyGroup ? 'bulk' : publicId;
+    if (applyToMyGroup) setBulkSaving(true);
+    else setSavingDiscount(savingKey);
+    setError('');
+    setNotice('');
+
+    try {
+      const response = await apiFetch('/api/admin/generations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicId, discountPercent, applyToMyGroup }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || 'Could not update note discount');
+
+      setGenerations((current) => current.map((item) => {
+        const matches = item.resourceType === 'note'
+          && item.canManageDiscount
+          && (applyToMyGroup || item.publicId === publicId);
+        if (!matches) return item;
+        const updatedNote = data.notes?.find((note) => note.publicId === item.publicId);
+        return {
+          ...item,
+          discountPercent: data.discountPercent,
+          paid: {
+            ...item.paid,
+            nextUnlock: updatedNote?.nextUnlockPrice ?? item.paid.nextUnlock,
+          },
+        };
+      }));
+      setNotice(applyToMyGroup
+        ? `${data.updatedCount} group notes are now ${fmtCredit(data.discountPercent)}% off. Previous payments were not refunded.`
+        : `Discount updated to ${fmtCredit(data.discountPercent)}%. Previous payments were not refunded.`);
+    } catch (updateError) {
+      setError(updateError.message || 'Could not update note discount');
+    } finally {
+      if (applyToMyGroup) setBulkSaving(false);
+      else setSavingDiscount(null);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -192,9 +243,22 @@ export default function GenerationsAdminPage() {
                   <button key={value} onClick={() => setMode(value)} className={`rounded px-2.5 py-1 text-[10.5px] transition-all ${mode === value ? 'bg-[var(--surface-deep)] text-[var(--fg)]' : 'text-[var(--fg-4)] hover:text-[var(--fg-3)]'}`}>{label}</button>
                 ))}
               </div>
+              <button
+                type="button"
+                disabled={bulkSaving}
+                onClick={() => {
+                  if (window.confirm('Set every completed group note in your own group to 100% off? Previous payments will remain unchanged.')) {
+                    updateDiscount({ discountPercent: 100, applyToMyGroup: true });
+                  }
+                }}
+                className="rounded-lg border border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.08)] px-3 py-1.5 text-[10.5px] text-[#22c55e] transition-colors hover:bg-[rgba(34,197,94,0.13)] disabled:cursor-wait disabled:opacity-50"
+              >
+                {bulkSaving ? 'Applying…' : 'Make my group notes free'}
+              </button>
             </motion.div>
 
             {error && <motion.div variants={itemVariants} className="rounded-lg border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.08)] px-4 py-2.5 text-[12px] text-[#ef4444]">{error}</motion.div>}
+            {notice && <motion.div variants={itemVariants} className="rounded-lg border border-[rgba(34,197,94,0.25)] bg-[rgba(34,197,94,0.08)] px-4 py-2.5 text-[12px] text-[#22c55e]">{notice}</motion.div>}
 
             <motion.div variants={itemVariants} className="surface flex flex-1 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
               <div className="flex-1 overflow-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--surface-deep) transparent' }}>
@@ -257,7 +321,46 @@ export default function GenerationsAdminPage() {
                                     <div className="px-8 py-3">
                                       <div className="mb-2 flex items-center justify-between">
                                         <div className="text-[9.5px] uppercase tracking-[0.08em] text-[var(--fg-4)]">Access receipts</div>
-                                        <div className="text-[9.5px] text-[var(--fg-4)]">Stored resource charge: <span className="text-[var(--fg-3)]">{fmtCredit(item.paid.storedCharge)}</span></div>
+                                        <div className="flex items-center gap-3">
+                                          {item.canManageDiscount && item.resourceType === 'note' && (
+                                            <label className="flex items-center gap-2 text-[9.5px] text-[var(--fg-4)]">
+                                              Future unlock discount
+                                              <div className="flex items-center rounded-md border border-[var(--border)] bg-[var(--surface)] px-2">
+                                                <input
+                                                  key={`${item.publicId}-${item.discountPercent}`}
+                                                  type="number"
+                                                  min="0"
+                                                  max="100"
+                                                  step="1"
+                                                  defaultValue={item.discountPercent ?? 0}
+                                                  disabled={savingDiscount === item.publicId}
+                                                  onClick={(event) => event.stopPropagation()}
+                                                  onKeyDown={(event) => {
+                                                    if (event.key === 'Enter') {
+                                                      event.preventDefault();
+                                                      updateDiscount({ publicId: item.publicId, discountPercent: event.currentTarget.value });
+                                                    }
+                                                  }}
+                                                  className="w-11 bg-transparent py-1 text-right text-[10.5px] text-[var(--fg)] outline-none disabled:opacity-50"
+                                                />
+                                                <span className="text-[10px] text-[var(--fg-4)]">%</span>
+                                              </div>
+                                              <button
+                                                type="button"
+                                                disabled={savingDiscount === item.publicId}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  const input = event.currentTarget.parentElement?.querySelector('input');
+                                                  updateDiscount({ publicId: item.publicId, discountPercent: input?.value ?? item.discountPercent ?? 0 });
+                                                }}
+                                                className="rounded-md border border-[rgba(0,212,200,0.25)] px-2 py-1 text-[9.5px] text-[var(--accent)] transition-colors hover:bg-[rgba(0,212,200,0.07)] disabled:cursor-wait disabled:opacity-50"
+                                              >
+                                                {savingDiscount === item.publicId ? 'Saving…' : 'Save'}
+                                              </button>
+                                            </label>
+                                          )}
+                                          <div className="text-[9.5px] text-[var(--fg-4)]">Stored resource charge: <span className="text-[var(--fg-3)]">{fmtCredit(item.paid.storedCharge)}</span></div>
+                                        </div>
                                       </div>
                                       {item.participants.length === 0 ? (
                                         <div className="rounded-lg border border-[var(--border-faint)] px-3 py-2.5 text-[10.5px] text-[var(--fg-4)]">No group access receipts for this resource.</div>

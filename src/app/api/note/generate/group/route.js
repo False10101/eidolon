@@ -8,7 +8,11 @@ import languageMap from "@/lib/languageMap";
 import { rateLimit } from "@/lib/rateLimit";
 import { resolveCategorization } from "@/lib/categories";
 import { normalizeParticipantIds } from "@/lib/groupGeneration";
-import { getGroupPerParticipantPrice, getGroupTotalPrice } from "@/lib/groupPricing";
+import {
+    getDiscountedGroupPerParticipantPrice,
+    getDiscountedGroupTotalPrice,
+    normalizePriceDiscountPercent,
+} from "@/lib/groupPricing";
 import { WORST_CASE_NOTE_PRICE } from "@/lib/notePricing";
 
 // Exported so the worker can calculate the final price
@@ -77,6 +81,18 @@ export async function POST(req) {
     const name = formData.get('name');
     let language = formData.get('target_language') || null;
     const style = formData.get('style') || 'standard';
+    let priceDiscountPercent = 0;
+    try {
+        priceDiscountPercent = normalizePriceDiscountPercent(formData.get('price_discount_percent') || 0);
+    } catch (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (priceDiscountPercent > 0) {
+        const [admin] = await sql`SELECT role FROM "user" WHERE id = ${userId}`;
+        if (admin?.role !== 'admin') {
+            return NextResponse.json({ error: 'Only an admin can apply a note discount.' }, { status: 403 });
+        }
+    }
     const requestedCategorizationId = formData.get('categorization_id') || null;
     const categorizationId = await resolveCategorization(userId, requestedCategorizationId);
     if (requestedCategorizationId && !categorizationId) {
@@ -136,8 +152,16 @@ export async function POST(req) {
         return NextResponse.json({ error: "Some selected members are not in this group." }, { status: 400 });
     }
 
-    const perParticipantHold = getGroupPerParticipantPrice(WORST_CASE_NOTE_PRICE, members.length);
-    const totalHold = getGroupTotalPrice(WORST_CASE_NOTE_PRICE, members.length);
+    const perParticipantHold = getDiscountedGroupPerParticipantPrice(
+        WORST_CASE_NOTE_PRICE,
+        members.length,
+        priceDiscountPercent
+    );
+    const totalHold = getDiscountedGroupTotalPrice(
+        WORST_CASE_NOTE_PRICE,
+        members.length,
+        priceDiscountPercent
+    );
 
     const broke = members.find(m => parseFloat(m.balance) < perParticipantHold);
     if (broke) {
@@ -151,12 +175,12 @@ export async function POST(req) {
             INSERT INTO "note" (
                 name, created_at, user_id, group_id, status, public_id, style,
                 transcript_id, uploaded_filename, source_content, generation_type,
-                language, categorization_id, charge_amount, is_trial
+                language, categorization_id, charge_amount, is_trial, price_discount_percent
             )
             VALUES (
                 ${name}, NOW(), ${userId}, ${membership.group_id}, 'pending', ${publicId}, ${style},
                 ${transcriptDbId}, ${uploadedFilename}, ${sourceContent}, 'group',
-                ${language}, ${categorizationId}, ${totalHold}, false
+                ${language}, ${categorizationId}, ${totalHold}, false, ${priceDiscountPercent}
             )
             RETURNING id
         `;

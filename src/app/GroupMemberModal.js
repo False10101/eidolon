@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CreditIcon from '@/app/CreditIcon'; // Adjust path if needed
 import LocalCreditPrice from '@/app/LocalCreditPrice';
-import { getGroupPerParticipantPrice, getGroupTotalPrice } from '@/lib/groupPricing';
+import { getDiscountedGroupPerParticipantPrice, getDiscountedGroupTotalPrice } from '@/lib/groupPricing';
 
 export default function GroupMemberModal({ 
   isOpen, 
@@ -12,6 +12,7 @@ export default function GroupMemberModal({
   onConfirm, 
   members = [], 
   estimatedCost,
+  discountPercent = 0,
   costLabel = 'Est. Cost Per User'
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -46,10 +47,10 @@ export default function GroupMemberModal({
   const baseEstimate = Number(estimatedCost) || 0;
   
   const totalCostEstimate = selectedIds.size > 0
-    ? getGroupTotalPrice(baseEstimate, selectedIds.size)
+    ? getDiscountedGroupTotalPrice(baseEstimate, selectedIds.size, discountPercent)
     : 0;
   const perUserEstimate = selectedIds.size > 0
-    ? getGroupPerParticipantPrice(baseEstimate, selectedIds.size)
+    ? getDiscountedGroupPerParticipantPrice(baseEstimate, selectedIds.size, discountPercent)
     : baseEstimate;
   const formatCost = (value) => Number.isInteger(value) ? String(value) : value.toFixed(2);
 
@@ -156,9 +157,12 @@ export default function GroupMemberModal({
                   {costLabel}
                 </span>
                 <span className="flex items-center gap-1 font-mono text-[15px] font-semibold text-[var(--accent)]">
-                  {perUserEstimate ? `~${formatCost(perUserEstimate)}` : estimatedCost} <CreditIcon size={14} />
-                  <LocalCreditPrice credits={perUserEstimate || estimatedCost} />
+                  {perUserEstimate > 0 ? `~${formatCost(perUserEstimate)}` : 'FREE'} {perUserEstimate > 0 && <CreditIcon size={14} />}
+                  <LocalCreditPrice credits={perUserEstimate} />
                 </span>
+                {Number(discountPercent) > 0 && (
+                  <span className="mt-0.5 text-[10px] text-[#22c55e]">Admin discount: {Number(discountPercent)}% off</span>
+                )}
                 {selectedIds.size > 1 && (
                   <span className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--fg-3)]">
                     Total: {formatCost(totalCostEstimate)} <CreditIcon size={10} className="opacity-70" />

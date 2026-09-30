@@ -3,7 +3,7 @@ import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
 import { regenerateIndividual } from "@/lib/note/individual/generate";
 import { regenerateGroup } from "@/lib/note/group/generate";
-import { getGroupPerParticipantPrice } from "@/lib/groupPricing";
+import { getDiscountedGroupPerParticipantPrice } from "@/lib/groupPricing";
 import { WORST_CASE_NOTE_PRICE } from "@/lib/notePricing";
 import { rateLimit } from "@/lib/rateLimit";
 
@@ -120,9 +120,10 @@ export async function POST(req) {
                 }
                 participantIds = participants.map((participant) => participant.user_id);
 
-                const holdPerParticipant = getGroupPerParticipantPrice(
+                const holdPerParticipant = getDiscountedGroupPerParticipantPrice(
                     WORST_CASE_NOTE_PRICE,
-                    participantCount
+                    participantCount,
+                    note.price_discount_percent
                 );
                 const broke = participants.find(
                     (participant) => Number(participant.balance) < holdPerParticipant

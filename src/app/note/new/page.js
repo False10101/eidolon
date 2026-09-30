@@ -16,6 +16,7 @@ import NotesOnboard from '../NotesOnboard';
 import GroupMemberModal from '@/app/GroupMemberModal';
 import CategorizationPicker from '@/app/CategorizationPicker';
 import useEstimatedNoteProgress from '@/lib/useEstimatedNoteProgress';
+import { useAdmin } from '@/app/layout';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const COMPACTNESS_OPTIONS = [
@@ -87,6 +88,7 @@ export default function NewNotePage() {
   const router = useRouter();
   const t = useTranslations("notes");
   const { getAccessTokenSilently, user } = useAuth0();
+  const { isAdmin } = useAdmin();
 
   const [file, setFile] = useState(null);
   const [noteTitle, setNoteTitle] = useState('');
@@ -97,6 +99,7 @@ export default function NewNotePage() {
   const [categorization, setCategorization] = useState(null);
   const [freeGenerations, setFreeGenerations] = useState(0);
   const [isTranscriptFree, setIsTranscriptFree] = useState(false);
+  const [priceDiscountPercent, setPriceDiscountPercent] = useState(0);
 
   const [procStatus, setProcStatus] = useState('idle');
   const [currentStatus, setCurrentStatus] = useState('pending');
@@ -114,6 +117,7 @@ export default function NewNotePage() {
   });
 
   const isReady = (file || transcriptId) && noteTitle.trim().length > 0;
+  const isFreeGroupGeneration = genMode === 'group' && isAdmin && priceDiscountPercent === 100;
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -204,6 +208,9 @@ export default function NewNotePage() {
 
       if (mode === 'group' && selectedMemberIds.length > 0) {
         form.append('member_ids', JSON.stringify(selectedMemberIds));
+        if (isAdmin && priceDiscountPercent > 0) {
+          form.append('price_discount_percent', String(priceDiscountPercent));
+        }
       }
 
       const endpoint = mode === 'group'
@@ -390,9 +397,13 @@ export default function NewNotePage() {
             >
               <div className="flex flex-col gap-0.5">
                 <div className="text-[10.5px] uppercase tracking-[0.07em] text-[var(--fg-3)]">
-                  {(genMode === 'individual' && (isTranscriptFree || freeGenerations > 0)) ? 'Cost (Trial)' : t('estimatedCostLabel')}
+                  {isFreeGroupGeneration
+                    ? 'Cost (Admin discount)'
+                    : (genMode === 'individual' && (isTranscriptFree || freeGenerations > 0))
+                      ? 'Cost (Trial)'
+                      : t('estimatedCostLabel')}
                 </div>
-                {(genMode === 'individual' && (isTranscriptFree || freeGenerations > 0)) ? (
+                {(isFreeGroupGeneration || (genMode === 'individual' && (isTranscriptFree || freeGenerations > 0))) ? (
                   <div className="flex flex-col">
                     <span className="font-mono text-[14px] font-semibold text-[var(--fg-4)] line-through decoration-1 leading-none">
                       {costMap[compactness]} <CreditIcon size={12} className="opacity-50 inline-block mb-0.5" />
@@ -408,8 +419,29 @@ export default function NewNotePage() {
                     <LocalCreditPrice credits={costMap[compactness]} className="mt-0.5 text-[11px]" />
                   </span>
                 )}
+                {genMode === 'group' && isAdmin && priceDiscountPercent > 0 && priceDiscountPercent < 100 && (
+                  <span className="mt-1 text-[10px] text-[#22c55e]">{priceDiscountPercent}% admin discount applied in member selection</span>
+                )}
               </div>
               <div className="flex items-center gap-2">
+                {isAdmin && genMode === 'group' && (
+                  <label className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5">
+                    <span className="text-[10px] uppercase tracking-[0.05em] text-[var(--fg-4)]">Admin discount</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={priceDiscountPercent}
+                      onChange={(event) => {
+                        const value = Math.max(0, Math.min(100, Number(event.target.value) || 0));
+                        setPriceDiscountPercent(value);
+                      }}
+                      className="w-10 bg-transparent text-right text-[12px] font-medium text-[var(--accent)] outline-none"
+                    />
+                    <span className="text-[11px] text-[var(--fg-4)]">%</span>
+                  </label>
+                )}
                 {/* Mode toggle */}
                 <div className="flex rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] p-1">
                   <button onClick={() => setGenMode('individual')}
@@ -458,6 +490,7 @@ export default function NewNotePage() {
                   onClose={() => setIsGroupModalOpen(false)}
                   members={groupMembers} // Pass your JSON here
                   estimatedCost={37}
+                  discountPercent={isAdmin ? priceDiscountPercent : 0}
                   costLabel="Maximum Hold Per User"
                   onConfirm={(selectedIds) => {
                     setIsGroupModalOpen(false);

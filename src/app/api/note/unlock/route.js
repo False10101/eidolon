@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/storage/db";
 import { verifyUserData } from "@/lib/auth/verify";
-import { getGroupPerParticipantPrice, getGroupTotalPrice } from "@/lib/groupPricing";
+import { getDiscountedGroupPerParticipantPrice } from "@/lib/groupPricing";
 import { getNoteBasePrice } from "@/lib/notePricing";
 
 class RequestError extends Error {
@@ -23,7 +23,8 @@ export async function POST(req) {
 
         await sql.begin(async (tx) => {
             const [note] = await tx`
-                SELECT id, name, generation_type, status, user_id, total_tokens, group_id
+                SELECT id, name, generation_type, status, user_id, total_tokens, group_id,
+                       charge_amount, price_discount_percent
                 FROM note
                 WHERE public_id = ${publicId}
                 FOR UPDATE
@@ -58,16 +59,17 @@ export async function POST(req) {
             const currentCount = existingAccess.length;
             const newCount = currentCount + 1;
             const basePrice = getNoteBasePrice(note.total_tokens);
-            const newPerParticipantPrice = getGroupPerParticipantPrice(basePrice, newCount);
-            const newTotalCharge = getGroupTotalPrice(basePrice, newCount);
-            nextUnlockPrice = getGroupPerParticipantPrice(basePrice, newCount + 1);
-
-            for (const participant of existingAccess) {
-                const paidAmount = Number(participant.paid_amount);
-                if (paidAmount + Number.EPSILON < newPerParticipantPrice) {
-                    throw new RequestError('Existing participant payment data is inconsistent.', 409);
-                }
-            }
+            const priceDiscountPercent = Number(note.price_discount_percent ?? 0);
+            const newPerParticipantPrice = getDiscountedGroupPerParticipantPrice(
+                basePrice,
+                newCount,
+                priceDiscountPercent
+            );
+            nextUnlockPrice = getDiscountedGroupPerParticipantPrice(
+                basePrice,
+                newCount + 1,
+                priceDiscountPercent
+            );
 
             const [unlockingUser] = await tx`
                 UPDATE "user"
@@ -77,39 +79,41 @@ export async function POST(req) {
             `;
             if (!unlockingUser) throw new RequestError('Insufficient balance.');
 
-            for (const participant of existingAccess) {
-                const paidAmount = Number(participant.paid_amount);
-                const refundAmount = Number((paidAmount - newPerParticipantPrice).toFixed(2));
+            if (priceDiscountPercent === 0) {
+                for (const participant of existingAccess) {
+                    const paidAmount = Number(participant.paid_amount);
+                    const refundAmount = Math.max(0, Number((paidAmount - newPerParticipantPrice).toFixed(2)));
 
-                if (refundAmount > 0) {
-                    const [updatedParticipant] = await tx`
-                        UPDATE "user"
-                        SET balance = balance + ${refundAmount}
-                        WHERE id = ${participant.user_id}
-                        RETURNING balance
-                    `;
-                    if (!updatedParticipant) {
-                        throw new RequestError(`Participant ${participant.user_id} no longer exists.`, 409);
+                    if (refundAmount > 0) {
+                        const [updatedParticipant] = await tx`
+                            UPDATE "user"
+                            SET balance = balance + ${refundAmount}
+                            WHERE id = ${participant.user_id}
+                            RETURNING balance
+                        `;
+                        if (!updatedParticipant) {
+                            throw new RequestError(`Participant ${participant.user_id} no longer exists.`, 409);
+                        }
+
+                        await tx`
+                            INSERT INTO activity (
+                                type, title, status, user_id, respective_table_id,
+                                date, charge_amount, balance_after
+                            )
+                            VALUES (
+                                'rebate', ${`Group discount rebate: ${note.name}`}, 'completed',
+                                ${participant.user_id}, ${note.id}, NOW(), ${-refundAmount},
+                                ${updatedParticipant.balance}
+                            )
+                        `;
+
+                        await tx`
+                            UPDATE note_access
+                            SET paid_amount = ${newPerParticipantPrice}
+                            WHERE note_id = ${note.id} AND user_id = ${participant.user_id}
+                        `;
                     }
-
-                    await tx`
-                        INSERT INTO activity (
-                            type, title, status, user_id, respective_table_id,
-                            date, charge_amount, balance_after
-                        )
-                        VALUES (
-                            'rebate', ${`Group discount rebate: ${note.name}`}, 'completed',
-                            ${participant.user_id}, ${note.id}, NOW(), ${-refundAmount},
-                            ${updatedParticipant.balance}
-                        )
-                    `;
                 }
-
-                await tx`
-                    UPDATE note_access
-                    SET paid_amount = ${newPerParticipantPrice}
-                    WHERE note_id = ${note.id} AND user_id = ${participant.user_id}
-                `;
             }
 
             await tx`
@@ -131,9 +135,14 @@ export async function POST(req) {
                 )
             `;
 
+            const [actualCharge] = await tx`
+                SELECT COALESCE(SUM(paid_amount), 0) AS total
+                FROM note_access
+                WHERE note_id = ${note.id}
+            `;
             await tx`
                 UPDATE note
-                SET charge_amount = ${newTotalCharge}, unlock_price = ${nextUnlockPrice}
+                SET charge_amount = ${Number(actualCharge.total)}, unlock_price = ${nextUnlockPrice}
                 WHERE id = ${note.id}
             `;
         });

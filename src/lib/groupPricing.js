@@ -39,3 +39,30 @@ export function getGroupTotalPrice(basePrice, participantCount) {
     const perParticipant = getGroupPerParticipantPrice(basePrice, count);
     return Number((perParticipant * count).toFixed(2));
 }
+
+export function normalizePriceDiscountPercent(value) {
+    const percent = Number(value ?? 0);
+    if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        throw new Error('Discount percentage must be between 0 and 100.');
+    }
+    return Number(percent.toFixed(2));
+}
+
+export function getDiscountedGroupPerParticipantPrice(basePrice, participantCount, discountPercent = 0) {
+    const count = normalizeParticipantCount(participantCount);
+    if (count === 0) throw new Error('At least one participant is required.');
+
+    const base = Number(basePrice);
+    if (!Number.isFinite(base) || base < 0) throw new Error('Invalid base price.');
+
+    const adminDiscount = normalizePriceDiscountPercent(discountPercent) / 100;
+    if (adminDiscount === 1) return 0;
+    const groupDiscount = getGroupDiscount(count);
+    return ceilCredits(base * (1 - groupDiscount) * (1 - adminDiscount));
+}
+
+export function getDiscountedGroupTotalPrice(basePrice, participantCount, discountPercent = 0) {
+    const count = normalizeParticipantCount(participantCount);
+    const perParticipant = getDiscountedGroupPerParticipantPrice(basePrice, count, discountPercent);
+    return Number((perParticipant * count).toFixed(2));
+}
